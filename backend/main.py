@@ -131,6 +131,7 @@ def health():
     env_exists = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON') is not None
     diag = {
         "status": "ok",
+        "version": "1.0.2-vercel",
         "server_time": datetime.datetime.now().isoformat(),
         "database": os.path.exists(os.path.join(os.path.dirname(__file__), 'partflow.db')),
         "credentials_source": "environment" if env_exists else "file",
