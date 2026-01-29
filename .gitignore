@@ -31,4 +31,5 @@ dist-ssr
 !manifest.json
 !manifest.webmanifest
 !capacitor.config.json
+!vercel.json
 !src/config/*.json

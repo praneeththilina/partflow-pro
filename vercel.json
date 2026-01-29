@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "backend/main.py"
+    },
+    {
+      "source": "/login",
+      "destination": "backend/main.py"
+    },
+    {
+      "source": "/register",
+      "destination": "backend/main.py"
+    },
+    {
+      "source": "/sync",
+      "destination": "backend/main.py"
+    },
+    {
+      "source": "/health",
+      "destination": "backend/main.py"
+    },
+    {
+      "source": "/cron/(.*)",
+      "destination": "backend/main.py"
+    }
+  ],
+  "functions": {
+    "backend/main.py": {
+      "runtime": "vercel-python@3.12"
+    }
+  }
+}
