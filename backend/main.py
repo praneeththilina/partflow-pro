@@ -1,5 +1,7 @@
 import os
 import json
+import traceback
+import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from google.oauth2 import service_account
@@ -22,38 +24,6 @@ def check_auth():
         return False
     return True
 
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    full_name = data.get('full_name')
-    
-    if not username or not password:
-        return jsonify({"success": False, "message": "Username and password required"}), 400
-        
-    success = create_user(username, password, full_name)
-    if success:
-        return jsonify({"success": True, "message": "User registered successfully"})
-    else:
-        return jsonify({"success": False, "message": "Username already exists"}), 400
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    
-    user = authenticate_user(username, password)
-    if user:
-        return jsonify({
-            "success": True, 
-            "user": user,
-            "token": API_KEY # For now we use the same key, can be expanded to JWT
-        })
-    else:
-        return jsonify({"success": False, "message": "Invalid credentials"}), 401
-
 # Path to the JSON key
 SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), 'config', 'service-account.json')
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -64,136 +34,42 @@ def get_sheets_service():
         raise FileNotFoundError(f"Service account file not found at {SERVICE_ACCOUNT_FILE}")
     
     try:
-        # Load and potentially fix the JSON key
-        with open(SERVICE_ACCOUNT_FILE, 'r') as f:
-            config = json.load(f)
-        
-        # Robust private key normalization
-        if 'private_key' in config:
-            key = config['private_key']
+        # 1. Try simple file loading first (most standard)
+        try:
+            creds = service_account.Credentials.from_service_account_file(
+                SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+            return build('sheets', 'v4', credentials=creds)
+        except Exception as file_error:
+            print(f"Standard file load failed: {file_error}. Trying manual normalization...")
             
-            # 1. Replace literal \n strings with actual newlines
-            if '\\n' in key:
-                print("INFO: Fixing double-escaped newlines in private key...")
-                key = key.replace('\\n', '\n')
+            # 2. Manual normalization fallback (for copy-paste issues)
+            with open(SERVICE_ACCOUNT_FILE, 'r') as f:
+                config = json.load(f)
             
-            # 2. Remove surrounding quotes if they were added during copy-paste
-            key = key.strip().strip('"').strip("'")
+            if 'private_key' in config:
+                key = config['private_key']
+                # Replace literal escaped newlines
+                if '\\n' in key:
+                    key = key.replace('\\n', '\n')
+                # Remove accidental extra quotes
+                key = key.strip().strip('"').strip("'")
+                config['private_key'] = key
+                
+            creds = service_account.Credentials.from_service_account_info(
+                config, scopes=SCOPES)
+            return build('sheets', 'v4', credentials=creds)
             
-            # 3. Ensure it starts and ends with the correct headers
-            if not key.startswith('-----BEGIN PRIVATE KEY-----'):
-                print("WARNING: Private key missing BEGIN header!")
-            if not key.endswith('-----END PRIVATE KEY-----'):
-                # Some editors might clip the end, try to fix common issue
-                if '-----END PRIVATE KEY-----' in key:
-                    key = key[:key.find('-----END PRIVATE KEY-----') + 25]
-                else:
-                    print("WARNING: Private key missing END header!")
-            
-            config['private_key'] = key
-            
-        key_len = len(config.get('private_key', ''))
-        print(f"Service Account loaded. Email: {config.get('client_email')}. Key length: {key_len}")
-        
-        if key_len < 100:
-            print("WARNING: Private key seems too short or missing!")
-
-        creds = service_account.Credentials.from_service_account_info(
-            config, scopes=SCOPES)
-        return build('sheets', 'v4', credentials=creds)
     except Exception as e:
-        print(f"AUTHENTICATION ERROR: {str(e)}")
-        # Provide more context for invalid_grant
-        if "invalid_grant" in str(e):
-            print("HINT: This usually means the private key is formatted incorrectly or the server time is wrong.")
+        print("AUTHENTICATION ERROR TRACEBACK:")
+        traceback.print_exc()
         raise e
-
-def ensure_headers(service, spreadsheet_id, sheet_name, headers):
-    try:
-        # Check if sheet exists
-        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-        sheets = spreadsheet.get('sheets', [])
-        sheet_exists = any(s['properties']['title'] == sheet_name for s in sheets)
-
-        if not sheet_exists:
-            body = {
-                'requests': [{
-                    'addSheet': {
-                        'properties': {'title': sheet_name}
-                    }
-                }]
-            }
-            service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
-
-        # Get existing headers
-        result = service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1:Z1").execute()
-        
-        existing_values = result.get('values', [[]])
-        existing_headers = existing_values[0] if existing_values else []
-
-        if not existing_headers:
-            body = {'values': [headers]}
-            service.spreadsheets().values().update(
-                spreadsheetId=spreadsheet_id,
-                range=f"'{sheet_name}'!A1",
-                valueInputOption='RAW',
-                body=body
-            ).execute()
-    except HttpError as err:
-        print(f"Error in ensure_headers for {sheet_name}: {err}")
-        raise err
-
-def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
-    """
-    Fetches the sheet, merges data based on an ID column, and writes back.
-    This prevents duplicates and handles updates.
-    """
-    if not data:
-        return
-    
-    range_name = f"'{sheet_name}'!A:Z"
-    result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-    rows = result.get('values', [])
-    
-    if not rows:
-        rows = [headers]
-    else:
-        # Ensure headers match or at least exist
-        if not rows[0]:
-            rows[0] = headers
-            
-    # Create a lookup of ID -> row index
-    id_map = {}
-    for i, row in enumerate(rows):
-        if i == 0: continue # Skip header
-        if len(row) > id_column_index:
-            id_map[str(row[id_column_index])] = i
-            
-    # Merge new data
-    for new_row in data:
-        new_id = str(new_row[id_column_index])
-        if new_id in id_map:
-            index = id_map[new_id]
-            # Update existing row (keeping existing columns if new_row is shorter, but here we usually send full)
-            rows[index] = new_row
-        else:
-            rows.append(new_row)
-            
-    # Write back the entire merged set
-    body = {'values': rows}
-    service.spreadsheets().values().update(
-        spreadsheetId=spreadsheet_id,
-        range=f"'{sheet_name}'!A1",
-        valueInputOption='USER_ENTERED',
-        body=body
-    ).execute()
 
 @app.route('/health', methods=['GET'])
 def health():
     # Basic diagnostic info for the user
     diag = {
         "status": "ok",
+        "server_time": datetime.datetime.now().isoformat(),
         "database": os.path.exists(os.path.join(os.path.dirname(__file__), 'partflow.db')),
         "credentials_file": os.path.exists(SERVICE_ACCOUNT_FILE)
     }
@@ -203,13 +79,19 @@ def health():
             with open(SERVICE_ACCOUNT_FILE, 'r') as f:
                 config = json.load(f)
                 diag["client_email"] = config.get("client_email")
-                diag["key_length"] = len(config.get("private_key", ""))
-                diag["key_has_newlines"] = "\n" in config.get("private_key", "")
-                diag["key_has_escaped_newlines"] = "\\n" in config.get("private_key", "")
+                diag["project_id"] = config.get("project_id")
+                
+                key = config.get("private_key", "")
+                diag["key_length"] = len(key)
+                diag["key_has_newlines"] = "\n" in key
+                diag["key_has_escaped_newlines"] = "\\n" in key
+                diag["key_starts_with_header"] = key.startswith("-----BEGIN")
+                diag["key_ends_with_footer"] = "-----END" in key
         except Exception as e:
             diag["credentials_error"] = str(e)
             
     return jsonify(diag)
+
 
 @app.route('/cron/keepalive', methods=['GET'])
 def keepalive():
