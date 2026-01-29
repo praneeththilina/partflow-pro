@@ -1,7 +1,12 @@
 import os
+import sys
 import json
 import traceback
 import datetime
+
+# Ensure the current directory is in the path for Vercel
+sys.path.append(os.path.dirname(__file__))
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from google.oauth2 import service_account
