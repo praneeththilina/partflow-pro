@@ -31,3 +31,4 @@ dist-ssr
 !manifest.json
 !manifest.webmanifest
 !capacitor.config.json
+!src/config/*.json
