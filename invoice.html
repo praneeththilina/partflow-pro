@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - VM-1626</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .invoice-container {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Typography */
+        h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+        p { margin: 2px 0; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: bold; }
+
+        /* Header Section */
+        .header {
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .company-name {
+            font-size: 28px;
+            font-weight: 900;
+            color: #000;
+        }
+
+        .invoice-title {
+            font-size: 22px;
+            text-decoration: underline;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        /* Info Section */
+        .info-grid {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .bill-to {
+            width: 50%;
+        }
+
+        .invoice-meta {
+            width: 40%;
+        }
+
+        .meta-row {
+            display: flex;
+            margin-bottom: 3px;
+        }
+
+        .meta-label {
+            width: 100px;
+            font-weight: bold;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        td {
+            border: 1px solid #ccc;
+            padding: 6px 8px;
+            vertical-align: top;
+        }
+
+        .col-no { width: 5%; text-align: center; }
+        .col-desc { width: 55%; }
+        .col-qty { width: 10%; text-align: center; }
+        .col-price { width: 15%; text-align: right; }
+        .col-amount { width: 15%; text-align: right; }
+
+        /* Summary Section */
+        .summary-container {
+            width: 40%;
+            margin-left: auto;
+            margin-bottom: 30px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .total-box {
+            border-top: 1px solid #000;
+            border-bottom: 4px double #000;
+            font-size: 16px;
+            margin-top: 5px;
+            padding: 5px 0;
+        }
+
+        /* Footer Section */
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            margin-bottom: 40px;
+        }
+
+        .sig-box {
+            width: 30%;
+            border-top: 1px dashed #999;
+            text-align: center;
+            padding-top: 5px;
+            font-size: 11px;
+        }
+
+        /* Print Planning for >30 Items */
+        @media print {
+            body { background: none; }
+            .invoice-container {
+                margin: 0;
+                box-shadow: none;
+                width: 100%;
+            }
+            
+            /* Ensures summary and signatures stay together */
+            .no-break {
+                page-break-inside: avoid;
+            }
+
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            
+            button { display: none; }
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #000;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn" onclick="window.print()">Print Invoice</button>
+
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="header text-center">
+            <div class="company-name">VIDUSHAN MOTORS</div>
+            <p>NO:16/4A CONSTANTINE LANE, KORALAWELLA, MORATUWA.</p>
+            <p>Tel: 011-2658075 / 077-3316434</p>
+            <p>Email: vidushan.motors@gmail.com</p>
+            <div class="invoice-title">INVOICE</div>
+        </div>
+
+        <!-- Info Grid -->
+        <div class="info-grid">
+            <div class="bill-to">
+                <p class="font-bold">Bill To:</p>
+                <p>Progress Traders</p>
+                <p>186/C, Kirindiwita Road,</p>
+                <p>Ganemulla.</p>
+                <p>071-8564413</p>
+            </div>
+            <div class="invoice-meta">
+                <div class="meta-row">
+                    <span class="meta-label">Date:</span>
+                    <span>04-06-2025</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Invoice No:</span>
+                    <span>VM-1626</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Rep Name:</span>
+                    <span>A</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Terms:</span>
+                    <span>CREDIT 90 DAYS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-no">No</th>
+                    <th class="col-desc">Description</th>
+                    <th class="col-qty">Quantity</th>
+                    <th class="col-price">Price Each</th>
+                    <th class="col-amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Current Data -->
+                <tr>
+                    <td class="col-no">1</td>
+                    <td class="col-desc">Hanger Bush- DIO - A</td>
+                    <td class="col-qty">20</td>
+                    <td class="col-price">350.00</td>
+                    <td class="col-amount">7,000.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">2</td>
+                    <td class="col-desc">Ignition Coil - PLEASURE-BIKE KING - IND</td>
+                    <td class="col-qty">1</td>
+                    <td class="col-price">1,120.00</td>
+                    <td class="col-amount">1,120.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">3</td>
+                    <td class="col-desc">Ignition Coil-(Black)-PULSAR180-BIKE KING-IND</td>
+                    <td class="col-qty">2</td>
+                    <td class="col-price">1,120.00</td>
+                    <td class="col-amount">2,240.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">4</td>
+                    <td class="col-desc">Ignition Coil(WHITE)-KB4S-BIKE KING- IND</td>
+                    <td class="col-qty">2</td>
+                    <td class="col-price">1,120.00</td>
+                    <td class="col-amount">2,240.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">5</td>
+                    <td class="col-desc">Throttle Cable-DIS 135 - VENDERS - IND</td>
+                    <td class="col-qty">5</td>
+                    <td class="col-price">520.00</td>
+                    <td class="col-amount">2,600.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">6</td>
+                    <td class="col-desc">Throttle Cable - FZ V2 - VENDERS - IND</td>
+                    <td class="col-qty">5</td>
+                    <td class="col-price">720.00</td>
+                    <td class="col-amount">3,600.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">7</td>
+                    <td class="col-desc">CHAIN LINK-420-CHINA</td>
+                    <td class="col-qty">20</td>
+                    <td class="col-price">26.00</td>
+                    <td class="col-amount">520.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">8</td>
+                    <td class="col-desc">Miscellaneous Item</td>
+                    <td class="col-qty">3</td>
+                    <td class="col-price">1,040.00</td>
+                    <td class="col-amount">3,120.00</td>
+                </tr>
+                <tr>
+                    <td class="col-no">9</td>
+                    <td class="col-desc">Clutch Plate Set - MD 90-ALIS GP CHI / GRIP COVER-DONEX-(BLACK)-IND</td>
+                    <td class="col-qty">14</td>
+                    <td class="col-price">390.00</td>
+                    <td class="col-amount">5,460.00</td>
+                </tr>
+                <!-- Spacer for layout consistency -->
+                <tr style="height: 100px;">
+                    <td></td><td></td><td></td><td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Summary & Footer (no-break section) -->
+        <div class="no-break">
+            <div class="summary-container">
+                <div class="summary-row">
+                    <span>Sub Total</span>
+                    <span>27,900.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Discount (30%)</span>
+                    <span>-8,370.00</span>
+                </div>
+                <div class="summary-row total-box font-bold">
+                    <span>Total</span>
+                    <span>Rs. 19,530.00</span>
+                </div>
+            </div>
+
+            <div class="signatures">
+                <div class="sig-box">Customer Signature</div>
+                <div class="sig-box">Signature of Sales Rep</div>
+                <div class="sig-box">Checked by</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

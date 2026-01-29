@@ -1,0 +1,370 @@
+This is a solid, real world system. Not a toy app. It sits right between accounting discipline and messy field sales reality, which makes the logic more important than the UI polish. Let’s build it like an auditor would trust it and a sales rep would actually use it. 🧠📦
+
+Below is a **full logical workflow and a development todo list**, written from front end behavior backward to data, sync, and Google Sheets.
+
+---
+
+## 1. Big picture architecture (simple but resilient)
+
+Think in **three layers**, always kept separate.
+
+### A. Front end app
+
+Mobile first. Works fully offline.
+Sales rep can do everything without internet.
+
+### B. Local database
+
+Single local DB file. SQLite or similar.
+This is the source of truth while offline.
+
+### C. Google Sheets (via API)
+
+Acts as central shared database.
+Sync is manual and visible, never silent.
+
+Key principle:
+**Nothing depends on live internet. Sync is an action, not a background magic trick.**
+
+---
+
+## 2. Core entities and data model
+
+### 2.1 Customer (Spare part shop)
+
+Fields:
+
+* customer_id (local UUID)
+* shop_name
+* address
+* phone
+* city_ref
+* discount_rate (default)
+* status (active, inactive)
+* created_at
+* updated_at
+* sync_status (synced, pending, conflict)
+
+Rules:
+
+* Discount rate auto applies to orders unless overridden.
+* Customer cannot be deleted if orders exist.
+* Inactive customers can still appear in history.
+
+---
+
+### 2.2 Item (Spare part)
+
+Fields:
+
+* item_id
+* item_display_name
+* item_number
+* item_name
+* vehicle_model
+* source_brand (China, India, Japan, etc)
+* unit_value
+* current_stock_qty
+* status (active, discontinued)
+* created_at
+* updated_at
+* sync_status
+
+Rules:
+
+* Stock is reduced only when an order is confirmed.
+* Stock edits are tracked as adjustments.
+* Discontinued items cannot be added to new orders.
+
+---
+
+### 2.3 Order (Header)
+
+Fields:
+
+* order_id
+* customer_id
+* order_date
+* discount_rate (copied from customer but editable)
+* gross_total
+* discount_value
+* net_total
+* order_status (draft, confirmed, invoiced)
+* sync_status
+* created_at
+* updated_at
+
+Rules:
+
+* Draft orders do not affect stock.
+* Confirmed orders reduce stock.
+* Invoiced orders generate PDF and are locked.
+
+---
+
+### 2.4 Order line items
+
+Fields:
+
+* line_id
+* order_id
+* item_id
+* quantity
+* unit_value
+* line_total
+* sync_status
+
+Rules:
+
+* Quantity must not exceed available stock.
+* Unit value is copied from item but editable if pricing varies.
+
+---
+
+### 2.5 Company settings (Bill header)
+
+Fields:
+
+* company_name
+* address
+* phone
+* email
+* logo_path
+* invoice_prefix
+* footer_note
+
+Rules:
+
+* Editable only by admin role.
+* Used in every PDF invoice.
+* Stored locally and synced.
+
+---
+
+## 3. Front end workflow (how the rep actually works)
+
+### Step 1: App open
+
+* Load local DB
+* Show sync status badge
+* Show pending changes count
+
+No internet required.
+
+---
+
+### Step 2: Customer selection
+
+* Search by shop name or city
+* View customer discount rate
+* Option to create new customer
+
+Creating customer marks it as **pending sync**.
+
+---
+
+### Step 3: Order creation
+
+* Create new order
+* Auto apply customer discount
+* Order starts as **draft**
+
+---
+
+### Step 4: Add items to order
+
+* Search item by name, number, vehicle model
+* Show current stock live from local DB
+* Enter quantity
+* App calculates line total instantly
+
+If quantity > stock, block with clear message.
+
+---
+
+### Step 5: Review order
+
+* Show gross total
+* Show discount value
+* Show net total
+* Edit discount if needed
+
+---
+
+### Step 6: Confirm order
+
+* Lock order lines
+* Reduce local stock
+* Mark order as confirmed
+* Mark stock changes as pending sync
+
+This is the critical accounting moment.
+
+---
+
+### Step 7: Generate invoice PDF
+
+* Pull company settings
+* Generate invoice number
+* Save PDF locally
+* Allow share via WhatsApp, email, etc
+
+PDF generation never needs internet.
+
+---
+
+### Step 8: Sync (manual action)
+
+User taps “Sync now”.
+
+App:
+
+* Pushes pending customers
+* Pushes items
+* Pushes orders and lines
+* Updates Google Sheet rows
+* Marks synced records as synced
+
+Any failure leaves records as pending.
+
+---
+
+## 4. Google Sheets structure (very important)
+
+Each entity = one sheet.
+
+* Customers
+* Items
+* Orders
+* OrderLines
+* StockAdjustments
+* CompanySettings
+
+Each row must include:
+
+* primary_id
+* updated_at
+* last_synced_at
+
+This allows conflict detection later.
+
+---
+
+## 5. Sync logic (do not over complicate)
+
+### Sync rules:
+
+* Only push local changes upward
+* Never auto pull overwriting local data
+* Show conflict if same record changed in sheet
+
+Conflict handling:
+
+* Show both versions
+* Let user choose which wins
+
+No silent merges.
+
+---
+
+## 6. Pending sync visibility (non negotiable)
+
+UI must show:
+
+* Pending customers count
+* Pending orders count
+* Pending stock changes count
+
+Each list clickable to see details.
+
+This builds trust.
+
+---
+
+## 7. Full development todo list
+
+### Phase 1: Data foundation
+
+* Design local DB schema
+* Implement CRUD for all entities
+* Add sync_status field everywhere
+* Seed test data
+
+---
+
+### Phase 2: Customer module
+
+* Customer list with search
+* Create, edit, deactivate customer
+* Discount rate handling
+* Pending sync indicator
+
+---
+
+### Phase 3: Item and stock module
+
+* Item list with filters
+* Stock display logic
+* Stock adjustment tracking
+* Prevent negative stock
+
+---
+
+### Phase 4: Order module
+
+* Draft order creation
+* Line item add, edit, remove
+* Discount logic
+* Totals calculation
+* Order status transitions
+
+---
+
+### Phase 5: Invoice module
+
+* Invoice number logic
+* PDF layout design
+* Company header integration
+* Local storage and share
+
+---
+
+### Phase 6: Sync engine
+
+* Google Sheets API auth
+* Row mapping logic
+* Push pending records
+* Error handling and retry
+* Conflict detection
+
+---
+
+### Phase 7: UI polish and safety
+
+* Clear error messages
+* Offline indicators
+* Confirmation dialogs
+* Read only views for invoiced orders
+
+---
+
+### Phase 8: Audit readiness
+
+* Immutable invoices
+* Change logs
+* Stock movement history
+* Simple export for audit
+
+---
+
+## 8. Final design philosophy
+
+This app should feel boring in the best way.
+No surprises. No silent actions. No magic.
+
+Every number should be explainable.
+Every sync should be visible.
+Every PDF should be reproducible.
+
+That is how field sales tools earn trust. 🔧📊
+
