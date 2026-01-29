@@ -128,23 +128,34 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 @app.route('/health', methods=['GET'])
 def health():
     import datetime
-    env_exists = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON') is not None
+    # Check for the secret with and without quotes
+    env_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    env_exists = env_raw is not None
+    
     diag = {
         "status": "ok",
-        "version": "1.0.2-vercel",
+        "version": "1.0.3-vercel-resilient",
         "server_time": datetime.datetime.now().isoformat(),
         "database": os.path.exists(os.path.join(os.path.dirname(__file__), 'partflow.db')),
         "credentials_source": "environment" if env_exists else "file",
-        "credentials_file_exists": os.path.exists(SERVICE_ACCOUNT_FILE)
+        "env_check": {
+            "exists": env_exists,
+            "length": len(env_raw) if env_exists else 0,
+            "starts_with_brace": env_raw.strip().startswith('{') if env_exists else False
+        }
     }
     
     config = None
-    env_data = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    if env_exists and env_data:
+    if env_exists:
         try:
-            config = json.loads(env_data)
-        except: pass
-    elif diag["credentials_file_exists"]:
+            cleaned = env_raw.strip()
+            if (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
+                cleaned = cleaned[1:-1]
+            config = json.loads(cleaned)
+        except Exception as e:
+            diag["env_error"] = str(e)
+    
+    if not config and os.path.exists(SERVICE_ACCOUNT_FILE):
         try:
             with open(SERVICE_ACCOUNT_FILE, 'r') as f:
                 config = json.load(f)
@@ -157,8 +168,7 @@ def health():
             "length": len(key),
             "has_newlines": "\n" in key,
             "has_escaped_newlines": "\\n" in key,
-            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----"),
-            "ends_with_footer": "-----END PRIVATE KEY-----" in key
+            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----")
         }
         try:
             from google.auth import crypt, jwt
