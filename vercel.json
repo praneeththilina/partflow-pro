@@ -2,33 +2,28 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "backend/main.py"
-    },
-    {
       "source": "/login",
-      "destination": "backend/main.py"
+      "destination": "api/index.py"
     },
     {
       "source": "/register",
-      "destination": "backend/main.py"
+      "destination": "api/index.py"
     },
     {
       "source": "/sync",
-      "destination": "backend/main.py"
+      "destination": "api/index.py"
     },
     {
       "source": "/health",
-      "destination": "backend/main.py"
+      "destination": "api/index.py"
     },
     {
       "source": "/cron/(.*)",
-      "destination": "backend/main.py"
+      "destination": "api/index.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "backend/main.py": {
-      "runtime": "vercel-python@3.12"
-    }
-  }
+  ]
 }
