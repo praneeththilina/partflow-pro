@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { SyncStats } from '../types';
+import { API_CONFIG } from '../config';
 
 interface SyncDashboardProps {
     onSyncComplete: () => void;
@@ -12,9 +13,7 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
     const [logs, setLogs] = useState<string[]>([]);
     const [sheetId, setSheetId] = useState('');
     const [isConfiguring, setIsConfiguring] = useState(false);
-
-    // Hardcoded for display from service/sheets.ts context
-    const SERVICE_EMAIL = "spareparts@clear-vision-476504-k2.iam.gserviceaccount.com";
+    const [serviceEmail, setServiceEmail] = useState('spareparts@clear-vision-476504-k2.iam.gserviceaccount.com');
 
     useEffect(() => {
         setStats(db.getSyncStats());
@@ -24,6 +23,20 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
         } else {
             setIsConfiguring(true);
         }
+
+        // Fetch real service account email from backend
+        const checkBackend = async () => {
+            try {
+                const res = await fetch(`${API_CONFIG.BACKEND_URL}/health`);
+                const data = await res.json();
+                if (data.client_email) {
+                    setServiceEmail(data.client_email);
+                }
+            } catch (e) {
+                console.error("Could not fetch backend health", e);
+            }
+        };
+        checkBackend();
     }, []);
 
     const saveConfiguration = () => {
@@ -177,7 +190,7 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
                         <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                             <span className="font-bold text-rose-600">Action Required:</span> <br/>
                             Share your Google Sheet with this email as an <strong>Editor</strong>: <br/>
-                            <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 select-all font-bold block mt-1">{SERVICE_EMAIL}</code>
+                            <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 select-all font-bold block mt-1">{serviceEmail}</code>
                         </p>
                         <div className="flex gap-2">
                             <input 
@@ -209,6 +222,11 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
                         {logs.map((log, i) => (
                             <div key={i} className={log.includes('Error') ? 'text-rose-400' : log.includes('Success') ? 'text-emerald-400' : 'text-slate-300'}>
                                 {log}
+                                {log.includes('Error') && (
+                                    <div className="mt-1 text-[10px] text-indigo-400">
+                                        Check diagnostics: <a href={`${API_CONFIG.BACKEND_URL}/health`} target="_blank" className="underline">Backend Health</a>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

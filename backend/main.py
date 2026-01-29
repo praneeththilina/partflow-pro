@@ -64,19 +64,48 @@ def get_sheets_service():
         raise FileNotFoundError(f"Service account file not found at {SERVICE_ACCOUNT_FILE}")
     
     try:
-        # Debugging key format
+        # Load and potentially fix the JSON key
         with open(SERVICE_ACCOUNT_FILE, 'r') as f:
             config = json.load(f)
-            key_len = len(config.get('private_key', ''))
-            print(f"Service Account loaded. Email: {config.get('client_email')}. Key length: {key_len}")
-            if key_len < 100:
-                print("WARNING: Private key seems too short or missing!")
+        
+        # Robust private key normalization
+        if 'private_key' in config:
+            key = config['private_key']
+            
+            # 1. Replace literal \n strings with actual newlines
+            if '\\n' in key:
+                print("INFO: Fixing double-escaped newlines in private key...")
+                key = key.replace('\\n', '\n')
+            
+            # 2. Remove surrounding quotes if they were added during copy-paste
+            key = key.strip().strip('"').strip("'")
+            
+            # 3. Ensure it starts and ends with the correct headers
+            if not key.startswith('-----BEGIN PRIVATE KEY-----'):
+                print("WARNING: Private key missing BEGIN header!")
+            if not key.endswith('-----END PRIVATE KEY-----'):
+                # Some editors might clip the end, try to fix common issue
+                if '-----END PRIVATE KEY-----' in key:
+                    key = key[:key.find('-----END PRIVATE KEY-----') + 25]
+                else:
+                    print("WARNING: Private key missing END header!")
+            
+            config['private_key'] = key
+            
+        key_len = len(config.get('private_key', ''))
+        print(f"Service Account loaded. Email: {config.get('client_email')}. Key length: {key_len}")
+        
+        if key_len < 100:
+            print("WARNING: Private key seems too short or missing!")
 
-        creds = service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+        creds = service_account.Credentials.from_service_account_info(
+            config, scopes=SCOPES)
         return build('sheets', 'v4', credentials=creds)
     except Exception as e:
-        print(f"AUTHENTICATION ERROR: {e}")
+        print(f"AUTHENTICATION ERROR: {str(e)}")
+        # Provide more context for invalid_grant
+        if "invalid_grant" in str(e):
+            print("HINT: This usually means the private key is formatted incorrectly or the server time is wrong.")
         raise e
 
 def ensure_headers(service, spreadsheet_id, sheet_name, headers):
@@ -162,7 +191,25 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status": "ok"})
+    # Basic diagnostic info for the user
+    diag = {
+        "status": "ok",
+        "database": os.path.exists(os.path.join(os.path.dirname(__file__), 'partflow.db')),
+        "credentials_file": os.path.exists(SERVICE_ACCOUNT_FILE)
+    }
+    
+    if diag["credentials_file"]:
+        try:
+            with open(SERVICE_ACCOUNT_FILE, 'r') as f:
+                config = json.load(f)
+                diag["client_email"] = config.get("client_email")
+                diag["key_length"] = len(config.get("private_key", ""))
+                diag["key_has_newlines"] = "\n" in config.get("private_key", "")
+                diag["key_has_escaped_newlines"] = "\\n" in config.get("private_key", "")
+        except Exception as e:
+            diag["credentials_error"] = str(e)
+            
+    return jsonify(diag)
 
 @app.route('/cron/keepalive', methods=['GET'])
 def keepalive():
