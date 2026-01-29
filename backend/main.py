@@ -36,9 +36,18 @@ def get_sheets_service():
     if env_json:
         try:
             print("INFO: Loading credentials from Environment Variable...")
-            config = json.loads(env_json)
+            # Clean up potential surrounding quotes from Vercel env panel
+            cleaned_json = env_json.strip()
+            if (cleaned_json.startswith("'") and cleaned_json.endswith("'")) or \
+               (cleaned_json.startswith('"') and cleaned_json.endswith('"')):
+                cleaned_json = cleaned_json[1:-1]
+            
+            config = json.loads(cleaned_json)
         except Exception as e:
             print(f"ERROR: Environment JSON parsing failed: {e}")
+            # If parsing fails, maybe it's not JSON? 
+            # Log the start/end for debugging (masked)
+            print(f"DEBUG: JSON string starts with: {env_json[:20]}... ends with: {env_json[-20:]}")
 
     # 2. Fallback to physical file (Local/PythonAnywhere Method)
     if not config:

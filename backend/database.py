@@ -2,7 +2,11 @@ import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'partflow.db')
+# Use /tmp for SQLite if on Vercel, as it's the only writable directory
+if os.environ.get('VERCEL'):
+    DB_PATH = '/tmp/partflow.db'
+else:
+    DB_PATH = os.path.join(os.path.dirname(__file__), 'partflow.db')
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
