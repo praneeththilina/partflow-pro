@@ -32,7 +32,7 @@ def check_auth():
 SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), 'config', 'service-account.json')
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
-# --- Robust Helper Functions ---
+# --- Helper Functions ---
 
 def get_google_config():
     """
@@ -55,8 +55,7 @@ def get_google_config():
             config = json.loads(cleaned)
             print("INFO: Loaded service account from GOOGLE_SERVICE_ACCOUNT_JSON")
         except Exception as e:
-            # We don't raise yet to allow fallback to B64
-            print(f"WARNING: Invalid GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+            raise RuntimeError(f"Invalid GOOGLE_SERVICE_ACCOUNT_JSON: {str(e)}")
 
     # --- 2. Base64 JSON env ---
     if not config:
@@ -67,7 +66,7 @@ def get_google_config():
                 config = json.loads(decoded)
                 print("INFO: Loaded service account from GOOGLE_SERVICE_ACCOUNT_B64")
             except Exception as e:
-                print(f"WARNING: Invalid GOOGLE_SERVICE_ACCOUNT_B64: {e}")
+                raise RuntimeError(f"Invalid GOOGLE_SERVICE_ACCOUNT_B64: {str(e)}")
 
     # --- 3. File fallback ---
     if not config and os.path.exists(SERVICE_ACCOUNT_FILE):
@@ -76,7 +75,7 @@ def get_google_config():
                 config = json.load(f)
             print("INFO: Loaded service account from file")
         except Exception as e:
-            print(f"WARNING: Invalid service account file: {e}")
+            raise RuntimeError(f"Invalid service account file: {str(e)}")
 
     if not config:
         return None
@@ -178,7 +177,7 @@ def health():
 
     diag = {
         "status": "ok",
-        "version": "1.1.1-guide-fix",
+        "version": "1.1.2-strict-diagnostics",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
         "credentials_found": config is not None,
@@ -188,7 +187,7 @@ def health():
     if env_json_raw:
         diag["env_json"] = {"length": len(env_json_raw), "starts_with_brace": env_json_raw.strip().startswith('{')}
     if env_b64_raw:
-        diag["env_b64"] = {"length": len(env_b64_raw)}
+        diag["env_b64"] = {"length": len(env_b64_raw), "starts_with_brace": env_b64_raw.strip().startswith('{')}
         
     if config:
         diag["client_email"] = config.get("client_email")
@@ -199,7 +198,7 @@ def health():
             "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----")
         }
         
-        # RSA Signing Test
+        # Test 1: RSA Signing (Local)
         try:
             from google.auth import crypt, jwt
             signer = crypt.RSASigner.from_service_account_info(config)
@@ -209,7 +208,7 @@ def health():
             diag["rsa_signing_test"] = "failed"
             diag["rsa_signing_error"] = str(sign_err)
             
-        # Google Auth & Sheet Access
+        # Test 2: Google Auth & Sheet Access
         try:
             from google.auth.transport.requests import Request
             creds = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
