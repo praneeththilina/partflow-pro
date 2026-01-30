@@ -144,6 +144,41 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 
 # --- API Routes ---
 
+@app.route('/debug-env', methods=['GET'])
+def debug_env():
+    """Temporary route to verify environment variables on Vercel"""
+    json_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
+    
+    def get_info(raw):
+        if not raw: return {"exists": False}
+        info = {
+            "exists": True,
+            "length": len(raw),
+            "preview": f"{raw[:20]}...{raw[-10:]}",
+            "starts_with_brace": raw.strip().startswith('{'),
+            "ends_with_brace": raw.strip().endswith('}')
+        }
+        try:
+            cleaned = raw.strip()
+            if (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
+                cleaned = cleaned[1:-1].strip()
+            json.loads(cleaned)
+            info["is_valid_json"] = True
+        except:
+            info["is_valid_json"] = False
+        return info
+
+    return jsonify({
+        "GOOGLE_SERVICE_ACCOUNT_JSON": get_info(json_raw),
+        "GOOGLE_SERVICE_ACCOUNT_B64": {
+            "exists": b64_raw is not None,
+            "length": len(b64_raw) if b64_raw else 0
+        },
+        "python_version": sys.version,
+        "server_time": datetime.datetime.now().isoformat()
+    })
+
 @app.route('/health', methods=['GET'])
 def health():
     config = get_google_config()
