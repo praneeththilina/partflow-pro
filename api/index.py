@@ -39,8 +39,10 @@ def get_google_config():
     if env_json:
         try:
             cleaned = env_json.strip()
-            if (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
-                cleaned = cleaned[1:-1]
+            # Remove any wrapping quotes (Vercel sometimes adds them if pasted with quotes)
+            while (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
+                cleaned = cleaned[1:-1].strip()
+            
             config = json.loads(cleaned)
         except Exception as e:
             print(f"ERROR: Environment JSON parsing failed: {e}")
@@ -54,8 +56,10 @@ def get_google_config():
             
     if config and 'private_key' in config:
         key = config['private_key']
+        # Google private keys MUST have actual newlines, not literal "\n" strings
         if '\\n' in key:
             key = key.replace('\\n', '\n')
+        # Final cleanup of the key string
         config['private_key'] = key.strip().strip('"').strip("'")
         
     return config
@@ -66,6 +70,7 @@ def get_sheets_service():
         raise FileNotFoundError("Service account credentials not found.")
     
     try:
+        # Check required fields
         required = ['client_email', 'private_key', 'token_uri']
         missing = [f for f in required if f not in config]
         if missing:
@@ -117,41 +122,16 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
         valueInputOption='USER_ENTERED', body=body).execute()
 
-@app.route('/debug/env', methods=['GET'])
-def debug_env():
-    """Temporary route to verify environment variables on Vercel"""
-    # List all environment variable keys (but not values for safety, 
-    # except for non-sensitive ones)
-    keys = list(os.environ.keys())
-    
-    # Specific check for our critical variable
-    service_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    
-    debug_info = {
-        "all_keys": keys,
-        "google_json": {
-            "exists": service_json is not None,
-            "length": len(service_json) if service_json else 0,
-            "preview": f"{service_json[:30]}...{service_json[-10:]}" if service_json and len(service_json) > 40 else "Too short"
-        },
-        "python_version": sys.version,
-        "cwd": os.getcwd()
-    }
-    return jsonify(debug_info)
-
 @app.route('/health', methods=['GET'])
 def health():
     config = get_google_config()
     env_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    
-    # Check server time vs NTP or just display it clearly
     now = datetime.datetime.now(datetime.timezone.utc)
     
     diag = {
         "status": "ok",
-        "version": "1.0.6-final-check",
+        "version": "1.0.7-production",
         "server_time_utc": now.isoformat(),
-        "database_path": DB_PATH,
         "database_exists": os.path.exists(DB_PATH),
         "credentials_source": "environment" if env_raw else ("file" if os.path.exists(SERVICE_ACCOUNT_FILE) else "none"),
     }
@@ -161,6 +141,8 @@ def health():
         
     if config:
         diag["client_email"] = config.get("client_email")
+        diag["project_id"] = config.get("project_id")
+        diag["token_uri"] = config.get("token_uri")
         key = config.get("private_key", "")
         diag["key_info"] = {
             "length": len(key),
@@ -185,7 +167,6 @@ def health():
             creds.refresh(Request())
             diag["google_auth_test"] = "passed"
             
-            # Specific Sheet Metadata Test
             test_sheet_id = "148T7oXqEAjUcH3zyQy93x1H92LYSheEZh8ja7rpg_1o"
             service = build('sheets', 'v4', credentials=creds)
             service.spreadsheets().get(spreadsheetId=test_sheet_id).execute()
