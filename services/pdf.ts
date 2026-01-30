@@ -1,8 +1,26 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Order, Customer, CompanySettings } from '../types';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Capacitor } from '@capacitor/core';
 
 export const pdfService = {
+  /**
+   * Helper to convert Blob to Base64 for Capacitor
+   */
+  blobToBase64: (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = reader.result as string;
+        resolve(base64data.split(',')[1]); // Remove the data:application/pdf;base64, part
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  },
+
   /**
    * Generates a multi-page PDF by capturing HTML elements matching the selector.
    */
@@ -20,12 +38,10 @@ export const pdfService = {
 
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
 
       for (let i = 0; i < elements.length; i++) {
         const element = elements[i] as HTMLElement;
         
-        // Use a consistent window width for capture to ensure layout stability
         const canvas = await html2canvas(element, {
           scale: 2, 
           useCORS: true,
@@ -38,7 +54,6 @@ export const pdfService = {
         const imgWidthPx = canvas.width;
         const imgHeightPx = canvas.height;
         
-        // Scale the canvas image to fit the PDF page width
         const ratio = pdfWidth / imgWidthPx;
         const canvasHeightInPdfUnits = imgHeightPx * ratio;
 
@@ -46,17 +61,33 @@ export const pdfService = {
           pdf.addPage();
         }
         
-        // Add image starting from the top of the page
-        // We use 'FAST' compression to keep the file size low
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, canvasHeightInPdfUnits, undefined, 'FAST');
       }
 
       const fileName = `${settings.invoice_prefix}${order.order_id.substring(0, 6).toUpperCase()}.pdf`;
       
-      console.log("Saving PDF...");
-      pdf.save(fileName);
-      
       const blob = pdf.output('blob');
+
+      // If on Native (Android/iOS)
+      if (Capacitor.isNativePlatform()) {
+        const base64 = await pdfService.blobToBase64(blob);
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache,
+        });
+        
+        await Share.share({
+          title: `Download ${fileName}`,
+          text: `Invoice for ${customer.shop_name}`,
+          url: savedFile.uri,
+          dialogTitle: 'Save or Share Invoice'
+        });
+      } else {
+        // Standard Web Download
+        pdf.save(fileName);
+      }
+      
       return { blob, fileName };
     } catch (error) {
       console.error("PDF Generation failed:", error);
@@ -81,19 +112,12 @@ export const pdfService = {
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
-        windowWidth: 1200, // Large width for better layout
+        windowWidth: 1200, 
         onclone: (clonedDoc) => {
-          // Show the PDF header in the captured image
           const header = clonedDoc.getElementById('pdf-header');
-          if (header) {
-            header.style.display = 'block';
-          }
-          
-          // Ensure all text is dark for the report
+          if (header) header.style.display = 'block';
           const content = clonedDoc.getElementById('report-content');
-          if (content) {
-            content.style.color = '#000000';
-          }
+          if (content) content.style.color = '#000000';
         }
       });
 
@@ -106,9 +130,24 @@ export const pdfService = {
       const canvasHeightInPdfUnits = imgHeightPx * ratio;
 
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, canvasHeightInPdfUnits, undefined, 'FAST');
-      pdf.save(fileName);
-
+      
       const blob = pdf.output('blob');
+
+      if (Capacitor.isNativePlatform()) {
+        const base64 = await pdfService.blobToBase64(blob);
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache,
+        });
+        await Share.share({
+          title: fileName,
+          url: savedFile.uri,
+        });
+      } else {
+        pdf.save(fileName);
+      }
+
       return { blob, fileName };
     } catch (error) {
       console.error("PDF Generation failed:", error);
@@ -117,7 +156,7 @@ export const pdfService = {
   },
 
   /**
-   * Generates and shares the invoice using the Web Share API.
+   * Generates and shares the invoice using the Web Share API or Capacitor Share.
    */
   shareInvoice: async (
     order: Order, 
@@ -126,10 +165,16 @@ export const pdfService = {
     selector: string = '#invoice-display'
   ): Promise<void> => {
     try {
+      if (Capacitor.isNativePlatform()) {
+        // Just call the generation logic which includes sharing on native
+        await pdfService.generateInvoice(order, customer, settings, selector);
+        return;
+      }
+
       const { blob, fileName } = await pdfService.generateInvoice(order, customer, settings, selector);
       
+      // Web sharing logic
       const file = new File([blob], fileName, { type: 'application/pdf' });
-      
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: `Invoice ${fileName}`,
@@ -137,7 +182,9 @@ export const pdfService = {
           files: [file]
         });
       } else {
-        alert('Sharing not supported on this device/browser. PDF has been downloaded.');
+        // Fallback for browsers that don't support sharing files
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
       }
     } catch (e) {
       console.error('Sharing failed', e);
