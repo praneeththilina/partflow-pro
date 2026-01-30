@@ -127,7 +127,7 @@ def health():
     
     diag = {
         "status": "ok",
-        "version": "1.0.5-final-check",
+        "version": "1.0.6-final-check",
         "server_time_utc": now.isoformat(),
         "database_path": DB_PATH,
         "database_exists": os.path.exists(DB_PATH),
