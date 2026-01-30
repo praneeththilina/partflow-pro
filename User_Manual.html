@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PartFlow Pro - User Manual</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        :root {
+            --primary: #4f46e5;
+            --secondary: #64748b;
+            --success: #10b981;
+            --dark: #0f172a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #334155;
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        @media print {
+            body { background: white; }
+            .page { margin: 0; box-shadow: none; width: 100%; }
+            .no-print { display: none; }
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 4px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            background: var(--primary);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 24px;
+            margin: 0 auto 10px;
+        }
+
+        h1 { font-weight: 800; color: var(--dark); margin: 0; text-transform: uppercase; letter-spacing: -1px; }
+        h2 { color: var(--primary); border-left: 4px solid var(--primary); padding-left: 15px; margin-top: 30px; }
+        h3 { color: var(--dark); margin-top: 20px; }
+
+        .step {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            background: #e0e7ff;
+            color: var(--primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .step-content b { color: var(--dark); }
+
+        .note {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--secondary);
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+
+        .btn-print {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--dark);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-print no-print" onclick="window.print()">Print to PDF</button>
+
+    <div class="page">
+        <div class="header">
+            <div class="logo">PF</div>
+            <h1>PartFlow Pro Distro</h1>
+            <p style="font-weight: 600; color: var(--secondary);">Sales & Inventory Management System - User Tutorial</p>
+        </div>
+
+        <section>
+            <h2>1. Getting Started</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <b>Access the App:</b> Open the PartFlow Pro app on your Android device. 
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <b>Login:</b> Use your assigned <b>Username</b> and <b>Password</b>. 
+                    <br><small>Default Admin: admin / admin123</small>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <b>Dashboard:</b> The home screen shows you quick actions: Start Order, Sync Data, and View Reports.
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>2. Creating a New Order</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <b>Select a Shop:</b> Go to the <b>Shops</b> tab. Search for the customer and tap their card to start a new order.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <b>Add Items:</b> Use the search bar or <b>QR Scanner</b> to find spare parts. Tap an item to set the quantity.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <b>Review Order:</b> Your current total and discount (auto-applied from shop settings) are shown at the bottom.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <b>Confirm:</b> Once finished, tap <b>Confirm Order</b>.
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>3. Invoices & Sharing</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <b>Preview:</b> After confirmation, a professional invoice is generated. 
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <b>Share to Customer:</b> Tap the <b>Share</b> button. This opens the Android menu—select <b>WhatsApp</b> or <b>Email</b> to send the PDF directly to the shop owner.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <b>History:</b> You can always find past orders in the <b>History</b> tab to re-print or view details.
+                </div>
+            </div>
+        </section>
+
+        <div class="footer">
+            PartFlow Pro Distro &copy; 2026 | Developed for Vidushan Motors
+        </div>
+    </div>
+
+    <div class="page">
+        <section>
+            <h2>4. Data Sync (Cloud Connection)</h2>
+            <div class="note">
+                <b>Important:</b> Always sync at the end of the day when you have an internet connection to ensure HQ receives your orders.
+            </div>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <b>Sync Dashboard:</b> Tap the <b>Sync</b> icon in the top right bar.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <b>Sync & Push:</b> Tap <b>Sync & Push</b> to upload all your local orders to the master Excel sheet and download the latest stock quantities.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <b>Download Only:</b> If you just want to refresh the inventory list from HQ without uploading anything, use the <b>Download Latest Master Record</b> link.
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>5. Business Reports</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <b>Reports View:</b> Tap the <b>Reports</b> icon in the top bar.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <b>Drill Down:</b> Tap any card (e.g., Period Revenue) to see the full list of transactions. Tap a Shop name to see their specific purchase history.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <b>Download PDF:</b> Use the <b>Download PDF Report</b> button to generate a professional document of your performance for the selected date range.
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>6. App Settings</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <b>Company Details:</b> Tap the <b>Settings</b> icon. Here you can change the Company Name, Address, and Invoice Prefix that appear on the bills.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <b>Logout:</b> Safely sign out of the app. Your local data (orders not yet synced) will remain on the device.
+                </div>
+            </div>
+        </section>
+
+        <div class="footer">
+            PartFlow Pro Distro &copy; 2026 | Technical Support: Vidushan Motors HQ
+        </div>
+    </div>
+
+</body>
+</html>

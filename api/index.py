@@ -16,14 +16,10 @@ from flask_cors import CORS
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from google.auth.transport.requests import Request
 
 # Import from our local database.py
-try:
-    from database import init_db, create_user, authenticate_user, DB_PATH
-except ImportError:
-    # Fallback for different Vercel environments
-    sys.path.append(os.path.join(os.getcwd(), 'api'))
-    from database import init_db, create_user, authenticate_user, DB_PATH
+from database import init_db, create_user, authenticate_user, DB_PATH
 
 app = Flask(__name__)
 CORS(app)
@@ -87,18 +83,13 @@ def get_google_config():
     if config and 'private_key' in config:
         key = config['private_key']
         if isinstance(key, str):
-            # Ensure literal "\n" strings become actual newline characters
             if '\\n' in key:
                 key = key.replace('\\n', '\n')
-            
-            # Clean up PEM format
             key = key.strip()
-            # Remove accidental surrounding quotes that might have been pasted
             if key.startswith('"') and key.endswith('"'):
                 key = key[1:-1].strip()
             if key.startswith("'") and key.endswith("'"):
                 key = key[1:-1].strip()
-                
             config['private_key'] = key
         
     return config, source
@@ -110,7 +101,6 @@ def get_sheets_service():
         raise FileNotFoundError("Service account credentials not found in Environment or File.")
     
     try:
-        # Check required fields
         required = ['client_email', 'private_key', 'token_uri']
         missing = [f for f in required if f not in config]
         if missing:
@@ -172,7 +162,7 @@ def health():
     
     diag = {
         "status": "ok",
-        "version": "1.1.6-final-debug",
+        "version": "1.1.7-final-stable",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
         "credentials_source": source,
@@ -198,48 +188,31 @@ def health():
             diag["rsa_signing_test"] = "failed"
             diag["rsa_signing_error"] = str(sign_err)
             
-        # Test 2: Google Auth (Network)
+        # Test 2: Google Auth & Sheet Access
         try:
-            from google.auth.transport.requests import Request
-            creds = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
-            creds.refresh(Request())
+            creds_test = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
+            creds_test.refresh(Request())
             diag["google_auth_test"] = "passed"
+            
+            # Specific Sheet Access Test
+            test_sheet_id = "148T7oXqEAjUcH3zyQy93x1H92LYSheEZh8ja7rpg_1o"
+            service = build('sheets', 'v4', credentials=creds_test)
+            service.spreadsheets().get(spreadsheetId=test_sheet_id).execute()
+            diag["sheet_access_test"] = "passed"
         except Exception as auth_err:
             diag["google_auth_test"] = "failed"
             diag["google_auth_error"] = str(auth_err)
-
-        # Test 3: Sheet Access
-        try:
-            if diag.get("google_auth_test") == "passed":
-                test_sheet_id = "148T7oXqEAjUcH3zyQy93x1H92LYSheEZh8ja7rpg_1o"
-                service = build('sheets', 'v4', credentials=creds)
-                service.spreadsheets().get(spreadsheetId=test_sheet_id).execute()
-                diag["sheet_access_test"] = "passed"
-            else:
-                diag["sheet_access_test"] = "skipped (auth failed)"
-        except Exception as sheet_err:
-            diag["sheet_access_test"] = "failed"
-            diag["sheet_access_error"] = str(sheet_err)
+            diag["sheet_access_test"] = "skipped (auth failed)"
             
     return jsonify(diag)
 
 @app.route('/debug-env', methods=['GET'])
 def debug_env():
-    """Route to help diagnose environment variable issues"""
     json_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
     b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
-    
     return jsonify({
-        "JSON_VAR": {
-            "exists": json_raw is not None,
-            "length": len(json_raw) if json_raw else 0,
-            "starts_with": json_raw[0] if json_raw else None,
-            "ends_with": json_raw[-1] if json_raw else None
-        },
-        "B64_VAR": {
-            "exists": b64_raw is not None,
-            "length": len(b64_raw) if b64_raw else 0
-        }
+        "JSON_VAR": {"exists": json_raw is not None, "length": len(json_raw) if json_raw else 0},
+        "B64_VAR": {"exists": b64_raw is not None, "length": len(b64_raw) if b64_raw else 0}
     })
 
 @app.route('/register', methods=['POST'])
