@@ -41,29 +41,32 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 def get_google_config():
     """Helper to get and normalize Google config from Env or File"""
+    config = None
+    
     # 1. Try Base64 encoding (Fail-proof Vercel method)
     b64_data = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
     if b64_data:
         try:
             print("INFO: Loading credentials from Base64 Environment Variable...")
-            decoded = base64.b64decode(b64_data).decode('utf-8')
-            return json.loads(decoded)
+            # Clean up potential whitespace
+            b64_cleaned = "".join(b64_data.split())
+            decoded = base64.b64decode(b64_cleaned).decode('utf-8')
+            config = json.loads(decoded)
         except Exception as e:
             print(f"ERROR: Base64 decoding failed: {e}")
 
     # 2. Try standard Environment Variable
-    env_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    config = None
-    
-    if env_json:
-        try:
-            cleaned = env_json.strip()
-            # Remove any wrapping quotes
-            while (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
-                cleaned = cleaned[1:-1].strip()
-            config = json.loads(cleaned)
-        except Exception as e:
-            print(f"ERROR: Environment JSON parsing failed: {e}")
+    if not config:
+        env_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+        if env_json:
+            try:
+                cleaned = env_json.strip()
+                # Remove any wrapping quotes
+                while (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
+                    cleaned = cleaned[1:-1].strip()
+                config = json.loads(cleaned)
+            except Exception as e:
+                print(f"ERROR: Environment JSON parsing failed: {e}")
 
     # 3. Fallback to physical file
     if not config and os.path.exists(SERVICE_ACCOUNT_FILE):
@@ -73,12 +76,15 @@ def get_google_config():
         except Exception as e:
             print(f"ERROR: File JSON parsing failed: {e}")
             
-    # Normalize private key for all methods
+    # CRITICAL: Normalize private key for ALL loading methods
     if config and 'private_key' in config:
         key = config['private_key']
-        if '\\n' in key:
-            key = key.replace('\\n', '\n')
-        config['private_key'] = key.strip().strip('"').strip("'")
+        # Google private keys MUST have actual newlines, not literal "\n" strings
+        if isinstance(key, str):
+            if '\\n' in key:
+                key = key.replace('\\n', '\n')
+            # Ensure the PEM header/footer is clean and no accidental extra quotes
+            config['private_key'] = key.strip().strip('"').strip("'")
         
     return config
 
@@ -86,7 +92,7 @@ def get_sheets_service():
     """Returns an authorized Google Sheets service object"""
     config = get_google_config()
     if not config:
-        raise FileNotFoundError("Service account credentials not found.")
+        raise FileNotFoundError("Service account credentials not found in Environment or File.")
     
     try:
         # Check required fields
@@ -144,65 +150,37 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 
 # --- API Routes ---
 
-@app.route('/debug-env', methods=['GET'])
-def debug_env():
-    """Temporary route to verify environment variables on Vercel"""
-    json_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
-    
-    def get_info(raw):
-        if not raw: return {"exists": False}
-        info = {
-            "exists": True,
-            "length": len(raw),
-            "preview": f"{raw[:20]}...{raw[-10:]}",
-            "starts_with_brace": raw.strip().startswith('{'),
-            "ends_with_brace": raw.strip().endswith('}')
-        }
-        try:
-            cleaned = raw.strip()
-            if (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
-                cleaned = cleaned[1:-1].strip()
-            json.loads(cleaned)
-            info["is_valid_json"] = True
-        except:
-            info["is_valid_json"] = False
-        return info
-
-    return jsonify({
-        "GOOGLE_SERVICE_ACCOUNT_JSON": get_info(json_raw),
-        "GOOGLE_SERVICE_ACCOUNT_B64": {
-            "exists": b64_raw is not None,
-            "length": len(b64_raw) if b64_raw else 0
-        },
-        "python_version": sys.version,
-        "server_time": datetime.datetime.now().isoformat()
-    })
-
 @app.route('/health', methods=['GET'])
 def health():
     config = get_google_config()
-    env_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
+    env_json_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    env_b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
     now = datetime.datetime.now(datetime.timezone.utc)
     
     diag = {
         "status": "ok",
-        "version": "1.1.4-final-run",
+        "version": "1.1.5-prod-ready",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
-        "database_path": DB_PATH,
         "credentials_found": config is not None,
     }
     
+    if env_json_raw:
+        diag["env_json_info"] = {"length": len(env_json_raw), "starts_with_brace": env_json_raw.strip().startswith('{')}
+    if env_b64_raw:
+        diag["env_b64_info"] = {"length": len(env_b64_raw)}
+        
     if config:
         diag["client_email"] = config.get("client_email")
         key = config.get("private_key", "")
         diag["key_info"] = {
             "length": len(key),
             "has_actual_newlines": "\n" in key,
-            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----")
+            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----"),
+            "ends_with_footer": "-----END PRIVATE KEY-----" in key
         }
+        
+        # Test 1: RSA Signing (Local)
         try:
             from google.auth import crypt, jwt
             signer = crypt.RSASigner.from_service_account_info(config)
@@ -211,6 +189,8 @@ def health():
         except Exception as sign_err:
             diag["rsa_signing_test"] = "failed"
             diag["rsa_signing_error"] = str(sign_err)
+            
+        # Test 2: Google Auth & Sheet Access
         try:
             from google.auth.transport.requests import Request
             creds = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
