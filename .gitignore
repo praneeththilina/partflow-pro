@@ -33,3 +33,12 @@ dist-ssr
 !capacitor.config.json
 !vercel.json
 !src/config/*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+
+# Secrets
+backend/config/

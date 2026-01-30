@@ -1,12 +1,1 @@
-Activity Log
-1:43:33 AM - Connecting to Google Cloud...
-1:43:33 AM - Creating local backup (CSV)...
-1:43:35 AM - Connecting to local Python backend (upsert mode)...
-1:43:35 AM - Backend Error: ('invalid_grant: Invalid JWT Signature.', {'error': 'invalid_grant', 'error_description': 'Invalid JWT Signature.'})
-Check diagnostics: Backend Health
-1:43:35 AM - Error: ('invalid_grant: Invalid JWT Signature.', {'error': 'invalid_grant', 'error_description': 'Invalid JWT Signature.'})
-Check diagnostics: Backend Health
-
-
-
-->{"client_email":"spareparts@clear-vision-476504-k2.iam.gserviceaccount.com","credentials_file":true,"database":true,"key_has_escaped_newlines":false,"key_has_newlines":true,"key_length":1704,"status":"ok"}
+{"GOOGLE_SERVICE_ACCOUNT_B64":{"exists":true,"length":3192},"GOOGLE_SERVICE_ACCOUNT_JSON":{"ends_with_brace":true,"exists":true,"is_valid_json":true,"length":2379,"preview":"{\n  \"type\": \"service...pis.com\"\n}","starts_with_brace":true},"python_version":"3.12.12 (main, Jan  9 2026, 13:33:51) [GCC 11.5.0 20240719 (Red Hat 11.5.0-5)]","server_time":"2026-01-30T05:03:11.144493"}
