@@ -117,6 +117,28 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
         valueInputOption='USER_ENTERED', body=body).execute()
 
+@app.route('/debug/env', methods=['GET'])
+def debug_env():
+    """Temporary route to verify environment variables on Vercel"""
+    # List all environment variable keys (but not values for safety, 
+    # except for non-sensitive ones)
+    keys = list(os.environ.keys())
+    
+    # Specific check for our critical variable
+    service_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    
+    debug_info = {
+        "all_keys": keys,
+        "google_json": {
+            "exists": service_json is not None,
+            "length": len(service_json) if service_json else 0,
+            "preview": f"{service_json[:30]}...{service_json[-10:]}" if service_json and len(service_json) > 40 else "Too short"
+        },
+        "python_version": sys.version,
+        "cwd": os.getcwd()
+    }
+    return jsonify(debug_info)
+
 @app.route('/health', methods=['GET'])
 def health():
     config = get_google_config()
