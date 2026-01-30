@@ -49,55 +49,54 @@ def get_google_config():
     if raw_json:
         try:
             cleaned = raw_json.strip()
-            # Remove accidental wrapping quotes
             if cleaned and cleaned[0] in ("'", '"') and cleaned[-1] == cleaned[0]:
                 cleaned = cleaned[1:-1]
             config = json.loads(cleaned)
-            print("INFO: Loaded service account from GOOGLE_SERVICE_ACCOUNT_JSON")
         except Exception as e:
-            raise RuntimeError(f"Invalid GOOGLE_SERVICE_ACCOUNT_JSON: {str(e)}")
+            print(f"WARNING: Invalid GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
 
     # --- 2. Base64 JSON env ---
     if not config:
         b64 = os.environ.get("GOOGLE_SERVICE_ACCOUNT_B64")
         if b64:
             try:
-                decoded = base64.b64decode(b64).decode("utf-8")
+                # Remove any accidental whitespace/newlines from B64 string
+                b64_cleaned = "".join(b64.split())
+                decoded = base64.b64decode(b64_cleaned).decode("utf-8")
                 config = json.loads(decoded)
-                print("INFO: Loaded service account from GOOGLE_SERVICE_ACCOUNT_B64")
             except Exception as e:
-                raise RuntimeError(f"Invalid GOOGLE_SERVICE_ACCOUNT_B64: {str(e)}")
+                print(f"WARNING: Invalid GOOGLE_SERVICE_ACCOUNT_B64: {e}")
 
     # --- 3. File fallback ---
     if not config and os.path.exists(SERVICE_ACCOUNT_FILE):
         try:
             with open(SERVICE_ACCOUNT_FILE, "r", encoding="utf-8") as f:
                 config = json.load(f)
-            print("INFO: Loaded service account from file")
         except Exception as e:
-            raise RuntimeError(f"Invalid service account file: {str(e)}")
+            print(f"WARNING: Invalid service account file: {e}")
 
     if not config:
         return None
 
     # --- Normalize private key ---
     if "private_key" not in config:
-        raise RuntimeError("Service account JSON missing private_key")
+        return config # Let the caller handle missing field error
 
     key = config["private_key"]
+    # Ensure it's a string
+    if not isinstance(key, str):
+        return config
+
     # Convert literal \n to real newlines
     key = key.replace("\\n", "\n").strip()
     
-    # Clean up accidental quotes around the key string itself
-    if key.startswith('"') and key.endswith('"'):
+    # Clean up accidental quotes
+    if (key.startswith('"') and key.endswith('"')) or (key.startswith("'") and key.endswith("'")):
         key = key[1:-1].replace("\\n", "\n").strip()
-
-    # Sanity check
-    if not key.startswith("-----BEGIN PRIVATE KEY-----"):
-        raise RuntimeError("Malformed private_key (missing PEM header)")
 
     config["private_key"] = key
     return config
+
 
 def get_sheets_service():
     """Returns an authorized Google Sheets service object or raises clear error"""
@@ -164,38 +163,38 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 
 @app.route('/health', methods=['GET'])
 def health():
-    env_json_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    env_b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
+    config = get_google_config()
+    env_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
     now = datetime.datetime.now(datetime.timezone.utc)
     
-    config = None
-    diag_msgs = []
-    try:
-        config = get_google_config()
-    except Exception as e:
-        diag_msgs.append(f"Config Error: {str(e)}")
-
     diag = {
         "status": "ok",
-        "version": "1.1.2-strict-diagnostics",
+        "version": "1.1.3-debug-plus",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
         "credentials_found": config is not None,
-        "diag_messages": diag_msgs
     }
     
-    if env_json_raw:
-        diag["env_json"] = {"length": len(env_json_raw), "starts_with_brace": env_json_raw.strip().startswith('{')}
-    if env_b64_raw:
-        diag["env_b64"] = {"length": len(env_b64_raw), "starts_with_brace": env_b64_raw.strip().startswith('{')}
+    if env_raw:
+        diag["env_json"] = {"length": len(env_raw), "starts_with_brace": env_raw.strip().startswith('{')}
+    if b64_raw:
+        diag["env_b64"] = {"length": len(b64_raw)}
         
     if config:
-        diag["client_email"] = config.get("client_email")
+        diag["client_info"] = {
+            "email": config.get("client_email"),
+            "project_id": config.get("project_id"),
+            "private_key_id": config.get("private_key_id")[:8] + "..." if config.get("private_key_id") else None,
+            "token_uri": config.get("token_uri")
+        }
+        
         key = config.get("private_key", "")
         diag["key_info"] = {
             "length": len(key),
             "has_actual_newlines": "\n" in key,
-            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----")
+            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----"),
+            "ends_with_footer": "-----END PRIVATE KEY-----" in key
         }
         
         # Test 1: RSA Signing (Local)
@@ -225,6 +224,7 @@ def health():
             diag["google_auth_error"] = str(auth_err)
             
     return jsonify(diag)
+
 
 @app.route('/register', methods=['POST'])
 def register():
