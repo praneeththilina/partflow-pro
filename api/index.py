@@ -39,7 +39,6 @@ def get_google_config():
     if env_json:
         try:
             cleaned = env_json.strip()
-            # Remove surrounding quotes if they exist
             if (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
                 cleaned = cleaned[1:-1]
             config = json.loads(cleaned)
@@ -122,16 +121,22 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 def health():
     config = get_google_config()
     env_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    
+    # Check server time vs NTP or just display it clearly
+    now = datetime.datetime.now(datetime.timezone.utc)
+    
     diag = {
         "status": "ok",
-        "version": "1.0.4-unified-auth",
-        "server_time": datetime.datetime.now().isoformat(),
+        "version": "1.0.5-final-check",
+        "server_time_utc": now.isoformat(),
         "database_path": DB_PATH,
         "database_exists": os.path.exists(DB_PATH),
         "credentials_source": "environment" if env_raw else ("file" if os.path.exists(SERVICE_ACCOUNT_FILE) else "none"),
     }
+    
     if env_raw:
         diag["env_info"] = {"length": len(env_raw), "starts_with_brace": env_raw.strip().startswith('{')}
+        
     if config:
         diag["client_email"] = config.get("client_email")
         key = config.get("private_key", "")
@@ -140,6 +145,8 @@ def health():
             "has_actual_newlines": "\n" in key,
             "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----")
         }
+        
+        # Test 1: RSA Signing (Local)
         try:
             from google.auth import crypt, jwt
             signer = crypt.RSASigner.from_service_account_info(config)
@@ -148,14 +155,23 @@ def health():
         except Exception as sign_err:
             diag["rsa_signing_test"] = "failed"
             diag["rsa_signing_error"] = str(sign_err)
+            
+        # Test 2: Google Auth & Sheet Access
         try:
             from google.auth.transport.requests import Request
             creds = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
             creds.refresh(Request())
             diag["google_auth_test"] = "passed"
+            
+            # Specific Sheet Metadata Test
+            test_sheet_id = "148T7oXqEAjUcH3zyQy93x1H92LYSheEZh8ja7rpg_1o"
+            service = build('sheets', 'v4', credentials=creds)
+            service.spreadsheets().get(spreadsheetId=test_sheet_id).execute()
+            diag["sheet_access_test"] = "passed"
         except Exception as auth_err:
             diag["google_auth_test"] = "failed"
             diag["google_auth_error"] = str(auth_err)
+            
     return jsonify(diag)
 
 @app.route('/register', methods=['POST'])
