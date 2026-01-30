@@ -325,8 +325,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
             {/* Quantity Modal */}
             {selectedItem && (
-                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 pb-safe">
-                    <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 md:slide-in-from-bottom-0 md:zoom-in-95">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 pb-safe">
+                    <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="text-center mb-6">
                             <h3 className="text-lg font-bold text-slate-900">{selectedItem.item_display_name}</h3>
                             <p className="text-sm text-slate-500">Available: {selectedItem.current_stock_qty}</p>
