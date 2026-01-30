@@ -3,6 +3,7 @@ import sys
 import json
 import traceback
 import datetime
+import base64
 
 # Ensure the current directory is in the path for Vercel
 sys.path.append(os.path.dirname(__file__))
@@ -33,6 +34,17 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 def get_google_config():
     """Helper to get and normalize Google config from Env or File"""
+    # 1. Try Base64 encoding (Fail-proof Vercel method)
+    b64_data = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
+    if b64_data:
+        try:
+            print("INFO: Loading credentials from Base64 Environment Variable...")
+            decoded = base64.b64decode(b64_data).decode('utf-8')
+            return json.loads(decoded)
+        except Exception as e:
+            print(f"ERROR: Base64 decoding failed: {e}")
+
+    # 2. Try standard Environment Variable
     env_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
     config = None
     
@@ -47,6 +59,7 @@ def get_google_config():
         except Exception as e:
             print(f"ERROR: Environment JSON parsing failed: {e}")
 
+    # 3. Fallback to physical file
     if not config and os.path.exists(SERVICE_ACCOUNT_FILE):
         try:
             with open(SERVICE_ACCOUNT_FILE, 'r') as f:
@@ -54,95 +67,39 @@ def get_google_config():
         except Exception as e:
             print(f"ERROR: File JSON parsing failed: {e}")
             
+    # Normalize private key for all methods
     if config and 'private_key' in config:
         key = config['private_key']
-        # Google private keys MUST have actual newlines, not literal "\n" strings
+        # Ensure literal "\n" strings become actual newline characters
         if '\\n' in key:
             key = key.replace('\\n', '\n')
-        # Final cleanup of the key string
+        # Ensure the PEM header/footer is clean and no accidental extra quotes
         config['private_key'] = key.strip().strip('"').strip("'")
         
     return config
-
-def get_sheets_service():
-    config = get_google_config()
-    if not config:
-        raise FileNotFoundError("Service account credentials not found.")
-    
-    try:
-        # Check required fields
-        required = ['client_email', 'private_key', 'token_uri']
-        missing = [f for f in required if f not in config]
-        if missing:
-            raise ValueError(f"Missing required fields in service account JSON: {', '.join(missing)}")
-
-        creds = service_account.Credentials.from_service_account_info(
-            config, scopes=SCOPES)
-        return build('sheets', 'v4', credentials=creds)
-    except Exception as e:
-        traceback.print_exc()
-        raise e
-
-def ensure_headers(service, spreadsheet_id, sheet_name, headers):
-    try:
-        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-        sheets = spreadsheet.get('sheets', [])
-        sheet_exists = any(s['properties']['title'] == sheet_name for s in sheets)
-
-        if not sheet_exists:
-            body = {'requests': [{'addSheet': {'properties': {'title': sheet_name}}}]}
-            service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
-
-        result = service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1:Z1").execute()
-        
-        existing_values = result.get('values', [[]])
-        if not existing_values or not existing_values[0]:
-            body = {'values': [headers]}
-            service.spreadsheets().values().update(
-                spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
-                valueInputOption='RAW', body=body).execute()
-    except Exception as err:
-        print(f"Error in ensure_headers for {sheet_name}: {err}")
-        raise err
-
-def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
-    if not data: return
-    range_name = f"'{sheet_name}'!A:Z"
-    result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-    rows = result.get('values', [])
-    if not rows: rows = [headers]
-    id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
-    for new_row in data:
-        new_id = str(new_row[id_column_index])
-        if new_id in id_map: rows[id_map[new_id]] = new_row
-        else: rows.append(new_row)
-    body = {'values': rows}
-    service.spreadsheets().values().update(
-        spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
-        valueInputOption='USER_ENTERED', body=body).execute()
 
 @app.route('/health', methods=['GET'])
 def health():
     config = get_google_config()
     env_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
     now = datetime.datetime.now(datetime.timezone.utc)
     
     diag = {
         "status": "ok",
-        "version": "1.0.7-production",
+        "version": "1.0.8-b64-support",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
-        "credentials_source": "environment" if env_raw else ("file" if os.path.exists(SERVICE_ACCOUNT_FILE) else "none"),
+        "credentials_source": "base64" if b64_raw else ("environment" if env_raw else ("file" if os.path.exists(SERVICE_ACCOUNT_FILE) else "none")),
     }
     
     if env_raw:
-        diag["env_info"] = {"length": len(env_raw), "starts_with_brace": env_raw.strip().startswith('{')}
+        diag["env_json_info"] = {"length": len(env_raw), "starts_with_brace": env_raw.strip().startswith('{')}
+    if b64_raw:
+        diag["env_b64_info"] = {"length": len(b64_raw)}
         
     if config:
         diag["client_email"] = config.get("client_email")
-        diag["project_id"] = config.get("project_id")
-        diag["token_uri"] = config.get("token_uri")
         key = config.get("private_key", "")
         diag["key_info"] = {
             "length": len(key),
@@ -176,6 +133,7 @@ def health():
             diag["google_auth_error"] = str(auth_err)
             
     return jsonify(diag)
+
 
 @app.route('/register', methods=['POST'])
 def register():
