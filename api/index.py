@@ -5,7 +5,7 @@ import traceback
 import datetime
 import base64
 
-# Ensure the current directory is in the path for Vercel
+# Ensure the current directory is in the path for Vercel imports
 sys.path.append(os.path.dirname(__file__))
 
 from flask import Flask, request, jsonify
@@ -18,7 +18,7 @@ from database import init_db, create_user, authenticate_user, DB_PATH
 app = Flask(__name__)
 CORS(app)
 
-# Initialize Database
+# Initialize Database (SQLite in /tmp for Vercel)
 init_db()
 
 # SECURITY: Basic API Key for internal bridge
@@ -28,9 +28,11 @@ def check_auth():
     auth_header = request.headers.get('X-API-KEY')
     return auth_header == API_KEY
 
-# Path to the JSON key
+# Path to the JSON key (Fallback for local/PythonAnywhere)
 SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), 'config', 'service-account.json')
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+
+# --- Helper Functions (Defined before routes) ---
 
 def get_google_config():
     """Helper to get and normalize Google config from Env or File"""
@@ -70,13 +72,75 @@ def get_google_config():
     # Normalize private key for all methods
     if config and 'private_key' in config:
         key = config['private_key']
-        # Ensure literal "\n" strings become actual newline characters
+        # Google private keys MUST have actual newlines, not literal "\n" strings
         if '\\n' in key:
             key = key.replace('\\n', '\n')
         # Ensure the PEM header/footer is clean and no accidental extra quotes
         config['private_key'] = key.strip().strip('"').strip("'")
         
     return config
+
+def get_sheets_service():
+    """Returns an authorized Google Sheets service object"""
+    config = get_google_config()
+    if not config:
+        raise FileNotFoundError("Service account credentials not found.")
+    
+    try:
+        # Check required fields
+        required = ['client_email', 'private_key', 'token_uri']
+        missing = [f for f in required if f not in config]
+        if missing:
+            raise ValueError(f"Missing required fields in service account JSON: {', '.join(missing)}")
+
+        creds = service_account.Credentials.from_service_account_info(
+            config, scopes=SCOPES)
+        return build('sheets', 'v4', credentials=creds)
+    except Exception as e:
+        print("AUTHENTICATION ERROR TRACEBACK:")
+        traceback.print_exc()
+        raise e
+
+def ensure_headers(service, spreadsheet_id, sheet_name, headers):
+    try:
+        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        sheets = spreadsheet.get('sheets', [])
+        sheet_exists = any(s['properties']['title'] == sheet_name for s in sheets)
+
+        if not sheet_exists:
+            body = {'requests': [{'addSheet': {'properties': {'title': sheet_name}}}]}
+            service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
+
+        result = service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1:Z1").execute()
+        
+        existing_values = result.get('values', [[]])
+        if not existing_values or not existing_values[0]:
+            body = {'values': [headers]}
+            service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
+                valueInputOption='RAW', body=body).execute()
+    except Exception as err:
+        print(f"Error in ensure_headers for {sheet_name}: {err}")
+        raise err
+
+def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
+    if not data: return
+    range_name = f"'{sheet_name}'!A:Z"
+    result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
+    rows = result.get('values', [])
+    if not rows: rows = [headers]
+    id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
+    for new_row in data:
+        new_id = str(new_row[id_column_index])
+        if new_id in id_map: rows[id_map[new_id]] = new_row
+        else: rows.append(new_row)
+    body = {'values': rows}
+    service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
+        valueInputOption='USER_ENTERED', body=body).execute()
+
+# --- API Routes ---
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -87,17 +151,12 @@ def health():
     
     diag = {
         "status": "ok",
-        "version": "1.0.8-b64-support",
+        "version": "1.1.0-final-structured",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
         "credentials_source": "base64" if b64_raw else ("environment" if env_raw else ("file" if os.path.exists(SERVICE_ACCOUNT_FILE) else "none")),
     }
     
-    if env_raw:
-        diag["env_json_info"] = {"length": len(env_raw), "starts_with_brace": env_raw.strip().startswith('{')}
-    if b64_raw:
-        diag["env_b64_info"] = {"length": len(b64_raw)}
-        
     if config:
         diag["client_email"] = config.get("client_email")
         key = config.get("private_key", "")
@@ -106,8 +165,6 @@ def health():
             "has_actual_newlines": "\n" in key,
             "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----")
         }
-        
-        # Test 1: RSA Signing (Local)
         try:
             from google.auth import crypt, jwt
             signer = crypt.RSASigner.from_service_account_info(config)
@@ -116,14 +173,13 @@ def health():
         except Exception as sign_err:
             diag["rsa_signing_test"] = "failed"
             diag["rsa_signing_error"] = str(sign_err)
-            
-        # Test 2: Google Auth & Sheet Access
         try:
             from google.auth.transport.requests import Request
             creds = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
             creds.refresh(Request())
             diag["google_auth_test"] = "passed"
             
+            # Sheet access test
             test_sheet_id = "148T7oXqEAjUcH3zyQy93x1H92LYSheEZh8ja7rpg_1o"
             service = build('sheets', 'v4', credentials=creds)
             service.spreadsheets().get(spreadsheetId=test_sheet_id).execute()
@@ -133,7 +189,6 @@ def health():
             diag["google_auth_error"] = str(auth_err)
             
     return jsonify(diag)
-
 
 @app.route('/register', methods=['POST'])
 def register():
