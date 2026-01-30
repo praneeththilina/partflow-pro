@@ -12,7 +12,7 @@ from flask_cors import CORS
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from database import init_db, create_user, authenticate_user
+from database import init_db, create_user, authenticate_user, DB_PATH
 
 app = Flask(__name__)
 CORS(app)
@@ -25,58 +25,57 @@ API_KEY = "partflow_secret_token_2026"
 
 def check_auth():
     auth_header = request.headers.get('X-API-KEY')
-    if auth_header != API_KEY:
-        return False
-    return True
+    return auth_header == API_KEY
 
 # Path to the JSON key
 SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), 'config', 'service-account.json')
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
-def get_sheets_service():
-    # 1. Try to load from Environment Variable (Professional Cloud Method)
+def get_google_config():
+    """Helper to get and normalize Google config from Env or File"""
     env_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
     config = None
     
     if env_json:
         try:
-            print("INFO: Loading credentials from Environment Variable...")
-            # Clean up potential surrounding quotes from Vercel env panel
-            cleaned_json = env_json.strip()
-            if (cleaned_json.startswith("'") and cleaned_json.endswith("'")) or \
-               (cleaned_json.startswith('"') and cleaned_json.endswith('"')):
-                cleaned_json = cleaned_json[1:-1]
-            
-            config = json.loads(cleaned_json)
+            cleaned = env_json.strip()
+            # Remove surrounding quotes if they exist
+            if (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
+                cleaned = cleaned[1:-1]
+            config = json.loads(cleaned)
         except Exception as e:
             print(f"ERROR: Environment JSON parsing failed: {e}")
-            # If parsing fails, maybe it's not JSON? 
-            # Log the start/end for debugging (masked)
-            print(f"DEBUG: JSON string starts with: {env_json[:20]}... ends with: {env_json[-20:]}")
 
-    # 2. Fallback to physical file (Local/PythonAnywhere Method)
-    if not config:
-        if not os.path.exists(SERVICE_ACCOUNT_FILE):
-            print(f"CRITICAL: Service account credentials not found in Environment or File ({SERVICE_ACCOUNT_FILE})")
-            raise FileNotFoundError("Service account credentials missing.")
+    if not config and os.path.exists(SERVICE_ACCOUNT_FILE):
+        try:
+            with open(SERVICE_ACCOUNT_FILE, 'r') as f:
+                config = json.load(f)
+        except Exception as e:
+            print(f"ERROR: File JSON parsing failed: {e}")
+            
+    if config and 'private_key' in config:
+        key = config['private_key']
+        if '\\n' in key:
+            key = key.replace('\\n', '\n')
+        config['private_key'] = key.strip().strip('"').strip("'")
         
-        with open(SERVICE_ACCOUNT_FILE, 'r') as f:
-            config = json.load(f)
+    return config
+
+def get_sheets_service():
+    config = get_google_config()
+    if not config:
+        raise FileNotFoundError("Service account credentials not found.")
     
     try:
-        # Robust private key normalization
-        if 'private_key' in config:
-            key = config['private_key']
-            if '\\n' in key:
-                key = key.replace('\\n', '\n')
-            config['private_key'] = key.strip().strip('"').strip("'")
-            
+        required = ['client_email', 'private_key', 'token_uri']
+        missing = [f for f in required if f not in config]
+        if missing:
+            raise ValueError(f"Missing required fields in service account JSON: {', '.join(missing)}")
+
         creds = service_account.Credentials.from_service_account_info(
             config, scopes=SCOPES)
         return build('sheets', 'v4', credentials=creds)
-            
     except Exception as e:
-        print("AUTHENTICATION ERROR TRACEBACK:")
         traceback.print_exc()
         raise e
 
@@ -105,26 +104,15 @@ def ensure_headers(service, spreadsheet_id, sheet_name, headers):
 
 def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
     if not data: return
-    
     range_name = f"'{sheet_name}'!A:Z"
     result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
     rows = result.get('values', [])
-    
     if not rows: rows = [headers]
-    
-    id_map = {}
-    for i, row in enumerate(rows):
-        if i == 0: continue
-        if len(row) > id_column_index:
-            id_map[str(row[id_column_index])] = i
-            
+    id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
     for new_row in data:
         new_id = str(new_row[id_column_index])
-        if new_id in id_map:
-            rows[id_map[new_id]] = new_row
-        else:
-            rows.append(new_row)
-            
+        if new_id in id_map: rows[id_map[new_id]] = new_row
+        else: rows.append(new_row)
     body = {'values': rows}
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
@@ -132,58 +120,42 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 
 @app.route('/health', methods=['GET'])
 def health():
-    import datetime
-    # Check for the secret with and without quotes
+    config = get_google_config()
     env_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    env_exists = env_raw is not None
-    
     diag = {
         "status": "ok",
-        "version": "1.0.3-vercel-resilient",
+        "version": "1.0.4-unified-auth",
         "server_time": datetime.datetime.now().isoformat(),
-        "database": os.path.exists(os.path.join(os.path.dirname(__file__), 'partflow.db')),
-        "credentials_source": "environment" if env_exists else "file",
-        "env_check": {
-            "exists": env_exists,
-            "length": len(env_raw) if env_exists else 0,
-            "starts_with_brace": env_raw.strip().startswith('{') if env_exists else False
-        }
+        "database_path": DB_PATH,
+        "database_exists": os.path.exists(DB_PATH),
+        "credentials_source": "environment" if env_raw else ("file" if os.path.exists(SERVICE_ACCOUNT_FILE) else "none"),
     }
-    
-    config = None
-    if env_exists:
-        try:
-            cleaned = env_raw.strip()
-            if (cleaned.startswith("'") and cleaned.endswith("'")) or (cleaned.startswith('"') and cleaned.endswith('"')):
-                cleaned = cleaned[1:-1]
-            config = json.loads(cleaned)
-        except Exception as e:
-            diag["env_error"] = str(e)
-    
-    if not config and os.path.exists(SERVICE_ACCOUNT_FILE):
-        try:
-            with open(SERVICE_ACCOUNT_FILE, 'r') as f:
-                config = json.load(f)
-        except: pass
-
+    if env_raw:
+        diag["env_info"] = {"length": len(env_raw), "starts_with_brace": env_raw.strip().startswith('{')}
     if config:
         diag["client_email"] = config.get("client_email")
         key = config.get("private_key", "")
         diag["key_info"] = {
             "length": len(key),
-            "has_newlines": "\n" in key,
-            "has_escaped_newlines": "\\n" in key,
+            "has_actual_newlines": "\n" in key,
             "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----")
         }
         try:
             from google.auth import crypt, jwt
             signer = crypt.RSASigner.from_service_account_info(config)
             jwt.encode(signer, {'test': 'data'})
-            diag["signing_test"] = "passed"
+            diag["rsa_signing_test"] = "passed"
         except Exception as sign_err:
-            diag["signing_test"] = "failed"
-            diag["signing_error"] = str(sign_err)
-            
+            diag["rsa_signing_test"] = "failed"
+            diag["rsa_signing_error"] = str(sign_err)
+        try:
+            from google.auth.transport.requests import Request
+            creds = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
+            creds.refresh(Request())
+            diag["google_auth_test"] = "passed"
+        except Exception as auth_err:
+            diag["google_auth_test"] = "failed"
+            diag["google_auth_error"] = str(auth_err)
     return jsonify(diag)
 
 @app.route('/register', methods=['POST'])
@@ -200,8 +172,7 @@ def register():
 def login():
     data = request.json
     user = authenticate_user(data.get('username'), data.get('password'))
-    if user:
-        return jsonify({"success": True, "user": user, "token": API_KEY})
+    if user: return jsonify({"success": True, "user": user, "token": API_KEY})
     return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
 @app.route('/cron/keepalive', methods=['GET'])
@@ -215,66 +186,52 @@ def sync():
     spreadsheet_id = data.get('spreadsheetId')
     customers, orders, items = data.get('customers', []), data.get('orders', []), data.get('items', [])
     mode = data.get('mode', 'upsert')
-
     if not spreadsheet_id: return jsonify({"success": False, "message": "Spreadsheet ID is required"}), 400
-
     try:
         service = get_sheets_service()
         customer_headers = ['ID', 'Shop Name', 'Address', 'Phone', 'City', 'Discount', 'Status', 'Last Updated']
         inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Status', 'Last Updated']
         order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Net Total', 'Status', 'Last Updated']
         line_headers = ['Line ID', 'Order ID', 'Item ID', 'Item Name', 'Qty', 'Unit Price', 'Line Total']
-
         ensure_headers(service, spreadsheet_id, 'Customers', customer_headers)
         ensure_headers(service, spreadsheet_id, 'Inventory', inventory_headers)
         ensure_headers(service, spreadsheet_id, 'Orders', order_headers)
         ensure_headers(service, spreadsheet_id, 'OrderLines', line_headers)
-
         if customers:
             values = [[c['customer_id'], c['shop_name'], c['address'], c['phone'], c['city_ref'], c['discount_rate'], c['status'], c['updated_at']] for c in customers]
             if mode == 'overwrite':
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Customers'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
-            else:
-                upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
-
+            else: upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
         if items:
             values = [[i['item_id'], i['item_display_name'], i['item_name'], i['item_number'], i['vehicle_model'], i['source_brand'], i.get('category', 'Uncategorized'), i['unit_value'], i['current_stock_qty'], i.get('low_stock_threshold', 10), i['status'], i['updated_at']] for i in items]
             if mode == 'overwrite':
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Inventory'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
-            else:
-                upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, values, 0)
-
+            else: upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, values, 0)
         if orders:
             order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o['net_total'], o['order_status'], o['updated_at']] for o in orders]
             upsert_rows(service, spreadsheet_id, 'Orders', order_headers, order_values, 0)
             line_values = []
             for o in orders:
-                for l in o.get('lines', []):
-                    line_values.append([l['line_id'], o['order_id'], l['item_id'], l['item_name'], l['quantity'], l['unit_value'], l['line_total']])
-            if line_values:
-                upsert_rows(service, spreadsheet_id, 'OrderLines', line_headers, line_values, 0)
-
+                for l in o.get('lines', []): line_values.append([l['line_id'], o['order_id'], l['item_id'], l['item_name'], l['quantity'], l['unit_value'], l['line_total']])
+            if line_values: upsert_rows(service, spreadsheet_id, 'OrderLines', line_headers, line_values, 0)
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="'Inventory'!A:Z").execute()
-        pulled_items = []
         rows = result.get('values', [])
+        pulled_items = []
         if len(rows) > 1:
             for row in rows[1:]:
                 if not row or not row[0]: continue
                 while len(row) < 12: row.append('')
                 try: unit_val = float(row[7]) if row[7] else 0
                 except: unit_val = 0
-                try: stock_qty = int(row[8]) if row[8] else 0
-                except: stock_qty = 0
                 pulled_items.append({
                     "item_id": str(row[0]), "item_display_name": str(row[1]), "item_name": str(row[2] or row[1]),
                     "item_number": str(row[3]), "vehicle_model": str(row[4]), "source_brand": str(row[5] or 'Unknown'),
-                    "category": str(row[6] or 'Uncategorized'), "unit_value": unit_val, "current_stock_qty": stock_qty,
+                    "category": str(row[6] or 'Uncategorized'), "unit_value": unit_val, "current_stock_qty": int(row[8]) if row[8] else 0,
                     "low_stock_threshold": int(row[9]) if row[9] else 10, "status": str(row[10] or 'active'),
                     "updated_at": str(row[11] or ''), "sync_status": 'synced'
                 })
-
         return jsonify({"success": True, "pulledItems": pulled_items, "message": f"Sync completed successfully ({mode} mode)"})
     except Exception as e:
         traceback.print_exc()
