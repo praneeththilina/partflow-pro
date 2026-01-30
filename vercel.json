@@ -4,37 +4,12 @@
     {
       "src": "api/index.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
     }
   ],
   "rewrites": [
     {
-      "source": "/login",
-      "destination": "api/index.py"
-    },
-    {
-      "source": "/register",
-      "destination": "api/index.py"
-    },
-    {
-      "source": "/sync",
-      "destination": "api/index.py"
-    },
-    {
-      "source": "/health",
-      "destination": "api/index.py"
-    },
-    {
-      "source": "/cron/(.*)",
-      "destination": "api/index.py"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "api/index.py"
     }
   ]
 }
