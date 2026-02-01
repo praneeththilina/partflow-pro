@@ -2,6 +2,7 @@ import Dexie, { Table } from 'dexie';
 import { Customer, Item, Order, OrderLine, CompanySettings, SyncStats, User, Payment, StockAdjustment } from '../types';
 import { sheetsService } from './sheets';
 import { jsonToCsv, downloadCsv } from '../utils/csv';
+import { generateSKU } from '../utils/skuGenerator';
 import SEED_DATA from '../src/config/seed-data.json';
 import APP_SETTINGS from '../src/config/app-settings.json';
 import USER_CONFIG from '../src/config/users.json';
@@ -478,12 +479,9 @@ class LocalDB {
         
         // Auto-Generate Missing SKUs (Logic: V5)
         if (settings.auto_sku_enabled) {
-            const { generateSKU } = await import('../utils/skuGenerator');
             const processedItems = result.pulledItems.map(item => {
                 // If Item Number is missing or empty, generate it
                 if (!item.item_number || item.item_number.trim() === '') {
-                    // Need existing SKUs context? For bulk import, we need to be careful about collisions within the batch.
-                    // We can map over them sequentially.
                     return item; 
                 }
                 return item;

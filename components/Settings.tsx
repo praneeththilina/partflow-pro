@@ -12,170 +12,234 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
     const [settings, setSettings] = useState<CompanySettings>(db.getSettings());
     const [message, setMessage] = useState('');
 
-    const handleLogout = () => {
-        onLogout();
-    };
-
     const handleSave = () => {
         db.saveSettings(settings);
         setMessage('Settings saved successfully!');
         setTimeout(() => setMessage(''), 3000);
     };
 
+    const SectionHeader = ({ icon, title, subtitle }: { icon: React.ReactNode, title: string, subtitle: string }) => (
+        <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                {icon}
+            </div>
+            <div>
+                <h3 className="text-base font-black text-slate-800 leading-tight">{title}</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{subtitle}</p>
+            </div>
+        </div>
+    );
+
+    const ToggleRow = ({ label, description, checked, onChange }: { label: string, description: string, checked: boolean, onChange: (val: boolean) => void }) => (
+        <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+            <div className="flex-1 pr-4">
+                <label className="block text-sm font-bold text-slate-800">{label}</label>
+                <p className="text-[10px] text-slate-500 font-medium leading-tight mt-0.5">{description}</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input 
+                    type="checkbox" 
+                    className="sr-only peer"
+                    checked={checked}
+                    onChange={e => onChange(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+        </div>
+    );
+
     return (
-        <div className="max-w-xl mx-auto space-y-6 pb-20 md:pb-0">
-            <h2 className="text-2xl font-bold text-slate-800 px-2">Bill Head Settings</h2>
+        <div className="max-w-2xl mx-auto space-y-6 pb-24 md:pb-8 px-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-black">
-                            {user?.username[0].toUpperCase() || '?'}
+            {/* Header / Profile */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-100">
+                        {user?.username[0].toUpperCase() || '?'}
+                    </div>
+                    <div>
+                        <p className="text-lg font-black text-slate-900">{user?.full_name}</p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-white bg-slate-800 px-2 py-0.5 rounded-full uppercase tracking-tighter">{user?.role}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">PartFlow Pro User</span>
                         </div>
-                        <div>
-                            <p className="text-sm font-black text-slate-800">{user?.full_name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.role}</p>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={handleLogout}
-                        className="text-xs font-bold text-rose-500 hover:text-rose-700 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100 transition-colors"
-                    >
-                        Sign Out
-                    </button>
-                </div>
-                <hr className="border-slate-50" />
-                
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
-                    <input 
-                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        value={settings.company_name}
-                        onChange={e => setSettings({...settings, company_name: e.target.value})}
-                    />
-                </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Address (on Bill)</label>
-                    <textarea 
-                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        rows={3}
-                        value={settings.address}
-                        onChange={e => setSettings({...settings, address: e.target.value})}
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Contact Phone</label>
-                        <input 
-                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={settings.phone}
-                            onChange={e => setSettings({...settings, phone: e.target.value})}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Sales Rep Name</label>
-                        <input 
-                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={settings.rep_name}
-                            onChange={e => setSettings({...settings, rep_name: e.target.value})}
-                        />
                     </div>
                 </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Invoice Prefix</label>
-                    <input 
-                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        value={settings.invoice_prefix}
-                        onChange={e => setSettings({...settings, invoice_prefix: e.target.value})}
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Currency Symbol</label>
-                    <input 
-                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        value={settings.currency_symbol || 'Rs.'}
-                        onChange={e => setSettings({...settings, currency_symbol: e.target.value})}
-                        placeholder="e.g. Rs., $, ₹"
-                    />
-                </div>
-
-                <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-slate-50">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-800">Auto-Generate SKU</label>
-                        <p className="text-xs text-slate-500">Automatically create SKU based on item description (e.g. "Brake Pad" -{'>'} BP01)</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            className="sr-only peer"
-                            checked={settings.auto_sku_enabled || false}
-                            onChange={e => setSettings({...settings, auto_sku_enabled: e.target.checked})}
-                        />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-slate-50">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-800">Track Inventory Stock</label>
-                        <p className="text-xs text-slate-500">Enable stock count, low stock alerts, and manual adjustments.</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            className="sr-only peer"
-                            checked={settings.stock_tracking_enabled || false}
-                            onChange={e => setSettings({...settings, stock_tracking_enabled: e.target.checked})}
-                        />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-slate-50">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-800">Enable Item Category</label>
-                        <p className="text-xs text-slate-500">Show and manage categories for spare parts.</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            className="sr-only peer"
-                            checked={settings.category_enabled ?? false}
-                            onChange={e => setSettings({...settings, category_enabled: e.target.checked})}
-                        />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Bill Footer Note</label>
-                    <textarea 
-                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        rows={2}
-                        value={settings.footer_note}
-                        onChange={e => setSettings({...settings, footer_note: e.target.value})}
-                    />
-                </div>
-
-                <div className="pt-4 flex flex-col items-center gap-3">
-                    <button 
-                        onClick={handleSave}
-                        className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all active:scale-95"
-                    >
-                        Save Bill Head
-                    </button>
-                    {message && <p className="text-emerald-600 font-medium text-sm animate-bounce">{message}</p>}
-                </div>
+                <button 
+                    onClick={onLogout}
+                    className="p-3 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-100 active:scale-90 transition-all border border-rose-100"
+                    title="Sign Out"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                </button>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl">
-                <p className="text-xs text-amber-800 leading-relaxed">
-                    <strong>Pro Tip:</strong> These settings are stored locally on this device. Make sure to set these up before sharing invoices.
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Section: Bill Head */}
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <SectionHeader 
+                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
+                        title="Company Profile"
+                        subtitle="Bill Head Information"
+                    />
+                    
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Company Name</label>
+                            <input 
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                value={settings.company_name}
+                                onChange={e => setSettings({...settings, company_name: e.target.value})}
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Business Address</label>
+                            <textarea 
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                rows={3}
+                                value={settings.address}
+                                onChange={e => setSettings({...settings, address: e.target.value})}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Phone</label>
+                                <input 
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                    value={settings.phone}
+                                    onChange={e => setSettings({...settings, phone: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Rep Name</label>
+                                <input 
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                    value={settings.rep_name}
+                                    onChange={e => setSettings({...settings, rep_name: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section: System Configuration */}
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 flex flex-col">
+                    <SectionHeader 
+                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
+                        title="Platform Logic"
+                        subtitle="Core functionality behavior"
+                    />
+
+                    <div className="space-y-3 flex-1">
+                        <ToggleRow 
+                            label="Auto-Generate SKU"
+                            description="Create SKUs automatically from descriptions."
+                            checked={settings.auto_sku_enabled}
+                            onChange={val => setSettings({...settings, auto_sku_enabled: val})}
+                        />
+                        <ToggleRow 
+                            label="Inventory Tracking"
+                            description="Track stock levels, low alerts, and counts."
+                            checked={settings.stock_tracking_enabled}
+                            onChange={val => setSettings({...settings, stock_tracking_enabled: val})}
+                        />
+                        <ToggleRow 
+                            label="Item Categories"
+                            description="Group parts by categories (Engine, etc)."
+                            checked={settings.category_enabled}
+                            onChange={val => setSettings({...settings, category_enabled: val})}
+                        />
+                    </div>
+                </div>
+
+                {/* Section: Financials & Branding */}
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <SectionHeader 
+                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
+                        title="Financials & PDF"
+                        subtitle="Branding and formatting"
+                    />
+
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Currency Symbol</label>
+                                <input 
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                    value={settings.currency_symbol}
+                                    onChange={e => setSettings({...settings, currency_symbol: e.target.value})}
+                                    placeholder="Rs."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Inv. Prefix</label>
+                                <input 
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                    value={settings.invoice_prefix}
+                                    onChange={e => setSettings({...settings, invoice_prefix: e.target.value})}
+                                    placeholder="INV-"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Bill Footer Note</label>
+                            <textarea 
+                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                                rows={2}
+                                value={settings.footer_note}
+                                onChange={e => setSettings({...settings, footer_note: e.target.value})}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section: Data Sync */}
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <SectionHeader 
+                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>}
+                        title="Cloud Sync"
+                        subtitle="Google sheets integration"
+                    />
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Google Sheet ID</label>
+                        <input 
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            value={settings.google_sheet_id}
+                            onChange={e => setSettings({...settings, google_sheet_id: e.target.value})}
+                            placeholder="Enter Sheet ID from URL"
+                        />
+                        <p className="text-[9px] text-slate-400 mt-2 px-1 leading-relaxed">
+                            Sharing your data with Google Sheets requires a valid Sheet ID. You can find this in the URL of your Google Sheet.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            {/* Save Action Area */}
+            <div className="pt-4 pb-8 flex flex-col items-center">
+                <button 
+                    onClick={handleSave}
+                    className="w-full max-w-sm bg-slate-900 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-slate-200 hover:bg-indigo-600 transition-all active:scale-95 flex items-center justify-center gap-3"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    Save Configuration
+                </button>
+                {message && <p className="mt-4 text-emerald-600 font-bold text-sm animate-bounce">{message}</p>}
+            </div>
+
+            <div className="bg-indigo-50/50 border border-indigo-100 p-5 rounded-3xl">
+                <div className="flex gap-3">
+                    <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <p className="text-xs text-indigo-900 font-medium leading-relaxed">
+                        These settings are stored locally on this device. They control how your invoices are generated and how your inventory is tracked. Changes take effect immediately.
+                    </p>
+                </div>
             </div>
         </div>
     );
