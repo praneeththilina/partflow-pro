@@ -24,7 +24,8 @@ const SEED_ITEMS: Item[] = SEED_DATA.items as Item[];
 const SEED_SETTINGS: CompanySettings = { 
     ...(APP_SETTINGS as any), 
     auto_sku_enabled: false, 
-    stock_tracking_enabled: false 
+    stock_tracking_enabled: false,
+    category_enabled: false
 }; 
 
 // --- Dexie Database Schema ---

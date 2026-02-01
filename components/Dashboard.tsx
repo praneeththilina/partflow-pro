@@ -150,10 +150,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                             {db.getItems()
                                 .filter(i => i.current_stock_qty <= i.low_stock_threshold)
                                 .map(item => (
-                                    <div key={item.item_id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                                    <div className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                         <div>
-                                            <p className="text-sm font-bold text-slate-900">{item.item_display_name}</p>
-                                            <p className="text-[10px] text-slate-400 font-mono uppercase">{item.item_number}</p>
+                                            <p className="text-sm font-bold text-slate-900 leading-tight">{item.item_display_name}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{item.vehicle_model}</span>
+                                                <span className="text-[10px] text-slate-400 font-mono uppercase">{item.item_number}</span>
+                                            </div>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-black text-rose-600">{item.current_stock_qty}</p>

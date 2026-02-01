@@ -267,9 +267,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             {item.vehicle_model.substring(0, 2).toUpperCase()}
                                         </div>
                                         <div className="min-w-0">
-                                            <div className="font-bold text-slate-800 text-sm truncate">{item.item_display_name}</div>
-                                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-tight mt-0.5">
-                                                {item.item_number} • <span className="text-indigo-600">{item.source_brand}</span>
+                                            <div className="font-bold text-slate-800 text-sm truncate leading-tight">{item.item_display_name}</div>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter">{item.vehicle_model}</span>
+                                                <span className="text-[10px] text-slate-400 font-bold">•</span>
+                                                <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
                                             </div>
                                         </div>
                                     </div>

@@ -19,7 +19,15 @@ export const InventoryList: React.FC = () => {
   // Modals
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
-  const [alertConfig, setAlertConfig] = useState<{isOpen: boolean, title: string, message: string, type: 'info' | 'danger' | 'success'} | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{
+      isOpen: boolean, 
+      title: string, 
+      message: string, 
+      type: 'info' | 'danger' | 'success',
+      onConfirm?: () => void,
+      onCancel?: () => void,
+      confirmText?: string
+  } | null>(null);
   
   // State
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -44,7 +52,7 @@ export const InventoryList: React.FC = () => {
       setAlertConfig({ isOpen: true, title, message, type });
   };
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     if (!newItem.item_display_name || !newItem.item_number || !newItem.unit_value) {
         showAlert("Missing Info", "Name, SKU, and Price are required", "danger");
         return;
@@ -93,8 +101,8 @@ export const InventoryList: React.FC = () => {
       sync_status: 'pending'
     };
 
-    db.saveItem(item);
-    setItems(db.getItems());
+    await db.saveItem(item);
+    setItems([...db.getItems()]); // Spread to force new array reference for React
     setShowAddForm(false);
     setEditingItem(null);
     setNewItem({});
@@ -119,9 +127,32 @@ export const InventoryList: React.FC = () => {
 
   const toggleStockFlag = async (e: React.MouseEvent, item: Item) => {
       e.stopPropagation();
-      const updatedItem = { ...item, is_out_of_stock: !item.is_out_of_stock, sync_status: 'pending' as const, updated_at: new Date().toISOString() };
-      await db.saveItem(updatedItem);
-      setItems(db.getItems());
+      
+      const action = item.is_out_of_stock ? 'In Stock' : 'Out of Stock';
+      
+      setAlertConfig({
+          isOpen: true,
+          title: `Mark as ${action}?`,
+          message: `Are you sure you want to mark "${item.item_display_name}" as ${action}?`,
+          type: item.is_out_of_stock ? 'success' : 'danger',
+          onConfirm: async () => {
+              const updatedItem = { 
+                  ...item, 
+                  is_out_of_stock: !item.is_out_of_stock, 
+                  sync_status: 'pending' as const, 
+                  updated_at: new Date().toISOString() 
+              };
+              
+              // 1. Update Database
+              await db.saveItem(updatedItem);
+              
+              // 2. Immediate UI Update (Local State)
+              setItems(prev => prev.map(i => i.item_id === item.item_id ? updatedItem : i));
+              
+              setAlertConfig(null);
+          },
+          onCancel: () => setAlertConfig(null)
+      } as any);
   };
 
   const openAdjustModal = (e: React.MouseEvent, item: Item) => {
@@ -153,7 +184,7 @@ export const InventoryList: React.FC = () => {
       };
 
       await db.addStockAdjustment(adjustment);
-      setItems(db.getItems());
+      setItems([...db.getItems()]);
       setShowAdjustModal(false);
       setAdjustItem(null);
   };
@@ -247,8 +278,8 @@ export const InventoryList: React.FC = () => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
             </button>
          </div>
-         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {categories.map(cat => (
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {settings.category_enabled && categories.map(cat => (
                 <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}
@@ -261,7 +292,19 @@ export const InventoryList: React.FC = () => {
                     {cat}
                 </button>
             ))}
-         </div>
+            {!settings.category_enabled && (
+                <button
+                    onClick={() => setCategoryFilter(categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'Low Stock' : 'Out of Stock') : 'All')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${
+                        categoryFilter !== 'All' 
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' 
+                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                    }`}
+                >
+                    {categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'View Low Stock' : 'View Out Stock') : 'View All Items'}
+                </button>
+            )}
+          </div>
          <div className="flex justify-between items-center text-xs text-slate-500 px-1">
             <span>Showing {filteredItems.length} products</span>
             <span>Live Stock</span>
@@ -328,18 +371,26 @@ export const InventoryList: React.FC = () => {
                             <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.source_brand || ''} onChange={e => setNewItem({...newItem, source_brand: e.target.value})} placeholder="e.g. China" />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                            <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.category || ''} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="e.g. Engine" />
-                        </div>
-                        {settings.stock_tracking_enabled && (
+                    {settings.category_enabled && (
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
-                                <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                                <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.category || ''} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="e.g. Engine" />
                             </div>
-                        )}
-                    </div>
+                            {settings.stock_tracking_enabled && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
+                                    <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {!settings.category_enabled && settings.stock_tracking_enabled && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
+                            <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Unit Value (Price) *</label>
@@ -387,14 +438,16 @@ export const InventoryList: React.FC = () => {
                                 <div className="flex items-center gap-3">
                                     {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" title="Pending Sync"></span>}
                                     <div>
-                                        <div className={`text-sm font-bold ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{item.item_display_name}</div>
-                                        <div className="text-xs text-slate-500 font-mono mt-0.5">{item.item_number}</div>
+                                        <div className={`text-sm font-bold leading-tight ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{item.item_display_name}</div>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded uppercase tracking-tighter">{item.vehicle_model}</span>
+                                            <span className="text-[10px] text-slate-400 font-mono">{item.item_number}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                <div className="font-medium">{item.vehicle_model}</div>
-                                <div className="text-xs text-slate-400 flex items-center gap-1">
+                                <div className="text-xs text-slate-500 flex items-center gap-1">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     {item.source_brand}
                                 </div>
@@ -407,9 +460,13 @@ export const InventoryList: React.FC = () => {
                                     {!settings.stock_tracking_enabled && (
                                         <button 
                                             onClick={(e) => toggleStockFlag(e, item)}
-                                            className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${item.is_out_of_stock ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
+                                            className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border transition-all ${
+                                                item.is_out_of_stock 
+                                                ? 'bg-rose-100 text-rose-700 border-rose-200' 
+                                                : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                            }`}
                                         >
-                                            {item.is_out_of_stock ? 'In Stock' : 'Out Stock'}
+                                            {item.is_out_of_stock ? 'Out of Stock' : 'In Stock'}
                                         </button>
                                     )}
                                     {settings.stock_tracking_enabled && (
@@ -447,12 +504,14 @@ export const InventoryList: React.FC = () => {
                 <div className="flex-1 min-w-0 pr-4">
                     <div className="flex items-center gap-2">
                         {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>}
-                        <h4 className="text-sm font-bold text-slate-900 truncate">{item.item_display_name}</h4>
+                        <h4 className={`text-sm font-bold truncate ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{item.item_display_name}</h4>
                     </div>
-                    <p className="text-xs text-slate-500 font-mono mb-1">{item.item_number}</p>
-                    <div className="flex items-center text-xs text-slate-500 space-x-2">
-                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{item.source_brand}</span>
-                        <span>{item.vehicle_model}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{item.vehicle_model}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{item.item_number}</span>
+                    </div>
+                    <div className="mt-1 flex items-center text-[10px] text-slate-500">
+                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">{item.source_brand}</span>
                     </div>
                 </div>
                 <div className="text-right flex flex-col items-end space-y-1">
@@ -460,7 +519,11 @@ export const InventoryList: React.FC = () => {
                     {!settings.stock_tracking_enabled && (
                         <button 
                             onClick={(e) => toggleStockFlag(e, item)}
-                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${item.is_out_of_stock ? 'bg-rose-100 text-rose-600 border border-rose-200' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                item.is_out_of_stock 
+                                ? 'bg-rose-100 text-rose-600 border-rose-200' 
+                                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            }`}
                         >
                             {item.is_out_of_stock ? 'Out of Stock' : 'In Stock'}
                         </button>
@@ -553,9 +616,9 @@ export const InventoryList: React.FC = () => {
             title={alertConfig.title}
             message={alertConfig.message}
             type={alertConfig.type}
-            onConfirm={() => setAlertConfig(null)}
-            onCancel={() => setAlertConfig(null)}
-            confirmText="OK"
+            onConfirm={alertConfig.onConfirm || (() => setAlertConfig(null))}
+            onCancel={alertConfig.onCancel || (() => setAlertConfig(null))}
+            confirmText={alertConfig.confirmText || "OK"}
           />
       )}
     </div>

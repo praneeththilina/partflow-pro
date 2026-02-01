@@ -23,7 +23,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
     setCustomers(db.getCustomers());
   }, []);
 
-  const handleSaveCustomer = () => {
+  const handleSaveCustomer = async () => {
     if (!newCustomer.shop_name || !newCustomer.city_ref) {
         alert("Shop Name and City are required");
         return;
@@ -51,8 +51,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       sync_status: 'pending'
     };
 
-    db.saveCustomer(customer);
-    setCustomers(db.getCustomers());
+    await db.saveCustomer(customer);
+    setCustomers([...db.getCustomers()]);
     setShowAddForm(false);
     setEditingCustomer(null);
     setNewCustomer({});
