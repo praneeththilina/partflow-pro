@@ -138,13 +138,19 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                 <span className="w-24 font-bold">Rep Name:</span>
                                                 <span>{settings.rep_name || 'A'}</span>
                                             </div>
-                                            <div className="flex mb-1">
-                                                <span className="w-24 font-bold">Terms:</span>
-                                                <span>CREDIT 90 DAYS</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                             <div className="flex mb-1">
+                                                 <span className="w-24 font-bold">Terms:</span>
+                                                 <span>CREDIT 90 DAYS</span>
+                                             </div>
+                                             {order.delivery_status && order.delivery_status !== 'pending' && (
+                                                 <div className="flex mb-1">
+                                                     <span className="w-24 font-bold">Delivery:</span>
+                                                     <span className="uppercase font-bold text-indigo-600">{order.delivery_status.replace(/_/g, ' ')}</span>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     </div>
+                                 )}
 
                                 {/* Items Table */}
                                 <table className="w-full border-collapse mb-5 text-black border border-slate-300">

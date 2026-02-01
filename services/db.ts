@@ -9,7 +9,7 @@ import USER_CONFIG from '../src/config/users.json';
 
 // Keys for LocalStorage (Legacy / Cache Flags)
 const STORAGE_KEYS = {
-  INIT: 'fieldaudit_initialized_v7', // Force re-init for V7 (Stored Users)
+  INIT: 'fieldaudit_initialized_v8', // Force re-init for V8 (Delivery Tracking)
   LAST_SYNC: 'fieldaudit_last_sync',
   USER: 'fieldaudit_current_user',
   // Legacy keys (will be migrated from)
@@ -47,10 +47,10 @@ class PartFlowDB extends Dexie {
 
     constructor() {
         super('PartFlowDB');
-        this.version(5).stores({
+        this.version(6).stores({
             customers: 'customer_id, shop_name, sync_status',
             items: 'item_id, item_number, item_display_name, sync_status, status',
-            orders: 'order_id, customer_id, order_date, sync_status, payment_status',
+            orders: 'order_id, customer_id, order_date, sync_status, payment_status, delivery_status',
             stockAdjustments: 'adjustment_id, item_id, sync_status',
             settings: 'id',
             users: 'id, username'
@@ -153,7 +153,8 @@ class LocalDB {
                   paid_amount: o.paid_amount || 0,
                   balance_due: o.balance_due ?? o.net_total, // If undefined, assume full amount due
                   payment_status: o.payment_status || (o.net_total === 0 ? 'paid' : 'unpaid'),
-                  payments: o.payments || []
+                  payments: o.payments || [],
+                  delivery_status: o.delivery_status || 'pending'
               }));
 
               if (migratedCustomers.length > 0) await this.db.customers.bulkPut(migratedCustomers);
@@ -267,6 +268,7 @@ class LocalDB {
         paid_amount: paid,
         balance_due: due,
         payment_status: status,
+        delivery_status: order.delivery_status || 'pending',
         sync_status: 'pending' as const, 
         updated_at: new Date().toISOString() 
     };
@@ -291,6 +293,19 @@ class LocalDB {
       order.paid_amount = order.payments.reduce((sum, p) => sum + p.amount, 0);
       
       await this.saveOrder(order);
+  }
+
+  async updateDeliveryStatus(orderId: string, status: any, notes?: string): Promise<void> {
+      const index = this.cache.orders.findIndex(o => o.order_id === orderId);
+      if (index === -1) throw new Error("Order not found");
+
+      const order = this.cache.orders[index];
+      order.delivery_status = status;
+      if (notes !== undefined) order.delivery_notes = notes;
+      order.updated_at = new Date().toISOString();
+      order.sync_status = 'pending';
+
+      await this.db.orders.put(order);
   }
 
   private async recalcCustomerBalance(customerId: string) {

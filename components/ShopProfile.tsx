@@ -63,6 +63,17 @@ export const ShopProfile: React.FC<ShopProfileProps> = ({ customer, onBack, onVi
     const unpaidOrders = orders.filter(o => o.payment_status !== 'paid');
     const paidOrders = orders.filter(o => o.payment_status === 'paid');
 
+    const getDeliveryColor = (status: any) => {
+        switch (status) {
+            case 'delivered': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+            case 'out_for_delivery': return 'bg-indigo-50 text-indigo-700 border-indigo-100';
+            case 'shipped': return 'bg-blue-50 text-blue-700 border-blue-100';
+            case 'failed': return 'bg-rose-50 text-rose-700 border-rose-100';
+            case 'cancelled': return 'bg-slate-100 text-slate-600 border-slate-200';
+            default: return 'bg-amber-50 text-amber-700 border-amber-100';
+        }
+    };
+
     return (
         <div className="pb-24">
             {/* Header */}
@@ -103,7 +114,12 @@ export const ShopProfile: React.FC<ShopProfileProps> = ({ customer, onBack, onVi
                                     <div className="flex justify-between items-start mb-2 pl-2">
                                         <div>
                                             <p className="text-xs font-mono font-bold text-slate-400">{order.order_date}</p>
-                                            <p className="text-sm font-bold text-slate-900">Inv #{order.order_id.substring(0,6).toUpperCase()}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-bold text-slate-900">Inv #{order.order_id.substring(0,6).toUpperCase()}</p>
+                                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${getDeliveryColor(order.delivery_status || 'pending')}`}>
+                                                    {order.delivery_status || 'pending'}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xs text-slate-400">Balance</p>
@@ -138,7 +154,12 @@ export const ShopProfile: React.FC<ShopProfileProps> = ({ customer, onBack, onVi
                         {paidOrders.slice(0, 5).map(order => (
                             <div key={order.order_id} onClick={() => onViewInvoice(order)} className="bg-slate-50 p-3 rounded-lg flex justify-between items-center cursor-pointer active:bg-slate-100">
                                 <div>
-                                    <p className="text-xs font-bold text-slate-700">#{order.order_id.substring(0,6).toUpperCase()}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-xs font-bold text-slate-700">#{order.order_id.substring(0,6).toUpperCase()}</p>
+                                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${getDeliveryColor(order.delivery_status || 'pending')}`}>
+                                            {order.delivery_status || 'pending'}
+                                        </span>
+                                    </div>
                                     <p className="text-[10px] text-slate-400">{order.order_date}</p>
                                 </div>
                                 <span className="text-sm font-bold text-emerald-600">Paid {formatCurrency(order.net_total)}</span>

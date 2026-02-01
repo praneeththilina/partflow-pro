@@ -24,6 +24,7 @@ export interface AuthState {
 
 export type PaymentType = 'cash' | 'cheque' | 'bank_transfer' | 'credit';
 export type PaymentStatus = 'paid' | 'partial' | 'unpaid';
+export type DeliveryStatus = 'pending' | 'shipped' | 'out_for_delivery' | 'delivered' | 'failed' | 'cancelled';
 
 export interface Payment {
   payment_id: string;
@@ -61,6 +62,9 @@ export interface Order extends BaseEntity {
   balance_due: number;
   payment_status: PaymentStatus;
   payments: Payment[];
+
+  delivery_status: DeliveryStatus;
+  delivery_notes?: string;
 
   order_status: OrderStatus;
   lines: OrderLine[];
