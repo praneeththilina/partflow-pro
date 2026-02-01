@@ -21,6 +21,19 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
+export type PaymentType = 'cash' | 'cheque' | 'bank_transfer' | 'credit';
+export type PaymentStatus = 'paid' | 'partial' | 'unpaid';
+
+export interface Payment {
+  payment_id: string;
+  order_id: string;
+  amount: number;
+  payment_date: string;
+  payment_type: PaymentType;
+  reference_number?: string; // Cheque number or Trans ID
+  notes?: string;
+}
+
 export interface Customer extends BaseEntity {
   customer_id: string;
   shop_name: string;
@@ -28,7 +41,28 @@ export interface Customer extends BaseEntity {
   phone: string;
   city_ref: string;
   discount_rate: number; // 0.0 to 1.0
+  outstanding_balance: number; // Track credit
   status: EntityStatus;
+}
+
+export interface Order extends BaseEntity {
+  order_id: string;
+  customer_id: string;
+  rep_id?: string;
+  order_date: string;
+  discount_rate: number;
+  gross_total: number;
+  discount_value: number;
+  net_total: number;
+  
+  // Payment Tracking
+  paid_amount: number;
+  balance_due: number;
+  payment_status: PaymentStatus;
+  payments: Payment[];
+
+  order_status: OrderStatus;
+  lines: OrderLine[];
 }
 
 export interface Item extends BaseEntity {
@@ -78,9 +112,18 @@ export interface CompanySettings {
   google_sheet_id?: string;
 }
 
+export interface StockAdjustment extends BaseEntity {
+  adjustment_id: string;
+  item_id: string;
+  adjustment_type: 'restock' | 'damage' | 'correction' | 'return';
+  quantity: number; // Always positive
+  reason: string;
+}
+
 export interface SyncStats {
   pendingCustomers: number;
   pendingItems: number;
   pendingOrders: number;
+  pendingAdjustments: number;
   last_sync?: string;
 }

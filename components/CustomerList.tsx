@@ -161,6 +161,11 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer }) 
                     <div className="flex justify-between items-start">
                         <h3 className="text-base font-bold text-slate-900 truncate pr-2">{customer.shop_name}</h3>
                         <div className="flex items-center gap-2">
+                            {customer.outstanding_balance > 0 && (
+                                <span className="bg-rose-100 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200">
+                                    Due: Rs.{customer.outstanding_balance.toLocaleString()}
+                                </span>
+                            )}
                             <button 
                                 onClick={(e) => startEdit(e, customer)}
                                 className="text-slate-400 hover:text-indigo-600 p-1"

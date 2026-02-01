@@ -204,14 +204,38 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                         </tr>
                                                     )}
                                                     <tr className="bg-slate-50">
-                                                        <td className="border border-black px-2 py-3 text-left align-middle font-bold text-[16px]">Net Total</td>
-                                                        <td className="border border-black px-2 py-3 text-right align-middle font-bold text-[16px]">
+                                                        <td className="border border-black px-2 py-2 text-left align-middle font-bold text-[14px]">Net Total</td>
+                                                        <td className="border border-black px-2 py-2 text-right align-middle font-bold text-[14px]">
                                                             Rs. {order.net_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                         </td>
                                                     </tr>
+                                                    {order.paid_amount > 0 && (
+                                                        <tr>
+                                                            <td className="border border-black px-2 py-2 text-left align-middle font-medium text-emerald-700">
+                                                                Paid Amount
+                                                            </td>
+                                                            <td className="border border-black px-2 py-2 text-right align-middle font-bold text-emerald-700">
+                                                                - {order.paid_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {order.balance_due > 0.5 && (
+                                                        <tr className="bg-rose-50">
+                                                            <td className="border border-black px-2 py-3 text-left align-middle font-black text-[16px] text-rose-700">Balance Due</td>
+                                                            <td className="border border-black px-2 py-3 text-right align-middle font-black text-[16px] text-rose-700">
+                                                                Rs. {order.balance_due.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                            </td>
+                                                        </tr>
+                                                    )}
                                                 </tbody>
                                             </table>
                                         </div>
+
+                                        {order.balance_due <= 0.5 && (
+                                            <div className="absolute bottom-40 right-10 transform -rotate-12 border-4 border-emerald-600 text-emerald-600 font-black text-4xl px-4 py-2 rounded-lg opacity-50 pointer-events-none">
+                                                PAID IN FULL
+                                            </div>
+                                        )}
 
                                         <div className="flex justify-between mt-12 mb-10">
                                             <div className="w-[30%] border-t border-dashed border-slate-400 pt-1.5 text-center text-[11px] font-bold">Customer Signature</div>

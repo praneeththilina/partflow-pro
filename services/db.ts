@@ -1,173 +1,363 @@
-import { Customer, Item, Order, OrderLine, CompanySettings, SyncStats, User } from '../types';
+import Dexie, { Table } from 'dexie';
+import { Customer, Item, Order, OrderLine, CompanySettings, SyncStats, User, Payment, StockAdjustment } from '../types';
 import { sheetsService } from './sheets';
 import { jsonToCsv, downloadCsv } from '../utils/csv';
 import SEED_DATA from '../src/config/seed-data.json';
 import APP_SETTINGS from '../src/config/app-settings.json';
 import USER_CONFIG from '../src/config/users.json';
 
-// Keys for LocalStorage
+// Keys for LocalStorage (Legacy / Cache Flags)
 const STORAGE_KEYS = {
-  CUSTOMERS: 'fieldaudit_customers',
-  ITEMS: 'fieldaudit_items',
-  ORDERS: 'fieldaudit_orders',
-  SETTINGS: 'fieldaudit_settings',
-  INIT: 'fieldaudit_initialized',
+  INIT: 'fieldaudit_initialized_v4', // Force re-init for V4 (Stock Adjustments)
   LAST_SYNC: 'fieldaudit_last_sync',
-  USER: 'fieldaudit_current_user'
+  USER: 'fieldaudit_current_user',
+  // Legacy keys (will be migrated from)
+  LEGACY_CUSTOMERS: 'fieldaudit_customers',
+  LEGACY_ITEMS: 'fieldaudit_items',
+  LEGACY_ORDERS: 'fieldaudit_orders',
+  LEGACY_SETTINGS: 'fieldaudit_settings',
 };
 
 // Seed Data
-const SEED_CUSTOMERS: Customer[] = SEED_DATA.customers as Customer[];
+const SEED_CUSTOMERS: Customer[] = (SEED_DATA.customers as any[]).map(c => ({...c, outstanding_balance: 0}));
 const SEED_ITEMS: Item[] = SEED_DATA.items as Item[];
 const SEED_SETTINGS: CompanySettings = APP_SETTINGS;
 
-// Database Service Implementation
+// --- Dexie Database Schema ---
+class PartFlowDB extends Dexie {
+    customers!: Table<Customer, string>;
+    items!: Table<Item, string>;
+    orders!: Table<Order, string>;
+    settings!: Table<CompanySettings, string>; 
+    stockAdjustments!: Table<StockAdjustment, string>;
+
+    constructor() {
+        super('PartFlowDB');
+        this.version(3).stores({
+            customers: 'customer_id, shop_name, sync_status',
+            items: 'item_id, item_number, item_display_name, sync_status, status',
+            orders: 'order_id, customer_id, order_date, sync_status, payment_status',
+            stockAdjustments: 'adjustment_id, item_id, sync_status',
+            settings: 'id'
+        });
+    }
+}
+
+// Database Service Implementation with In-Memory Cache
 class LocalDB {
+  private db: PartFlowDB;
+  private cache: {
+      customers: Customer[];
+      items: Item[];
+      orders: Order[];
+      settings: CompanySettings;
+      adjustments: StockAdjustment[];
+  };
+  private initialized: boolean = false;
+
   constructor() {
-    this.init();
+    this.db = new PartFlowDB();
+    // Initialize empty cache
+    this.cache = {
+        customers: [],
+        items: [],
+        orders: [],
+        settings: {} as CompanySettings,
+        adjustments: []
+    };
   }
 
-  private init() {
-    if (!localStorage.getItem(STORAGE_KEYS.INIT)) {
-      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(SEED_CUSTOMERS));
-      localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(SEED_ITEMS));
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(SEED_SETTINGS));
-      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.INIT, 'true');
-    }
+  // --- Initialization ---
+  async initialize(): Promise<void> {
+      if (this.initialized) return;
+
+      // Check if migration is needed
+      const isInitialized = localStorage.getItem(STORAGE_KEYS.INIT);
+      
+      if (!isInitialized) {
+          await this.migrateOrSeed();
+          localStorage.setItem(STORAGE_KEYS.INIT, 'true');
+      }
+
+      // Load data from Dexie to Memory Cache
+      await this.refreshCache();
+      this.initialized = true;
+      console.log("Database initialized and cache loaded.");
+  }
+
+  private async migrateOrSeed() {
+      // 1. Check for legacy LocalStorage data
+      const legCustomers = localStorage.getItem(STORAGE_KEYS.LEGACY_CUSTOMERS);
+      const legItems = localStorage.getItem(STORAGE_KEYS.LEGACY_ITEMS);
+      const legOrders = localStorage.getItem(STORAGE_KEYS.LEGACY_ORDERS);
+      const legSettings = localStorage.getItem(STORAGE_KEYS.LEGACY_SETTINGS);
+
+      let customersToSave = SEED_CUSTOMERS;
+      let itemsToSave = SEED_ITEMS;
+      let ordersToSave: Order[] = [];
+      let settingsToSave = SEED_SETTINGS;
+
+      if (legCustomers) {
+          console.log("Migrating Customers from LocalStorage...");
+          customersToSave = JSON.parse(legCustomers);
+      }
+      if (legItems) {
+          console.log("Migrating Items from LocalStorage...");
+          itemsToSave = JSON.parse(legItems);
+      }
+      if (legOrders) {
+          console.log("Migrating Orders from LocalStorage...");
+          ordersToSave = JSON.parse(legOrders);
+      }
+      if (legSettings) {
+          console.log("Migrating Settings from LocalStorage...");
+          settingsToSave = JSON.parse(legSettings);
+      }
+
+      // Bulk Add to Dexie
+      try {
+          await this.db.transaction('rw', this.db.customers, this.db.items, this.db.orders, this.db.settings, async () => {
+              // Clear existing to be safe
+              await this.db.customers.clear();
+              await this.db.items.clear();
+              await this.db.orders.clear();
+              await this.db.settings.clear();
+
+              // Migration Logic: Ensure new fields exist
+              const migratedCustomers = customersToSave.map(c => ({
+                  ...c,
+                  outstanding_balance: c.outstanding_balance || 0
+              }));
+
+              const migratedOrders = ordersToSave.map(o => ({
+                  ...o,
+                  paid_amount: o.paid_amount || 0,
+                  balance_due: o.balance_due ?? o.net_total, // If undefined, assume full amount due
+                  payment_status: o.payment_status || (o.net_total === 0 ? 'paid' : 'unpaid'),
+                  payments: o.payments || []
+              }));
+
+              if (migratedCustomers.length > 0) await this.db.customers.bulkPut(migratedCustomers);
+              if (itemsToSave.length > 0) await this.db.items.bulkPut(itemsToSave);
+              if (migratedOrders.length > 0) await this.db.orders.bulkPut(migratedOrders);
+              
+              await this.db.settings.put({ ...settingsToSave, id: 'main' } as any);
+          });
+      } catch (e) {
+          console.error("Migration Error:", e);
+          throw new Error("Failed to migrate legacy data. Please clear browser cache and retry.");
+      }
+
+      // Clear legacy storage to free up space
+      localStorage.removeItem(STORAGE_KEYS.LEGACY_CUSTOMERS);
+      localStorage.removeItem(STORAGE_KEYS.LEGACY_ITEMS);
+      localStorage.removeItem(STORAGE_KEYS.LEGACY_ORDERS);
+      localStorage.removeItem(STORAGE_KEYS.LEGACY_SETTINGS);
+  }
+
+  private async refreshCache() {
+      const [c, i, o, s, a] = await Promise.all([
+          this.db.customers.toArray(),
+          this.db.items.toArray(),
+          this.db.orders.toArray(),
+          this.db.settings.get('main'),
+          this.db.stockAdjustments.toArray()
+      ]);
+      this.cache.customers = c;
+      this.cache.items = i;
+      this.cache.orders = o;
+      this.cache.settings = (s as CompanySettings) || SEED_SETTINGS;
+      this.cache.adjustments = a;
   }
 
   // --- Customers ---
   getCustomers(): Customer[] {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS) || '[]');
+    return this.cache.customers;
   }
 
-  saveCustomer(customer: Customer): void {
-    const customers = this.getCustomers();
-    const index = customers.findIndex(c => c.customer_id === customer.customer_id);
-    
-    // Mark as pending whenever saved/updated locally
+  async saveCustomer(customer: Customer): Promise<void> {
+    // Optimistic Update
+    const index = this.cache.customers.findIndex(c => c.customer_id === customer.customer_id);
     const customerToSave = { ...customer, sync_status: 'pending' as const, updated_at: new Date().toISOString() };
+    
+    if (index >= 0) this.cache.customers[index] = customerToSave;
+    else this.cache.customers.push(customerToSave);
 
-    if (index >= 0) {
-      customers[index] = customerToSave;
-    } else {
-      customers.push(customerToSave);
-    }
-    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
+    // Async Persist
+    await this.db.customers.put(customerToSave);
   }
 
   // --- Items ---
   getItems(): Item[] {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.ITEMS) || '[]');
+    return this.cache.items;
   }
 
-  saveItem(item: Item): void {
-    const items = this.getItems();
-    const index = items.findIndex(i => i.item_id === item.item_id);
-    
+  async saveItem(item: Item): Promise<void> {
+    const index = this.cache.items.findIndex(i => i.item_id === item.item_id);
     const itemToSave = { ...item, sync_status: 'pending' as const, updated_at: new Date().toISOString() };
 
-    if (index >= 0) {
-      items[index] = itemToSave;
-    } else {
-      items.push(itemToSave);
-    }
-    localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
+    if (index >= 0) this.cache.items[index] = itemToSave;
+    else this.cache.items.push(itemToSave);
+
+    await this.db.items.put(itemToSave);
   }
 
-  deleteItem(itemId: string): void {
-    const items = this.getItems();
-    const index = items.findIndex(i => i.item_id === itemId);
+  async deleteItem(itemId: string): Promise<void> {
+    const index = this.cache.items.findIndex(i => i.item_id === itemId);
     if (index >= 0) {
-      // Soft delete by setting status to inactive
-      items[index].status = 'inactive';
-      items[index].sync_status = 'pending'; // Sync this change
-      items[index].updated_at = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
+      const item = this.cache.items[index];
+      item.status = 'inactive';
+      item.sync_status = 'pending';
+      item.updated_at = new Date().toISOString();
+      // Update cache
+      this.cache.items[index] = item;
+      // Persist
+      await this.db.items.put(item);
     }
   }
 
   // Critical: Used during order confirmation
-  updateStock(itemId: string, qtyDelta: number): void {
-    const items = this.getItems();
-    const index = items.findIndex(i => i.item_id === itemId);
+  async updateStock(itemId: string, qtyDelta: number): Promise<void> {
+    const index = this.cache.items.findIndex(i => i.item_id === itemId);
     if (index >= 0) {
-      // qtyDelta is negative for sales
-      items[index].current_stock_qty += qtyDelta;
-      items[index].sync_status = 'pending';
-      items[index].updated_at = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
+      this.cache.items[index].current_stock_qty += qtyDelta;
+      this.cache.items[index].sync_status = 'pending';
+      this.cache.items[index].updated_at = new Date().toISOString();
+      await this.db.items.put(this.cache.items[index]);
     }
   }
 
   // --- Orders ---
   getOrders(): Order[] {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.ORDERS) || '[]');
+    return this.cache.orders;
   }
 
-  saveOrder(order: Order): void {
-    const orders = this.getOrders();
-    const index = orders.findIndex(o => o.order_id === order.order_id);
+  async saveOrder(order: Order): Promise<void> {
+    const index = this.cache.orders.findIndex(o => o.order_id === order.order_id);
     
-    const orderToSave = { ...order, sync_status: 'pending' as const, updated_at: new Date().toISOString() };
+    // Auto-calculate payment status if not set
+    const paid = order.paid_amount || 0;
+    const due = order.net_total - paid;
+    const status: any = due <= 0.5 ? 'paid' : (paid > 0 ? 'partial' : 'unpaid'); // 0.5 tolerance
 
-    if (index >= 0) {
-      orders[index] = orderToSave;
-    } else {
-      orders.push(orderToSave);
-    }
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+    const orderToSave = { 
+        ...order, 
+        paid_amount: paid,
+        balance_due: due,
+        payment_status: status,
+        sync_status: 'pending' as const, 
+        updated_at: new Date().toISOString() 
+    };
+
+    if (index >= 0) this.cache.orders[index] = orderToSave;
+    else this.cache.orders.push(orderToSave);
+
+    await this.db.orders.put(orderToSave);
+    
+    // Update Customer Balance
+    await this.recalcCustomerBalance(order.customer_id);
   }
 
-  deleteOrder(orderId: string): void {
-      const orders = this.getOrders();
-      const index = orders.findIndex(o => o.order_id === orderId);
+  async addPayment(payment: Payment): Promise<void> {
+      const orderIndex = this.cache.orders.findIndex(o => o.order_id === payment.order_id);
+      if (orderIndex === -1) throw new Error("Order not found");
+
+      const order = this.cache.orders[orderIndex];
+      
+      // Add payment
+      order.payments = [...(order.payments || []), payment];
+      order.paid_amount = order.payments.reduce((sum, p) => sum + p.amount, 0);
+      
+      await this.saveOrder(order);
+  }
+
+  private async recalcCustomerBalance(customerId: string) {
+      // Find all unpaid orders for this customer
+      const orders = this.cache.orders.filter(o => o.customer_id === customerId && o.order_status !== 'draft');
+      const totalDue = orders.reduce((sum, o) => sum + (o.balance_due || 0), 0);
+
+      const customerIndex = this.cache.customers.findIndex(c => c.customer_id === customerId);
+      if (customerIndex >= 0) {
+          const customer = this.cache.customers[customerIndex];
+          if (customer.outstanding_balance !== totalDue) {
+              customer.outstanding_balance = totalDue;
+              customer.updated_at = new Date().toISOString();
+              customer.sync_status = 'pending';
+              await this.db.customers.put(customer);
+          }
+      }
+  }
+
+  async deleteOrder(orderId: string): Promise<void> {
+      const index = this.cache.orders.findIndex(o => o.order_id === orderId);
       
       if (index >= 0) {
-          const order = orders[index];
+          const order = this.cache.orders[index];
           
           // Restore Stock if order was confirmed
           if (order.order_status === 'confirmed') {
-              order.lines.forEach(line => {
-                  this.updateStock(line.item_id, line.quantity); // Positive qty to add back
+              order.lines.forEach(async line => {
+                  await this.updateStock(line.item_id, line.quantity); // Positive qty to add back
               });
           }
 
-          // Hard delete from local storage for now (or could use soft delete if we had a status for it)
-          orders.splice(index, 1);
-          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+          // Delete from Cache
+          this.cache.orders.splice(index, 1);
+          // Delete from DB
+          await this.db.orders.delete(orderId);
       }
+  }
+
+  async addStockAdjustment(adjustment: StockAdjustment): Promise<void> {
+      // 1. Save Adjustment Record
+      const index = this.cache.adjustments.findIndex(a => a.adjustment_id === adjustment.adjustment_id);
+      if (index >= 0) this.cache.adjustments[index] = adjustment;
+      else this.cache.adjustments.push(adjustment);
+      await this.db.stockAdjustments.put(adjustment);
+
+      // 2. Update Actual Stock
+      let qtyDelta = 0;
+      if (adjustment.adjustment_type === 'restock' || adjustment.adjustment_type === 'return') {
+          qtyDelta = adjustment.quantity;
+      } else if (adjustment.adjustment_type === 'damage') {
+          qtyDelta = -adjustment.quantity;
+      } else if (adjustment.adjustment_type === 'correction') {
+          // Correction logic is complex, for simplicity here assuming correction is absolute delta passed by UI
+          // If the UI passes the *new* total, we need to calculate delta.
+          // For now, let's assume 'correction' passes the signed delta directly, or we avoid 'correction' type for now.
+          // Let's treat 'correction' as a direct delta for now (positive or negative)
+          qtyDelta = adjustment.quantity; 
+      }
+
+      await this.updateStock(adjustment.item_id, qtyDelta);
   }
 
   // --- Settings ---
   getSettings(): CompanySettings {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}');
+    return this.cache.settings;
   }
 
-  saveSettings(settings: CompanySettings): void {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  async saveSettings(settings: CompanySettings): Promise<void> {
+    this.cache.settings = settings;
+    await this.db.settings.put({ ...settings, id: 'main' } as any);
   }
 
-  // --- Sync Stats ---
+  // --- Sync Stats (Read from Cache - Fast) ---
   getSyncStats(): SyncStats {
-    const customers = this.getCustomers();
-    const items = this.getItems();
-    const orders = this.getOrders();
     const last_sync = localStorage.getItem(STORAGE_KEYS.LAST_SYNC) || undefined;
-
     return {
-      pendingCustomers: customers.filter(c => c.sync_status === 'pending').length,
-      pendingItems: items.filter(i => i.sync_status === 'pending').length,
-      pendingOrders: orders.filter(o => o.sync_status === 'pending').length,
+      pendingCustomers: this.cache.customers.filter(c => c.sync_status === 'pending').length,
+      pendingItems: this.cache.items.filter(i => i.sync_status === 'pending').length,
+      pendingOrders: this.cache.orders.filter(o => o.sync_status === 'pending').length,
+      pendingAdjustments: this.cache.adjustments.filter(a => a.sync_status === 'pending').length,
       last_sync
     };
   }
 
-  // --- Analytics ---
+  // --- Analytics (Read from Cache - Fast) ---
   getDashboardStats() {
-    const orders = this.getOrders();
-    const items = this.getItems();
+    const orders = this.cache.orders;
+    const items = this.cache.items;
     const today = new Date().toISOString().split('T')[0];
     const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
@@ -189,7 +379,7 @@ class LocalDB {
     };
   }
 
-  // --- Auth ---
+  // --- Auth (Keep in LocalStorage for now, simple) ---
   getCurrentUser(): User | null {
     const user = localStorage.getItem(STORAGE_KEYS.USER);
     return user ? JSON.parse(user) : null;
@@ -198,8 +388,6 @@ class LocalDB {
   login(username: string, password?: string): User | null {
     const found = USER_CONFIG.users.find(u => u.username === username);
     if (!found) return null;
-    
-    // In a real enterprise app, this would be a hash comparison on the server
     if (password && found.password !== password) return null;
 
     const user: User = {
@@ -223,24 +411,21 @@ class LocalDB {
         throw new Error("Google Sheet ID not configured. Please enter it in the Sync Dashboard.");
     }
 
-    // 1. BACKUP CURRENT DATA TO CSV
     if (onLog) onLog("Creating local backup (CSV)...");
     const currentItems = this.getItems();
     const csvData = jsonToCsv(currentItems);
     downloadCsv(csvData, `inventory_backup_${new Date().toISOString().split('T')[0]}.csv`);
 
-    // 2. Gather Data (If overwrite, we send ALL, otherwise just pending)
+    // Use Cache for current state
     const customers = this.getCustomers();
     const pendingCustomers = mode === 'overwrite' ? customers : customers.filter(c => c.sync_status === 'pending');
     
     const orders = this.getOrders();
-    // Orders are usually never overwritten, always upserted or appended
     const pendingOrders = orders.filter(o => o.sync_status === 'pending');
 
     const items = this.getItems();
     const pendingItems = mode === 'overwrite' ? items : items.filter(i => i.sync_status === 'pending');
 
-    // 3. Call Google Sheets Service
     const result = await sheetsService.syncData(
         settings.google_sheet_id,
         pendingCustomers,
@@ -249,7 +434,6 @@ class LocalDB {
         mode
     );
 
-    // Pass logs to UI if callback provided
     if (onLog && result.logs) {
         result.logs.forEach(onLog);
     }
@@ -258,28 +442,41 @@ class LocalDB {
         throw new Error(result.message || "Sync failed");
     }
 
-    // 4. Update Local Status on Success (Push)
+    // UPDATE STATUSES (Update Cache + DB)
     if (pendingCustomers.length > 0) {
-        const updatedCustomers = customers.map(c => 
-            c.sync_status === 'pending' ? { ...c, sync_status: 'synced' as const } : c
-        );
-        localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(updatedCustomers));
+        await this.db.transaction('rw', this.db.customers, async () => {
+             pendingCustomers.forEach(c => {
+                 c.sync_status = 'synced';
+                 this.db.customers.put(c);
+                 // Cache update handled by reference or reload? 
+                 // Safe way: update cache object directly
+                 const cacheIdx = this.cache.customers.findIndex(cx => cx.customer_id === c.customer_id);
+                 if(cacheIdx >= 0) this.cache.customers[cacheIdx].sync_status = 'synced';
+             });
+        });
     }
 
     if (pendingOrders.length > 0) {
-        const updatedOrders = orders.map(o => 
-            o.sync_status === 'pending' ? { ...o, sync_status: 'synced' as const } : o
-        );
-        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updatedOrders));
+        await this.db.transaction('rw', this.db.orders, async () => {
+            pendingOrders.forEach(o => {
+                o.sync_status = 'synced';
+                this.db.orders.put(o);
+                const cacheIdx = this.cache.orders.findIndex(ox => ox.order_id === o.order_id);
+                if(cacheIdx >= 0) this.cache.orders[cacheIdx].sync_status = 'synced';
+            });
+        });
     }
 
-    // 5. FULLY REPLACE INVENTORY FROM PULL
+    // FULLY REPLACE INVENTORY FROM PULL
     if (result.pulledItems) {
         if (onLog) onLog(`Replacing local inventory with ${result.pulledItems.length} items from cloud.`);
-        localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(result.pulledItems));
+        await this.db.transaction('rw', this.db.items, async () => {
+             await this.db.items.clear();
+             await this.db.items.bulkAdd(result.pulledItems!);
+        });
+        this.cache.items = result.pulledItems;
     }
 
-    // 6. Update Last Sync Time
     localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
   }
 }

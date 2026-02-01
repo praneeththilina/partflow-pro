@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Customer, Item, Order, OrderLine } from '../types';
+import { Customer, Item, Order, OrderLine, Payment, PaymentType } from '../types';
 import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 import { Html5QrcodeScanner } from 'html5-qrcode';
@@ -27,6 +27,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     // Add Item Modal/State
     const [selectedItem, setSelectedItem] = useState<Item | null>(null);
     const [qtyInput, setQtyInput] = useState<string>('1');
+
+    // Payment Modal State
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState<string>('');
+    const [paymentType, setPaymentType] = useState<PaymentType>('cash');
+    const [paymentRef, setPaymentRef] = useState('');
 
     useEffect(() => {
         const allItems = db.getItems();
@@ -103,13 +109,34 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         setLines(lines.filter(l => l.line_id !== lineId));
     };
 
-    const handleConfirmOrder = () => {
+    const initiateCheckout = () => {
         if (!customer) return;
         if (lines.length === 0) return;
-        if (!window.confirm("Confirming this order will deduce stock. Continue?")) return;
+        setPaymentAmount(netTotal.toFixed(2)); // Default to full payment
+        setShowPaymentModal(true);
+    };
 
+    const handleFinalizeOrder = async () => {
+        if (!customer) return;
+        
         const orderId = generateUUID();
         const finalLines = lines.map(l => ({...l, order_id: orderId}));
+        
+        // Prepare Payment Data
+        const payAmount = parseFloat(paymentAmount) || 0;
+        const payments: Payment[] = [];
+        
+        if (payAmount > 0) {
+            payments.push({
+                payment_id: generateUUID(),
+                order_id: orderId,
+                amount: payAmount,
+                payment_date: new Date().toISOString(),
+                payment_type: paymentType,
+                reference_number: paymentRef,
+                notes: 'Initial payment at checkout'
+            });
+        }
 
         const newOrder: Order = {
             order_id: orderId,
@@ -120,6 +147,13 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             gross_total: grossTotal,
             discount_value: discountValue,
             net_total: netTotal,
+            
+            // Payment Fields (Will be recalculated by db.saveOrder but good to pass)
+            paid_amount: payAmount,
+            balance_due: netTotal - payAmount,
+            payment_status: 'unpaid', // DB will calculate 'paid' | 'partial' | 'unpaid'
+            payments: payments,
+
             order_status: 'confirmed',
             lines: finalLines,
             created_at: new Date().toISOString(),
@@ -127,11 +161,15 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             sync_status: 'pending'
         };
 
-        finalLines.forEach(line => {
-            db.updateStock(line.item_id, -line.quantity);
-        });
+        // Deduce Stock
+        for (const line of finalLines) {
+            await db.updateStock(line.item_id, -line.quantity);
+        }
 
-        db.saveOrder(newOrder);
+        // Save Order (DB handles balance updates)
+        await db.saveOrder(newOrder);
+        
+        setShowPaymentModal(false);
         onOrderCreated(newOrder);
     };
 
@@ -310,11 +348,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
                         </div>
                         <button 
-                            onClick={handleConfirmOrder}
+                            onClick={initiateCheckout}
                             disabled={lines.length === 0}
                             className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg active:scale-[0.98] transition-all"
                         >
-                            Confirm Order
+                            Proceed to Checkout
                         </button>
                      </div>
                 </div>
@@ -355,6 +393,79 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             <button onClick={() => setSelectedItem(null)} className="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl">Cancel</button>
                             <button onClick={addItem} className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg">Add Item</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Modal */}
+            {showPaymentModal && (
+                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4">
+                    <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-300">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Checkout & Payment</h3>
+                            <button onClick={() => setShowPaymentModal(false)} className="bg-slate-100 p-2 rounded-full text-slate-500">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-xl p-4 mb-6 flex justify-between items-center">
+                            <span className="text-slate-500 font-medium">Net Payable</span>
+                            <span className="text-2xl font-black text-slate-900">Rs.{netTotal.toLocaleString()}</span>
+                        </div>
+
+                        <div className="space-y-4 mb-8">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Payment Amount</label>
+                                <input 
+                                    type="number" 
+                                    className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl text-lg font-bold focus:border-indigo-500 focus:outline-none"
+                                    value={paymentAmount}
+                                    onChange={e => setPaymentAmount(e.target.value)}
+                                    placeholder="Enter amount"
+                                />
+                                <div className="flex justify-between mt-1 px-1">
+                                    <button onClick={() => setPaymentAmount(netTotal.toFixed(2))} className="text-xs font-bold text-indigo-600">Full Payment</button>
+                                    <span className={`text-xs font-bold ${netTotal - (parseFloat(paymentAmount) || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                        Balance Due: Rs.{Math.max(0, netTotal - (parseFloat(paymentAmount) || 0)).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Method</label>
+                                    <select 
+                                        className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-medium focus:border-indigo-500 focus:outline-none"
+                                        value={paymentType}
+                                        onChange={e => setPaymentType(e.target.value as PaymentType)}
+                                    >
+                                        <option value="cash">Cash</option>
+                                        <option value="cheque">Cheque</option>
+                                        <option value="bank_transfer">Transfer</option>
+                                        <option value="credit">Credit (Unpaid)</option>
+                                    </select>
+                                </div>
+                                {paymentType !== 'cash' && paymentType !== 'credit' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Reference No.</label>
+                                        <input 
+                                            type="text" 
+                                            className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-medium focus:border-indigo-500 focus:outline-none"
+                                            value={paymentRef}
+                                            onChange={e => setPaymentRef(e.target.value)}
+                                            placeholder="Last 4 digits"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={handleFinalizeOrder}
+                            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black text-lg shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+                        >
+                            Confirm Sale
+                        </button>
                     </div>
                 </div>
             )}

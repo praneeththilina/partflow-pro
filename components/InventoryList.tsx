@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Item } from '../types';
+import { Item, StockAdjustment } from '../types';
 import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 
@@ -7,9 +7,20 @@ export const InventoryList: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  
+  // Modals
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  
+  // State
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [newItem, setNewItem] = useState<Partial<Item>>({});
+  
+  // Adjustment State
+  const [adjustItem, setAdjustItem] = useState<Item | null>(null);
+  const [adjustQty, setAdjustQty] = useState('');
+  const [adjustType, setAdjustType] = useState<'restock' | 'damage'>('restock');
+  const [adjustReason, setAdjustReason] = useState('');
 
   useEffect(() => {
     setItems(db.getItems());
@@ -64,6 +75,40 @@ export const InventoryList: React.FC = () => {
       setEditingItem(item);
       setNewItem(item);
       setShowAddForm(true);
+  };
+
+  const openAdjustModal = (e: React.MouseEvent, item: Item) => {
+      e.stopPropagation();
+      setAdjustItem(item);
+      setAdjustQty('');
+      setAdjustType('restock');
+      setAdjustReason('');
+      setShowAdjustModal(true);
+  };
+
+  const handleSaveAdjustment = async () => {
+      if (!adjustItem || !adjustQty) return;
+      const qty = parseInt(adjustQty);
+      if (isNaN(qty) || qty <= 0) {
+          alert("Please enter a valid quantity");
+          return;
+      }
+
+      const adjustment: StockAdjustment = {
+          adjustment_id: generateUUID(),
+          item_id: adjustItem.item_id,
+          adjustment_type: adjustType,
+          quantity: qty,
+          reason: adjustReason || (adjustType === 'restock' ? 'Manual Restock' : 'Damage/Loss'),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          sync_status: 'pending'
+      };
+
+      await db.addStockAdjustment(adjustment);
+      setItems(db.getItems());
+      setShowAdjustModal(false);
+      setAdjustItem(null);
   };
 
   const handleDeleteItem = () => {
@@ -248,6 +293,12 @@ export const InventoryList: React.FC = () => {
                             </td>
                              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                                 <div className="flex items-center justify-end gap-2">
+                                    <button 
+                                        onClick={(e) => openAdjustModal(e, item)}
+                                        className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors"
+                                    >
+                                        Adjust
+                                    </button>
                                     {item.current_stock_qty <= item.low_stock_threshold && (
                                         <span className="text-[10px] font-black text-rose-500 uppercase">Low</span>
                                     )}
@@ -284,6 +335,12 @@ export const InventoryList: React.FC = () => {
                 <div className="text-right flex flex-col items-end space-y-1">
                     <span className="text-sm font-black text-indigo-700 block">Rs.{item.unit_value.toLocaleString()}</span>
                     <div className="flex items-center gap-1">
+                        <button 
+                            onClick={(e) => openAdjustModal(e, item)}
+                            className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded mr-1"
+                        >
+                            Adj
+                        </button>
                         {item.current_stock_qty <= item.low_stock_threshold && (
                             <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
                         )}
@@ -299,6 +356,62 @@ export const InventoryList: React.FC = () => {
             </div>
         ))}
       </div>
+      {/* Adjustment Modal */}
+      {showAdjustModal && adjustItem && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200">
+                  <div className="p-6 border-b border-slate-100">
+                      <h3 className="text-lg font-bold text-slate-800">Adjust Stock</h3>
+                      <p className="text-sm text-slate-500">{adjustItem.item_display_name}</p>
+                  </div>
+                  <div className="p-6 space-y-4">
+                      <div className="flex bg-slate-100 p-1 rounded-lg">
+                          <button 
+                              onClick={() => setAdjustType('restock')}
+                              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${adjustType === 'restock' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}
+                          >
+                              + Restock
+                          </button>
+                          <button 
+                              onClick={() => setAdjustType('damage')}
+                              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${adjustType === 'damage' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'}`}
+                          >
+                              - Damage/Loss
+                          </button>
+                      </div>
+                      
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Quantity</label>
+                          <input 
+                              type="number" 
+                              className="w-full p-3 border-2 border-slate-200 rounded-xl text-2xl font-bold focus:border-indigo-500 focus:outline-none"
+                              value={adjustQty}
+                              onChange={e => setAdjustQty(e.target.value)}
+                              autoFocus
+                          />
+                      </div>
+
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reason (Optional)</label>
+                          <input 
+                              className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-indigo-500 focus:outline-none"
+                              value={adjustReason}
+                              onChange={e => setAdjustReason(e.target.value)}
+                              placeholder="e.g. New shipment arrived"
+                          />
+                      </div>
+                  </div>
+                  <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+                      <button onClick={handleSaveAdjustment} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
+                          Confirm Adjustment
+                      </button>
+                      <button onClick={() => setShowAdjustModal(false)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
+                          Cancel
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
