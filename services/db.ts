@@ -8,7 +8,7 @@ import USER_CONFIG from '../src/config/users.json';
 
 // Keys for LocalStorage (Legacy / Cache Flags)
 const STORAGE_KEYS = {
-  INIT: 'fieldaudit_initialized_v5', // Force re-init for V5 (Optional Stock Tracking)
+  INIT: 'fieldaudit_initialized_v6', // Force re-init for V6 (Default Auto SKU)
   LAST_SYNC: 'fieldaudit_last_sync',
   USER: 'fieldaudit_current_user',
   // Legacy keys (will be migrated from)
@@ -23,7 +23,7 @@ const SEED_CUSTOMERS: Customer[] = (SEED_DATA.customers as any[]).map(c => ({...
 const SEED_ITEMS: Item[] = SEED_DATA.items as Item[];
 const SEED_SETTINGS: CompanySettings = { 
     ...(APP_SETTINGS as any), 
-    auto_sku_enabled: false, 
+    auto_sku_enabled: true, 
     stock_tracking_enabled: false,
     category_enabled: false
 }; 
