@@ -3,10 +3,15 @@ import { Item, StockAdjustment } from '../types';
 import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 import { formatCurrency } from '../utils/currency';
+import { generateSKU } from '../utils/skuGenerator';
 
 export const InventoryList: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState('');
+  const [modelFilter, setModelFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState<'A-Z' | 'High-Low' | 'Low-High'>('A-Z');
+  
   const [categoryFilter, setCategoryFilter] = useState('All');
   
   // Modals
@@ -32,6 +37,19 @@ export const InventoryList: React.FC = () => {
   const handleSaveItem = () => {
     if (!newItem.item_display_name || !newItem.item_number || !newItem.unit_value) {
         alert("Name, SKU, and Price are required");
+        return;
+    }
+
+    // Duplicate Check: Same Name + Same Model + Same Country
+    const isDuplicate = items.some(i => 
+        i.item_id !== editingItem?.item_id && // Ignore self
+        i.item_display_name.toLowerCase() === newItem.item_display_name?.toLowerCase() &&
+        i.vehicle_model.toLowerCase() === newItem.vehicle_model?.toLowerCase() &&
+        i.source_brand.toLowerCase() === newItem.source_brand?.toLowerCase()
+    );
+
+    if (isDuplicate) {
+        alert("Duplicate Item! An item with this Name, Model, and Country already exists.");
         return;
     }
 
@@ -70,6 +88,17 @@ export const InventoryList: React.FC = () => {
     setShowAddForm(false);
     setEditingItem(null);
     setNewItem({});
+  };
+
+  const handleDescriptionBlur = () => {
+      const settings = db.getSettings();
+      if (!settings.auto_sku_enabled) return;
+      if (editingItem) return; // Don't overwrite on edit unless requested (safety)
+      if (!newItem.item_display_name) return;
+
+      const existingSKUs = items.map(i => i.item_number);
+      const generated = generateSKU(newItem.item_display_name, existingSKUs);
+      setNewItem(prev => ({ ...prev, item_number: generated }));
   };
 
   const startEdit = (item: Item) => {
@@ -125,10 +154,11 @@ export const InventoryList: React.FC = () => {
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.item_display_name.toLowerCase().includes(filter.toLowerCase()) ||
-        item.item_number.toLowerCase().includes(filter.toLowerCase()) ||
-        item.vehicle_model.toLowerCase().includes(filter.toLowerCase()) ||
-        (item.source_brand && item.source_brand.toLowerCase().includes(filter.toLowerCase()));
+        item.item_number.toLowerCase().includes(filter.toLowerCase());
     
+    const matchesModel = !modelFilter || item.vehicle_model.toLowerCase().includes(modelFilter.toLowerCase());
+    const matchesCountry = !countryFilter || (item.source_brand && item.source_brand.toLowerCase().includes(countryFilter.toLowerCase()));
+
     let matchesCategory = true;
     if (categoryFilter === 'Low Stock') {
         matchesCategory = item.current_stock_qty <= item.low_stock_threshold;
@@ -136,7 +166,12 @@ export const InventoryList: React.FC = () => {
         matchesCategory = item.category === categoryFilter;
     }
     
-    return matchesSearch && matchesCategory && item.status !== 'inactive';
+    return matchesSearch && matchesModel && matchesCountry && matchesCategory && item.status !== 'inactive';
+  }).sort((a, b) => {
+      if (sortOrder === 'A-Z') return a.item_display_name.localeCompare(b.item_display_name);
+      if (sortOrder === 'High-Low') return b.current_stock_qty - a.current_stock_qty;
+      if (sortOrder === 'Low-High') return a.current_stock_qty - b.current_stock_qty;
+      return 0;
   });
 
 
@@ -145,7 +180,7 @@ export const InventoryList: React.FC = () => {
       
       {/* Header & Search */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-10 space-y-3">
-         <div className="flex gap-2">
+         <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
@@ -154,15 +189,40 @@ export const InventoryList: React.FC = () => {
                 </div>
                 <input 
                     type="text"
-                    placeholder="Search items, brands, or vehicles..."
+                    placeholder="Search by Name or SKU..."
                     className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-colors"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                 />
             </div>
+            
+            <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+                <input 
+                    placeholder="Model (e.g. Corolla)" 
+                    className="w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={modelFilter}
+                    onChange={e => setModelFilter(e.target.value)}
+                />
+                <input 
+                    placeholder="Country (e.g. China)" 
+                    className="w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={countryFilter}
+                    onChange={e => setCountryFilter(e.target.value)}
+                />
+                <select 
+                    className="w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={sortOrder}
+                    onChange={e => setSortOrder(e.target.value as any)}
+                >
+                    <option value="A-Z">A-Z</option>
+                    <option value="High-Low">High Stock</option>
+                    <option value="Low-High">Low Stock</option>
+                </select>
+            </div>
+
             <button 
                 onClick={() => setShowAddForm(true)}
-                className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 shadow-sm transition-colors"
+                className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 shadow-sm transition-colors shrink-0"
                 title="Add New Item"
             >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
@@ -202,7 +262,13 @@ export const InventoryList: React.FC = () => {
                 <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Display Name *</label>
-                        <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.item_display_name || ''} onChange={e => setNewItem({...newItem, item_display_name: e.target.value})} placeholder="e.g. Brake Pad (Toyota Corolla)" />
+                        <input 
+                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
+                            value={newItem.item_display_name || ''} 
+                            onChange={e => setNewItem({...newItem, item_display_name: e.target.value})} 
+                            onBlur={handleDescriptionBlur}
+                            placeholder="e.g. Brake Pad (Toyota Corolla)" 
+                        />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>

@@ -110,6 +110,7 @@ export interface CompanySettings {
   invoice_prefix: string;
   footer_note: string;
   currency_symbol: string;
+  auto_sku_enabled: boolean;
   google_sheet_id?: string;
 }
 

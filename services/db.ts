@@ -21,7 +21,7 @@ const STORAGE_KEYS = {
 // Seed Data
 const SEED_CUSTOMERS: Customer[] = (SEED_DATA.customers as any[]).map(c => ({...c, outstanding_balance: 0}));
 const SEED_ITEMS: Item[] = SEED_DATA.items as Item[];
-const SEED_SETTINGS: CompanySettings = APP_SETTINGS;
+const SEED_SETTINGS: CompanySettings = { ...APP_SETTINGS, auto_sku_enabled: false }; // Default disabled
 
 // --- Dexie Database Schema ---
 class PartFlowDB extends Dexie {
@@ -470,9 +470,43 @@ class LocalDB {
     // FULLY REPLACE INVENTORY FROM PULL
     if (result.pulledItems) {
         if (onLog) onLog(`Replacing local inventory with ${result.pulledItems.length} items from cloud.`);
+        
+        // Auto-Generate Missing SKUs (Logic: V5)
+        if (settings.auto_sku_enabled) {
+            const { generateSKU } = await import('../utils/skuGenerator');
+            const processedItems = result.pulledItems.map(item => {
+                // If Item Number is missing or empty, generate it
+                if (!item.item_number || item.item_number.trim() === '') {
+                    // Need existing SKUs context? For bulk import, we need to be careful about collisions within the batch.
+                    // We can map over them sequentially.
+                    return item; 
+                }
+                return item;
+            });
+
+            // Sequential generation to handle duplicates within the batch
+            const existingSKUs = new Set<string>(
+                result.pulledItems
+                    .map(i => i.item_number)
+                    .filter(sku => sku && sku.trim() !== '')
+            );
+
+            for (let i = 0; i < processedItems.length; i++) {
+                const item = processedItems[i];
+                if (!item.item_number || item.item_number.trim() === '') {
+                    const newSku = generateSKU(item.item_display_name, Array.from(existingSKUs));
+                    item.item_number = newSku;
+                    item.sync_status = 'pending'; // Mark as pending so it syncs back
+                    item.updated_at = new Date().toISOString();
+                    existingSKUs.add(newSku); // Add to set for next iterations
+                }
+            }
+            result.pulledItems = processedItems;
+        }
+
         await this.db.transaction('rw', this.db.items, async () => {
              await this.db.items.clear();
-             await this.db.items.bulkAdd(result.pulledItems!);
+             await this.db.items.bulkPut(result.pulledItems!);
         });
         this.cache.items = result.pulledItems;
     }

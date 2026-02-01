@@ -103,6 +103,22 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                     />
                 </div>
 
+                <div className="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-slate-50">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-800">Auto-Generate SKU</label>
+                        <p className="text-xs text-slate-500">Automatically create SKU based on item description (e.g. "Brake Pad" -{'>'} BP01)</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            className="sr-only peer"
+                            checked={settings.auto_sku_enabled || false}
+                            onChange={e => setSettings({...settings, auto_sku_enabled: e.target.checked})}
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Bill Footer Note</label>
                     <textarea 
