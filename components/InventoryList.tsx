@@ -5,6 +5,8 @@ import { generateUUID } from '../utils/uuid';
 import { formatCurrency } from '../utils/currency';
 import { generateSKU } from '../utils/skuGenerator';
 
+import { Modal } from './ui/Modal';
+
 export const InventoryList: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState('');
@@ -17,10 +19,12 @@ export const InventoryList: React.FC = () => {
   // Modals
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{isOpen: boolean, title: string, message: string, type: 'info' | 'danger' | 'success'} | null>(null);
   
   // State
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [newItem, setNewItem] = useState<Partial<Item>>({});
+  const [skuLocked, setSkuLocked] = useState(true);
   
   // Adjustment State
   const [adjustItem, setAdjustItem] = useState<Item | null>(null);
@@ -28,15 +32,21 @@ export const InventoryList: React.FC = () => {
   const [adjustType, setAdjustType] = useState<'restock' | 'damage'>('restock');
   const [adjustReason, setAdjustReason] = useState('');
 
+  const settings = db.getSettings();
+
   useEffect(() => {
     setItems(db.getItems());
   }, []);
 
   const categories = ['All', 'Low Stock', ...Array.from(new Set(items.map(i => i.category || 'Uncategorized')))];
 
+  const showAlert = (title: string, message: string, type: 'info' | 'danger' | 'success' = 'info') => {
+      setAlertConfig({ isOpen: true, title, message, type });
+  };
+
   const handleSaveItem = () => {
     if (!newItem.item_display_name || !newItem.item_number || !newItem.unit_value) {
-        alert("Name, SKU, and Price are required");
+        showAlert("Missing Info", "Name, SKU, and Price are required", "danger");
         return;
     }
 
@@ -49,7 +59,7 @@ export const InventoryList: React.FC = () => {
     );
 
     if (isDuplicate) {
-        alert("Duplicate Item! An item with this Name, Model, and Country already exists.");
+        showAlert("Duplicate Detected", "An item with this Name, Model, and Country already exists.", "danger");
         return;
     }
 
@@ -91,9 +101,8 @@ export const InventoryList: React.FC = () => {
   };
 
   const handleDescriptionBlur = () => {
-      const settings = db.getSettings();
       if (!settings.auto_sku_enabled) return;
-      if (editingItem) return; // Don't overwrite on edit unless requested (safety)
+      if (editingItem) return; 
       if (!newItem.item_display_name) return;
 
       const existingSKUs = items.map(i => i.item_number);
@@ -104,6 +113,7 @@ export const InventoryList: React.FC = () => {
   const startEdit = (item: Item) => {
       setEditingItem(item);
       setNewItem(item);
+      setSkuLocked(true); // Always lock by default when editing
       setShowAddForm(true);
   };
 
@@ -273,7 +283,26 @@ export const InventoryList: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">SKU / Item Number *</label>
-                            <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.item_number || ''} onChange={e => setNewItem({...newItem, item_number: e.target.value})} placeholder="e.g. BP-102" />
+                            <div className="relative">
+                                <input 
+                                    className={`w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none pr-10 ${skuLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'}`} 
+                                    value={newItem.item_number || ''} 
+                                    onChange={e => setNewItem({...newItem, item_number: e.target.value})} 
+                                    placeholder="e.g. BP-102"
+                                    readOnly={skuLocked}
+                                />
+                                <button 
+                                    type="button"
+                                    onClick={() => setSkuLocked(!skuLocked)}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-indigo-600"
+                                >
+                                    {skuLocked ? (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Internal Name</label>
@@ -478,6 +507,19 @@ export const InventoryList: React.FC = () => {
                   </div>
               </div>
           </div>
+      )}
+
+      {/* Alert Modal */}
+      {alertConfig && (
+          <Modal 
+            isOpen={alertConfig.isOpen}
+            title={alertConfig.title}
+            message={alertConfig.message}
+            type={alertConfig.type}
+            onConfirm={() => setAlertConfig(null)}
+            onCancel={() => setAlertConfig(null)}
+            confirmText="OK"
+          />
       )}
     </div>
   );
