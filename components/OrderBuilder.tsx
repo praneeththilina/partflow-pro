@@ -255,46 +255,118 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                     
                     {/* Item List */}
                     <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-3">
-                        {filteredItems.map(item => (
-                            <div 
-                                key={item.item_id} 
-                                onClick={() => setSelectedItem(item)}
-                                className={`bg-white rounded-2xl border shadow-sm cursor-pointer transition-all active:scale-[0.98] group relative overflow-hidden ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
-                            >
-                                <div className="p-4 flex justify-between items-center relative z-10">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
-                                            {item.vehicle_model.substring(0, 2).toUpperCase()}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="font-bold text-slate-800 text-sm truncate leading-tight">{item.item_display_name}</div>
-                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter">{item.vehicle_model}</span>
-                                                <span className="text-[10px] text-slate-400 font-bold">•</span>
-                                                <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
+                        {filteredItems.map(item => {
+                            const isOutOfStock = settings.stock_tracking_enabled 
+                                ? item.current_stock_qty <= 0 
+                                : item.is_out_of_stock;
+
+                            return (
+                                <div 
+                                    key={item.item_id} 
+                                    onClick={() => !isOutOfStock && setSelectedItem(item)}
+                                    className={`bg-white rounded-2xl border shadow-sm transition-all relative overflow-hidden ${
+                                        isOutOfStock 
+                                        ? 'border-rose-200 bg-rose-50/30 cursor-not-allowed opacity-75' 
+                                        : 'border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                                    } ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : ''}`}
+                                >
+                                    <div className="p-4 flex justify-between items-center relative z-10">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                {item.vehicle_model.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className={`font-bold text-sm truncate leading-tight ${isOutOfStock ? 'text-rose-700' : 'text-slate-800'}`}>
+                                                    {item.item_display_name}
+                                                    {isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-rose-600 underline decoration-double">Out of Stock</span>}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className={`text-[10px] font-black uppercase tracking-tighter ${isOutOfStock ? 'text-rose-400' : 'text-indigo-600'}`}>{item.vehicle_model}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold">•</span>
+                                                    <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
+                                                </div>
                                             </div>
                                         </div>
+                                        
+                                        <div className="text-right pl-2">
+                                            <div className={`font-black text-sm ${isOutOfStock ? 'text-rose-400' : 'text-slate-900'}`}>{formatCurrency(item.unit_value)}</div>
+                                            {settings.stock_tracking_enabled && (
+                                                <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-100 text-rose-700'}`}>
+                                                    {item.current_stock_qty} in stock
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    
-                                    <div className="text-right pl-2">
-                                        <div className="font-black text-slate-900 text-sm">{formatCurrency(item.unit_value)}</div>
-                                        {settings.stock_tracking_enabled && (
-                                            <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                                {item.current_stock_qty} in stock
-                                            </div>
-                                        )}
-                                    </div>
+                                    {!isOutOfStock && <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/0 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />}
                                 </div>
-                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/0 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Cart Pane (Right on Desktop, Tab 2 on Mobile) */}
                 <div className={`w-full md:w-2/5 flex flex-col h-full border-l border-slate-200 bg-white ${mobileTab === 'cart' ? 'block' : 'hidden md:flex'}`}>
-                     <div className="p-4 bg-slate-50 border-b border-slate-200">
-                        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Order Summary</h3>
+                     <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col gap-3">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Order Summary</h3>
+                            <button 
+                                onClick={() => setMobileTab('catalog')}
+                                className="md:hidden text-indigo-600 text-xs font-black uppercase flex items-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                Add More
+                            </button>
+                        </div>
+                        
+                        {/* Quick Add Search in Cart (Mobile Only) */}
+                        <div className="relative group md:hidden">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <input 
+                                type="text"
+                                placeholder="Quick add item..."
+                                className="block w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                value={itemFilter}
+                                onChange={(e) => {
+                                    setItemFilter(e.target.value);
+                                    if (mobileTab === 'cart' && e.target.value.length > 0) {
+                                        // No change tab needed, overlay will show
+                                    }
+                                }}
+                            />
+                            {itemFilter.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-60 overflow-y-auto divide-y divide-slate-50">
+                                    {filteredItems.slice(0, 10).map(item => {
+                                        const isOutOfStock = settings.stock_tracking_enabled ? item.current_stock_qty <= 0 : item.is_out_of_stock;
+                                        return (
+                                            <div 
+                                                key={item.item_id}
+                                                onClick={() => {
+                                                    if (!isOutOfStock) {
+                                                        setSelectedItem(item);
+                                                        setItemFilter('');
+                                                    }
+                                                }}
+                                                className={`p-3 flex justify-between items-center ${isOutOfStock ? 'bg-rose-50/30' : 'hover:bg-slate-50 cursor-pointer active:bg-slate-100'}`}
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className={`text-xs font-bold truncate ${isOutOfStock ? 'text-rose-700' : 'text-slate-800'}`}>{item.item_display_name}</p>
+                                                    <p className="text-[10px] text-slate-400 font-mono">{item.item_number} • {item.vehicle_model}</p>
+                                                </div>
+                                                <div className="text-right shrink-0 ml-2">
+                                                    <p className={`text-xs font-black ${isOutOfStock ? 'text-rose-400' : 'text-indigo-600'}`}>{formatCurrency(item.unit_value)}</p>
+                                                    {isOutOfStock && <span className="text-[8px] font-bold text-rose-500 uppercase">Out</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {filteredItems.length === 0 && <p className="p-4 text-center text-[10px] text-slate-400">No matches found</p>}
+                                </div>
+                            )}
+                        </div>
                      </div>
                      
                      {/* Cart Lines */}
