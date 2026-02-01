@@ -94,6 +94,16 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                 </div>
 
                 <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Currency Symbol</label>
+                    <input 
+                        className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        value={settings.currency_symbol || 'Rs.'}
+                        onChange={e => setSettings({...settings, currency_symbol: e.target.value})}
+                        placeholder="e.g. Rs., $, ₹"
+                    />
+                </div>
+
+                <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Bill Footer Note</label>
                     <textarea 
                         className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"

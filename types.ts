@@ -109,6 +109,7 @@ export interface CompanySettings {
   rep_name: string;
   invoice_prefix: string;
   footer_note: string;
+  currency_symbol: string;
   google_sheet_id?: string;
 }
 

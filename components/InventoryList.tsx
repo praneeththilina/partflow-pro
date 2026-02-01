@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Item, StockAdjustment } from '../types';
 import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
+import { formatCurrency } from '../utils/currency';
 
 export const InventoryList: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
@@ -289,7 +290,7 @@ export const InventoryList: React.FC = () => {
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-slate-900">
-                                ${item.unit_value.toFixed(2)}
+                                {formatCurrency(item.unit_value)}
                             </td>
                              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                                 <div className="flex items-center justify-end gap-2">
@@ -333,7 +334,7 @@ export const InventoryList: React.FC = () => {
                     </div>
                 </div>
                 <div className="text-right flex flex-col items-end space-y-1">
-                    <span className="text-sm font-black text-indigo-700 block">Rs.{item.unit_value.toLocaleString()}</span>
+                    <span className="text-sm font-black text-indigo-700 block">{formatCurrency(item.unit_value)}</span>
                     <div className="flex items-center gap-1">
                         <button 
                             onClick={(e) => openAdjustModal(e, item)}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Order, Customer } from '../types';
 import { db } from '../services/db';
 import { pdfService } from '../services/pdf';
+import { formatCurrency } from '../utils/currency';
 
 interface OrderHistoryProps {
     onViewInvoice: (order: Order) => void;
@@ -63,14 +64,12 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice }) => 
                                 <h3 className="font-bold text-slate-900">{getCustomerName(order.customer_id)}</h3>
                                 <p className="text-[10px] text-slate-400 font-mono">{order.order_id.substring(0, 8).toUpperCase()}</p>
                             </div>
-                            <div className="text-right">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                    order.sync_status === 'synced' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                                }`}>
-                                    {order.sync_status === 'synced' ? 'SYNCED' : 'PENDING'}
-                                </span>
-                                <p className="text-xs text-slate-500 mt-1">{order.order_date}</p>
-                            </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-slate-900 text-sm">{formatCurrency(order.net_total)}</p>
+                                    <p className={`text-[10px] font-bold uppercase ${order.payment_status === 'paid' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        {order.payment_status}
+                                    </p>
+                                </div>
                         </div>
 
                         <div className="flex justify-between items-end border-t border-slate-50 pt-3">

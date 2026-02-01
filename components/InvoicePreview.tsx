@@ -1,6 +1,7 @@
 import React from 'react';
 import { Order, Customer, CompanySettings, OrderLine } from '../types';
 import { pdfService } from '../services/pdf';
+import { formatCurrency } from '../utils/currency';
 
 interface InvoicePreviewProps {
     order: Order;
@@ -164,8 +165,8 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                     <td className="border border-slate-300 p-1.5 text-center">{globalIdx + 1}</td>
                                                     <td className="border border-slate-300 p-1.5">{line.item_name}</td>
                                                     <td className="border border-slate-300 p-1.5 text-center">{line.quantity}</td>
-                                                    <td className="border border-slate-300 p-1.5 text-right">{line.unit_value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                                    <td className="border border-slate-300 p-1.5 text-right">{line.line_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.unit_value)}</td>
+                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.line_total)}</td>
                                                 </tr>
                                             );
                                         })}
@@ -174,7 +175,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                             <tr className="font-bold bg-slate-50">
                                                 <td colSpan={4} className="border border-slate-300 p-2 text-right uppercase italic text-[10px]">Sub Total (Carried Forward)</td>
                                                 <td className="border border-slate-300 p-2 text-right underline decoration-double">
-                                                    {cumulativeTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    {formatCurrency(cumulativeTotal)}
                                                 </td>
                                             </tr>
                                         )}
@@ -190,7 +191,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                     <tr>
                                                         <td className="border border-black px-2 py-2 text-left align-middle font-medium">Gross Total</td>
                                                         <td className="border border-black px-2 py-2 text-right align-middle font-bold">
-                                                            {order.gross_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                            {formatCurrency(order.gross_total)}
                                                         </td>
                                                     </tr>
                                                     {order.discount_value > 0 && (
@@ -199,14 +200,14 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                                 Discount ({(order.discount_rate * 100).toFixed(0)}%)
                                                             </td>
                                                             <td className="border border-black px-2 py-2 text-right align-middle text-rose-600 font-bold">
-                                                                -{order.discount_value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                                -{formatCurrency(order.discount_value)}
                                                             </td>
                                                         </tr>
                                                     )}
                                                     <tr className="bg-slate-50">
                                                         <td className="border border-black px-2 py-2 text-left align-middle font-bold text-[14px]">Net Total</td>
                                                         <td className="border border-black px-2 py-2 text-right align-middle font-bold text-[14px]">
-                                                            Rs. {order.net_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                            {formatCurrency(order.net_total)}
                                                         </td>
                                                     </tr>
                                                     {order.paid_amount > 0 && (
@@ -215,7 +216,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                                 Paid Amount
                                                             </td>
                                                             <td className="border border-black px-2 py-2 text-right align-middle font-bold text-emerald-700">
-                                                                - {order.paid_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                                - {formatCurrency(order.paid_amount)}
                                                             </td>
                                                         </tr>
                                                     )}
@@ -223,7 +224,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                         <tr className="bg-rose-50">
                                                             <td className="border border-black px-2 py-3 text-left align-middle font-black text-[16px] text-rose-700">Balance Due</td>
                                                             <td className="border border-black px-2 py-3 text-right align-middle font-black text-[16px] text-rose-700">
-                                                                Rs. {order.balance_due.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                                {formatCurrency(order.balance_due)}
                                                             </td>
                                                         </tr>
                                                     )}

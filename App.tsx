@@ -14,16 +14,67 @@ import { Reports } from './components/Reports';
 import { Customer, Order } from './types';
 import { db } from './services/db';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { App as CapApp } from '@capacitor/app';
+import { Modal } from './components/ui/Modal';
+import { ShopProfile } from './components/ShopProfile';
 
 function AppContent() {
   const { isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
+  const [historyStack, setHistoryStack] = useState<string[]>(['home']); // Navigation Stack
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [profileCustomer, setProfileCustomer] = useState<Customer | null>(null); 
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [dbInitialized, setDbInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [showExitModal, setShowExitModal] = useState(false);
+
+  // Handle Tab Change with History
+  const navigateTo = (tab: string) => {
+      if (tab === activeTab) return;
+      
+      // If going to home, clear stack or push? 
+      // Standard mobile pattern: Home is root.
+      if (tab === 'home') {
+          setHistoryStack(['home']);
+      } else {
+          setHistoryStack(prev => [...prev, tab]);
+      }
+      setActiveTab(tab);
+  };
+
+  const handleBack = () => {
+      if (historyStack.length > 1) {
+          const newStack = [...historyStack];
+          newStack.pop(); // Remove current
+          const previous = newStack[newStack.length - 1];
+          setHistoryStack(newStack);
+          setActiveTab(previous);
+      } else {
+          // At root, ask to exit
+          setShowExitModal(true);
+      }
+  };
+
+  React.useEffect(() => {
+      // Hardware Back Button Listener
+      const setupListener = async () => {
+          CapApp.addListener('backButton', ({ canGoBack }) => {
+              if (showExitModal) {
+                  setShowExitModal(false); // Close modal if open
+              } else {
+                  handleBack();
+              }
+          });
+      };
+      setupListener();
+
+      return () => {
+          CapApp.removeAllListeners();
+      };
+  }, [historyStack, showExitModal]);
 
   React.useEffect(() => {
     // Initialize DB and Load Cache on Boot
@@ -41,7 +92,12 @@ function AppContent() {
 
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setActiveTab('orders');
+    navigateTo('orders');
+  };
+
+  const handleOpenProfile = (customer: Customer) => {
+      setProfileCustomer(customer);
+      navigateTo('shop_profile');
   };
 
   const handleOrderCreated = (order: Order) => {
@@ -51,7 +107,7 @@ function AppContent() {
   const handleInvoiceClose = () => {
     setActiveOrder(null);
     setSelectedCustomer(null);
-    setActiveTab('history');
+    navigateTo('history');
   };
 
   const handleViewInvoice = (order: Order) => {
@@ -61,6 +117,10 @@ function AppContent() {
           setSelectedCustomer(customer);
           setActiveOrder(order);
       }
+  };
+
+  const handleExitApp = () => {
+      CapApp.exitApp();
   };
 
   if (!dbInitialized) {
@@ -106,9 +166,16 @@ function AppContent() {
 
     switch (activeTab) {
       case 'home':
-        return <Dashboard onAction={(tab) => setActiveTab(tab)} onViewOrder={handleViewInvoice} />;
+        return <Dashboard onAction={(tab) => navigateTo(tab)} onViewOrder={handleViewInvoice} />;
       case 'customers':
-        return <CustomerList onSelectCustomer={handleSelectCustomer} />;
+        return <CustomerList onSelectCustomer={handleSelectCustomer} onOpenProfile={handleOpenProfile} />;
+      case 'shop_profile':
+        if (!profileCustomer) return <CustomerList onSelectCustomer={handleSelectCustomer} onOpenProfile={handleOpenProfile} />;
+        return <ShopProfile 
+            customer={profileCustomer} 
+            onBack={() => navigateTo('customers')} 
+            onViewInvoice={handleViewInvoice} 
+        />;
       case 'inventory':
         return <InventoryList />;
       case 'orders':
@@ -118,14 +185,16 @@ function AppContent() {
                     <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl text-center">
                         <p className="text-indigo-700 font-bold">Select a shop to start a new order</p>
                     </div>
-                    <CustomerList onSelectCustomer={handleSelectCustomer} />
+                    <CustomerList onSelectCustomer={handleSelectCustomer} onOpenProfile={handleOpenProfile} />
                 </div>
             );
         }
         return <OrderBuilder 
             onCancel={() => {
-                setSelectedCustomer(null);
-                setActiveTab('home');
+                if(window.confirm("Abandon current order?")) {
+                    setSelectedCustomer(null);
+                    navigateTo('home');
+                }
             }} 
             onOrderCreated={handleOrderCreated}
             existingCustomer={selectedCustomer || undefined} 
@@ -144,20 +213,32 @@ function AppContent() {
   };
 
   return (
-    <Layout 
-        activeTab={activeTab} 
-        onTabChange={(tab) => {
-            if (activeTab === 'orders' && selectedCustomer && tab !== 'orders') {
-                if(!window.confirm("Abandon current order?")) return;
-                setSelectedCustomer(null);
-            }
-            setActiveTab(tab);
-        }}
-        onSync={() => setActiveTab('sync')}
-        isSyncing={isSyncing}
-    >
-      {renderContent()}
-    </Layout>
+    <>
+        <Layout 
+            activeTab={activeTab} 
+            onTabChange={(tab) => {
+                if (activeTab === 'orders' && selectedCustomer && tab !== 'orders') {
+                    if(!window.confirm("Abandon current order?")) return;
+                    setSelectedCustomer(null);
+                }
+                navigateTo(tab);
+            }}
+            onSync={() => navigateTo('sync')}
+            isSyncing={isSyncing}
+        >
+        {renderContent()}
+        </Layout>
+
+        <Modal 
+            isOpen={showExitModal}
+            title="Exit App?"
+            message="Are you sure you want to close PartFlow Pro?"
+            confirmText="Exit"
+            type="danger"
+            onConfirm={handleExitApp}
+            onCancel={() => setShowExitModal(false)}
+        />
+    </>
   );
 }
 

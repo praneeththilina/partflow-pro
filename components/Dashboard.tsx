@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { Layout } from './Layout';
+import { Preferences } from '@capacitor/preferences';
+import { formatCurrency } from '../utils/currency';
 
 interface DashboardProps {
     onAction: (tab: string) => void;
@@ -12,10 +13,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
     const [recentOrders, setRecentOrders] = useState(db.getOrders().slice(0, 5));
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setStats(db.getDashboardStats());
+        const updateWidget = async () => {
+            const currentStats = db.getDashboardStats();
+            setStats(currentStats);
             setRecentOrders(db.getOrders().slice(0, 5));
-        }, 5000);
+
+            // Sync Data to Widget Storage
+            await Preferences.set({
+                key: 'widget_daily_sales',
+                value: formatCurrency(currentStats.dailySales)
+            });
+            await Preferences.set({
+                key: 'widget_last_update',
+                value: `Updated: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`
+            });
+        };
+
+        // Initial update
+        updateWidget();
+
+        const interval = setInterval(updateWidget, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -41,13 +58,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                          <svg className="w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
                     </div>
                     <p className="text-xs uppercase font-bold text-indigo-200 tracking-wider mb-2">Today's Sales</p>
-                    <p className="text-3xl font-black tracking-tight">Rs.{stats.dailySales.toLocaleString()}</p>
+                    <p className="text-3xl font-black tracking-tight">{formatCurrency(stats.dailySales)}</p>
                 </div>
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
                     <p className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2 relative z-10">This Month</p>
-                    <p className="text-3xl font-black text-slate-800 relative z-10">Rs.{stats.monthlySales.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-slate-800 relative z-10">{formatCurrency(stats.monthlySales)}</p>
                 </div>
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all group" onClick={() => onAction('inventory')}>
@@ -161,7 +178,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                                     <p className="text-[10px] text-slate-400">{order.order_date}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-black text-slate-800">Rs.{order.net_total.toLocaleString()}</p>
+                                    <p className="text-sm font-black text-slate-800">{formatCurrency(order.net_total)}</p>
                                     <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${order.sync_status === 'synced' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                                         {order.sync_status}
                                     </span>

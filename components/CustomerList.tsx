@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Customer } from '../types';
 import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
+import { formatCurrency } from '../utils/currency';
 
 interface CustomerListProps {
   onSelectCustomer: (customer: Customer) => void;
+  onOpenProfile?: (customer: Customer) => void;
 }
 
-export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer }) => {
+export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, onOpenProfile }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({});
+  
+  // Action Sheet State
+  const [actionCustomer, setActionCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     setCustomers(db.getCustomers());
@@ -104,6 +109,48 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer }) 
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
       </button>
 
+        {/* Customer Action Sheet */}
+      {actionCustomer && (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4" onClick={() => setActionCustomer(null)}>
+              <div className="bg-white w-full max-w-sm rounded-t-3xl md:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-200" onClick={e => e.stopPropagation()}>
+                  <div className="text-center mb-6">
+                      <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-2xl font-black text-indigo-600 mx-auto mb-3">
+                          {getInitials(actionCustomer.shop_name)}
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900">{actionCustomer.shop_name}</h3>
+                      <p className="text-slate-500 text-sm">{actionCustomer.city_ref}</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                      <button 
+                          onClick={() => {
+                              onSelectCustomer(actionCustomer);
+                              setActionCustomer(null);
+                          }}
+                          className="w-full flex items-center justify-center gap-3 bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform"
+                      >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                          Create New Bill
+                      </button>
+                      
+                      {onOpenProfile && (
+                          <button 
+                              onClick={() => {
+                                  onOpenProfile(actionCustomer);
+                                  setActionCustomer(null);
+                              }}
+                              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-700 py-4 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform"
+                          >
+                              <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                              Open Shop Profile
+                          </button>
+                      )}
+                  </div>
+                  <button onClick={() => setActionCustomer(null)} className="w-full mt-6 py-3 text-slate-400 font-bold text-sm">Cancel</button>
+              </div>
+          </div>
+      )}
+
       {/* Add Form Modal/Card */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -151,8 +198,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer }) 
         {filteredCustomers.map(customer => (
             <button 
                 key={customer.customer_id} 
-                onClick={() => onSelectCustomer(customer)}
-                className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all text-left flex items-start space-x-4 group"
+                onClick={() => setActionCustomer(customer)}
+                className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all text-left flex items-start space-x-4 group active:scale-[0.98]"
             >
                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                     {getInitials(customer.shop_name)}
@@ -163,7 +210,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer }) 
                         <div className="flex items-center gap-2">
                             {customer.outstanding_balance > 0 && (
                                 <span className="bg-rose-100 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200">
-                                    Due: Rs.{customer.outstanding_balance.toLocaleString()}
+                                    Due: {formatCurrency(customer.outstanding_balance)}
                                 </span>
                             )}
                             <button 

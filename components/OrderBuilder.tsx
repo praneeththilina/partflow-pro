@@ -4,6 +4,7 @@ import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useAuth } from '../context/AuthContext';
+import { formatCurrency } from '../utils/currency';
 
 interface OrderBuilderProps {
     onCancel: () => void;
@@ -112,7 +113,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     const initiateCheckout = () => {
         if (!customer) return;
         if (lines.length === 0) return;
-        setPaymentAmount(netTotal.toFixed(2)); // Default to full payment
+        setPaymentAmount('0'); // Default to 0 as requested
         setShowPaymentModal(true);
     };
 
@@ -271,7 +272,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                     </div>
                                     
                                     <div className="text-right pl-2">
-                                        <div className="font-black text-slate-900 text-sm">Rs.{item.unit_value.toLocaleString()}</div>
+                                        <div className="font-black text-slate-900 text-sm">{formatCurrency(item.unit_value)}</div>
                                         <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                                             {item.current_stock_qty} in stock
                                         </div>
@@ -306,11 +307,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         <div className="flex-1">
                                             <div className="text-sm font-bold text-slate-900 line-clamp-1">{line.item_name}</div>
                                             <div className="text-xs text-slate-500 font-medium mt-0.5">
-                                                <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{line.quantity}</span> x ${line.unit_value.toFixed(2)}
+                                                <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{line.quantity}</span> x {formatCurrency(line.unit_value)}
                                             </div>
                                         </div>
                                          <div className="flex items-center gap-4">
-                                            <span className="font-bold text-slate-800">Rs.{line.line_total.toLocaleString()}</span>
+                                            <span className="font-bold text-slate-800">{formatCurrency(line.line_total)}</span>
                                             <button onClick={() => removeLine(line.line_id)} className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:bg-rose-100 hover:text-rose-500 flex items-center justify-center transition-colors">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                             </button>
@@ -326,7 +327,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                         <div className="space-y-2 mb-4">
                              <div className="flex justify-between text-sm text-slate-600">
                                  <span>Subtotal</span>
-                                 <span>Rs.{grossTotal.toLocaleString()}</span>
+                                 <span>{formatCurrency(grossTotal)}</span>
                              </div>
 
                             <div className="flex justify-between items-center text-sm text-slate-600">
@@ -338,12 +339,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         value={discountRate}
                                         onChange={(e) => setDiscountRate(parseFloat(e.target.value))}
                                     />
-                                    <span className="text-rose-600">-${discountValue.toFixed(2)}</span>
+                                    <span className="text-rose-600">-{formatCurrency(discountValue)}</span>
                                 </div>
                             </div>
                              <div className="flex justify-between text-lg font-bold text-slate-900 pt-2 border-t border-slate-200">
                                  <span>Total</span>
-                                 <span>Rs.{netTotal.toLocaleString()}</span>
+                                 <span>{formatCurrency(netTotal)}</span>
                              </div>
 
                         </div>
@@ -399,8 +400,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
             {/* Payment Modal */}
             {showPaymentModal && (
-                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4">
-                    <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-300">
+                <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4">
+                    <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-2xl p-6 pb-24 md:pb-6 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-300 relative">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-black text-slate-800">Checkout & Payment</h3>
                             <button onClick={() => setShowPaymentModal(false)} className="bg-slate-100 p-2 rounded-full text-slate-500">
@@ -410,7 +411,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
                         <div className="bg-slate-50 rounded-xl p-4 mb-6 flex justify-between items-center">
                             <span className="text-slate-500 font-medium">Net Payable</span>
-                            <span className="text-2xl font-black text-slate-900">Rs.{netTotal.toLocaleString()}</span>
+                            <span className="text-2xl font-black text-slate-900">{formatCurrency(netTotal)}</span>
                         </div>
 
                         <div className="space-y-4 mb-8">
@@ -426,7 +427,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 <div className="flex justify-between mt-1 px-1">
                                     <button onClick={() => setPaymentAmount(netTotal.toFixed(2))} className="text-xs font-bold text-indigo-600">Full Payment</button>
                                     <span className={`text-xs font-bold ${netTotal - (parseFloat(paymentAmount) || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                        Balance Due: Rs.{Math.max(0, netTotal - (parseFloat(paymentAmount) || 0)).toLocaleString()}
+                                        Balance Due: {formatCurrency(Math.max(0, netTotal - (parseFloat(paymentAmount) || 0)))}
                                     </span>
                                 </div>
                             </div>
