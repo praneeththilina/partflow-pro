@@ -2,19 +2,86 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# PartFlow Pro | Enterprise Spare Parts Distribution
 
-This contains everything you need to run your app locally.
+PartFlow Pro is a robust, offline-first mobile and web application designed specifically for **Field Sales Representatives** in the vehicle spare parts industry. It transforms your smartphone into a powerful POS terminal, inventory tracker, and customer management tool.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1EaivGM8VzCXw3GRV_fwZeLCnXTmNQ_Jf
+## 🚀 Core Features
 
-## Run Locally
+### 🛒 Sales & Billing
+*   **POS-Style Order Builder:** Rapidly create invoices by searching for parts or scanning SKUs.
+*   **Smart Pricing:** Automated calculation of Gross Total, Discounts, and Net Payable.
+*   **Payment Management:** Support for Cash, Cheque, Bank Transfer, and Credit. Track partial payments and outstanding balances automatically.
+*   **Professional Invoices:** Generate high-quality PDF invoices with your company branding, "PAID IN FULL" stamps, and detailed item breakdowns.
 
-**Prerequisites:**  Node.js
+### 📦 Advanced Inventory Control
+*   **Smart SKU Generation:** Automatically generates acrostic SKUs (e.g., "Carbon Brush GN125" -> `CBG01`) with auto-incrementing suffixes.
+*   **Duplicate Protection:** Prevents accidental entry of the same part/model/country combination.
+*   **Flexible Tracking:** 
+    *   **Enabled:** Track exact quantities, set low-stock thresholds, and receive automated alerts.
+    *   **Disabled:** Use manual "In Stock / Out of Stock" flagging for a simplified workflow.
+*   **Vehicle-Centric UX:** Powerful filters for **Vehicle Model**, **Country of Origin**, and **Category**.
 
+### 👤 Customer (Shop) Management
+*   **Shop Profiles:** Drill down into specific customer histories, outstanding credit lists, and settlement journals.
+*   **Credit Tracking:** Real-time visibility of total due amounts directly in the shop list.
+*   **Quick Actions:** Tap a shop to instantly create a new bill or view their profile.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 📊 Business Intelligence
+*   **Dynamic Dashboard:** Daily/Monthly sales snapshots and critical stock alerts.
+*   **Reporting Suite:** 
+    *   **Sales Journal:** Detailed transaction history with period filtering.
+    *   **Inventory Health:** Reports on "Out of Stock" items vs "Available" stock.
+    *   **Category Analytics:** Understand which part categories drive your revenue.
+*   **PDF Export:** All reports can be exported as professional PDFs for HQ.
+
+### 📱 Enterprise-Grade Mobile UX
+*   **Offline-First:** Powered by **IndexedDB (Dexie.js)**. Work anywhere without an internet connection; data stays on your device.
+*   **Cloud Sync:** Bidirectional sync with **Google Sheets**. Pull inventory updates and push sales records with one tap.
+*   **Android Support:** Fully compiled for Android with a **Native Home Screen Widget** showing today's sales.
+*   **Navigation:** Smart back-button history and themed safety modals.
+
+---
+
+## 🛠 Setup & Technical Configuration
+
+### 1. Requirements
+*   Node.js (v18+)
+*   Capacitor CLI (for Android)
+*   A Google Sheet ID (for cloud sync)
+
+### 2. Installation
+```bash
+npm install
+npm run build
+```
+
+### 3. Google Sheets Integration
+1.  Open the **Sync Data** tab.
+2.  Paste your Google Sheet ID into the configuration field.
+3.  Ensure your Sheet has the required tabs: `items`, `customers`, `orders`, and `stockAdjustments`.
+
+### 4. Android Build
+```bash
+npm run sync
+npx cap open android
+```
+
+---
+
+## ⚙️ Customization (Settings)
+Access the **Settings** tab to tailor the app to your business:
+*   **Currency Symbol:** Set globally ($, Rs., €, etc.).
+*   **Auto-SKU:** Toggle automatic SKU generation logic.
+*   **Stock Tracking:** Enable or disable quantity management.
+*   **Item Category:** Simplify the UI by hiding categories if not needed.
+*   **Bill Head:** Customize Company Name, Address, and Invoice Prefix.
+
+---
+
+## 🛡️ Security & Privacy
+*   **Local Storage:** All customer and sales data is stored locally on the device.
+*   **Manual Backups:** The app automatically generates a CSV backup of your inventory before every sync.
+
+---
+*Developed for Enterprise Distribution Management.*
