@@ -212,28 +212,34 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                     )}
                     
                     {/* Item List */}
-                    <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-2">
+                    <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-3">
                         {filteredItems.map(item => (
                             <div 
                                 key={item.item_id} 
                                 onClick={() => setSelectedItem(item)}
-                                className={`bg-white p-3 rounded-xl border shadow-sm cursor-pointer transition-all active:scale-[0.98] ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300'}`}
+                                className={`bg-white rounded-2xl border shadow-sm cursor-pointer transition-all active:scale-[0.98] group relative overflow-hidden ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
                             >
-                                <div className="flex justify-between items-center">
-                                    <div className="min-w-0">
-                                        <div className="font-bold text-slate-800 text-sm truncate">{item.item_display_name}</div>
-                                        <div className="text-[10px] text-slate-500 uppercase font-medium tracking-tight">
-                                            {item.item_number} • {item.vehicle_model}
+                                <div className="p-4 flex justify-between items-center relative z-10">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                            {item.vehicle_model.substring(0, 2).toUpperCase()}
                                         </div>
-                                        <div className="text-[10px] text-indigo-500 font-bold">{item.source_brand}</div>
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-slate-800 text-sm truncate">{item.item_display_name}</div>
+                                            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-tight mt-0.5">
+                                                {item.item_number} • <span className="text-indigo-600">{item.source_brand}</span>
+                                            </div>
+                                        </div>
                                     </div>
+                                    
                                     <div className="text-right pl-2">
-                                        <div className="font-bold text-indigo-700 text-sm">Rs.{item.unit_value.toLocaleString()}</div>
-                                        <div className={`text-[10px] font-bold ${item.current_stock_qty > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                            Qty: {item.current_stock_qty}
+                                        <div className="font-black text-slate-900 text-sm">Rs.{item.unit_value.toLocaleString()}</div>
+                                        <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                            {item.current_stock_qty} in stock
                                         </div>
                                     </div>
                                 </div>
+                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/0 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                             </div>
                         ))}
                     </div>
@@ -246,29 +252,31 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                      </div>
                      
                      {/* Cart Lines */}
-                     <div className="flex-1 overflow-y-auto p-0">
+                     <div className="flex-1 overflow-y-auto p-0 bg-slate-50/50">
                         {lines.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                                <svg className="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                                <p className="text-sm">No items added yet</p>
+                                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                    <svg className="w-8 h-8 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                </div>
+                                <h4 className="font-bold text-slate-600">Your cart is empty</h4>
+                                <p className="text-xs mt-1 max-w-[150px]">Select items from the catalog to start building an order.</p>
                             </div>
                         ) : (
                             <ul className="divide-y divide-slate-100">
                                 {lines.map(line => (
-                                    <li key={line.line_id} className="p-4 flex justify-between items-center hover:bg-slate-50">
+                                    <li key={line.line_id} className="p-4 flex justify-between items-center hover:bg-white transition-colors group">
                                         <div className="flex-1">
-                                            <div className="text-sm font-medium text-slate-900 line-clamp-1">{line.item_name}</div>
-                                            <div className="text-xs text-slate-500">
-                                                {line.quantity} x ${line.unit_value.toFixed(2)}
+                                            <div className="text-sm font-bold text-slate-900 line-clamp-1">{line.item_name}</div>
+                                            <div className="text-xs text-slate-500 font-medium mt-0.5">
+                                                <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{line.quantity}</span> x ${line.unit_value.toFixed(2)}
                                             </div>
                                         </div>
-                                         <div className="flex items-center gap-3">
+                                         <div className="flex items-center gap-4">
                                             <span className="font-bold text-slate-800">Rs.{line.line_total.toLocaleString()}</span>
-                                            <button onClick={() => removeLine(line.line_id)} className="text-slate-300 hover:text-rose-500 p-1">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            <button onClick={() => removeLine(line.line_id)} className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:bg-rose-100 hover:text-rose-500 flex items-center justify-center transition-colors">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                             </button>
                                         </div>
-
                                     </li>
                                 ))}
                             </ul>

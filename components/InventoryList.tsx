@@ -66,6 +66,17 @@ export const InventoryList: React.FC = () => {
       setShowAddForm(true);
   };
 
+  const handleDeleteItem = () => {
+    if (!editingItem) return;
+    if (window.confirm("Are you sure you want to delete this item? It will be marked as inactive.")) {
+        db.deleteItem(editingItem.item_id);
+        setItems(db.getItems());
+        setShowAddForm(false);
+        setEditingItem(null);
+        setNewItem({});
+    }
+  };
+
   const filteredItems = items.filter(item => {
     const matchesSearch = item.item_display_name.toLowerCase().includes(filter.toLowerCase()) ||
         item.item_number.toLowerCase().includes(filter.toLowerCase()) ||
@@ -79,7 +90,7 @@ export const InventoryList: React.FC = () => {
         matchesCategory = item.category === categoryFilter;
     }
     
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesCategory && item.status !== 'inactive';
   });
 
 
@@ -189,6 +200,11 @@ export const InventoryList: React.FC = () => {
                     </div>
                 </div>
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+                    {editingItem && (
+                        <button onClick={handleDeleteItem} className="bg-rose-100 text-rose-600 px-4 py-3 rounded-xl font-bold hover:bg-rose-200">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    )}
                     <button onClick={handleSaveItem} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 shadow-sm">{editingItem ? 'Update Item' : 'Add to Inventory'}</button>
                     <button onClick={() => { setShowAddForm(false); setEditingItem(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3 rounded-xl font-semibold hover:bg-slate-50">Cancel</button>
                 </div>

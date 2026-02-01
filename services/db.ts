@@ -76,6 +76,18 @@ class LocalDB {
     localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
   }
 
+  deleteItem(itemId: string): void {
+    const items = this.getItems();
+    const index = items.findIndex(i => i.item_id === itemId);
+    if (index >= 0) {
+      // Soft delete by setting status to inactive
+      items[index].status = 'inactive';
+      items[index].sync_status = 'pending'; // Sync this change
+      items[index].updated_at = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
+    }
+  }
+
   // Critical: Used during order confirmation
   updateStock(itemId: string, qtyDelta: number): void {
     const items = this.getItems();
@@ -106,6 +118,26 @@ class LocalDB {
       orders.push(orderToSave);
     }
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  }
+
+  deleteOrder(orderId: string): void {
+      const orders = this.getOrders();
+      const index = orders.findIndex(o => o.order_id === orderId);
+      
+      if (index >= 0) {
+          const order = orders[index];
+          
+          // Restore Stock if order was confirmed
+          if (order.order_status === 'confirmed') {
+              order.lines.forEach(line => {
+                  this.updateStock(line.item_id, line.quantity); // Positive qty to add back
+              });
+          }
+
+          // Hard delete from local storage for now (or could use soft delete if we had a status for it)
+          orders.splice(index, 1);
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+      }
   }
 
   // --- Settings ---

@@ -65,7 +65,7 @@ function AppContent() {
 
     switch (activeTab) {
       case 'home':
-        return <Dashboard onAction={(tab) => setActiveTab(tab)} />;
+        return <Dashboard onAction={(tab) => setActiveTab(tab)} onViewOrder={handleViewInvoice} />;
       case 'customers':
         return <CustomerList onSelectCustomer={handleSelectCustomer} />;
       case 'inventory':
