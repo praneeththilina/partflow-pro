@@ -11,11 +11,41 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
     const { user } = useAuth();
     const [settings, setSettings] = useState<CompanySettings>(db.getSettings());
     const [message, setMessage] = useState('');
+    
+    // Password State
+    const [showPassModal, setShowPassModal] = useState(false);
+    const [passData, setPassData] = useState({ old: '', new: '', confirm: '' });
+    const [passMsg, setPassMsg] = useState({ text: '', type: 'info' as 'info' | 'danger' | 'success' });
 
     const handleSave = () => {
         db.saveSettings(settings);
         setMessage('Settings saved successfully!');
         setTimeout(() => setMessage(''), 3000);
+    };
+
+    const handleChangePassword = async () => {
+        if (!user) return;
+        if (!passData.old || !passData.new || !passData.confirm) {
+            setPassMsg({ text: 'All fields are required', type: 'danger' });
+            return;
+        }
+        if (passData.new !== passData.confirm) {
+            setPassMsg({ text: 'Passwords do not match', type: 'danger' });
+            return;
+        }
+        if (passData.new.length < 4) {
+            setPassMsg({ text: 'New password is too short', type: 'danger' });
+            return;
+        }
+
+        try {
+            await db.changePassword(user.id, passData.old, passData.new);
+            setPassMsg({ text: 'Password changed successfully!', type: 'success' });
+            setPassData({ old: '', new: '', confirm: '' });
+            setTimeout(() => setShowPassModal(false), 2000);
+        } catch (e: any) {
+            setPassMsg({ text: e.message || 'Failed to change password', type: 'danger' });
+        }
     };
 
     const SectionHeader = ({ icon, title, subtitle }: { icon: React.ReactNode, title: string, subtitle: string }) => (
@@ -61,7 +91,12 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                         <p className="text-lg font-black text-slate-900">{user?.full_name}</p>
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-bold text-white bg-slate-800 px-2 py-0.5 rounded-full uppercase tracking-tighter">{user?.role}</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">PartFlow Pro User</span>
+                            <button 
+                                onClick={() => setShowPassModal(true)}
+                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline uppercase tracking-tighter"
+                            >
+                                Change Password
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -241,6 +276,81 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                     </p>
                 </div>
             </div>
+
+            {/* Change Password Modal */}
+            {showPassModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">Security</h3>
+                            <button onClick={() => setShowPassModal(false)} className="text-slate-400 p-1 hover:bg-slate-200 rounded-full transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="text-center">
+                                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                </div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Update Password</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">Current Password</label>
+                                    <input 
+                                        type="password"
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                        value={passData.old}
+                                        onChange={e => setPassData({...passData, old: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">New Password</label>
+                                    <input 
+                                        type="password"
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                        value={passData.new}
+                                        onChange={e => setPassData({...passData, new: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">Confirm New Password</label>
+                                    <input 
+                                        type="password"
+                                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                        value={passData.confirm}
+                                        onChange={e => setPassData({...passData, confirm: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+
+                            {passMsg.text && (
+                                <p className={`text-center text-xs font-bold p-2 rounded-lg ${
+                                    passMsg.type === 'danger' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                                }`}>
+                                    {passMsg.text}
+                                </p>
+                            )}
+
+                            <div className="pt-2 flex gap-3">
+                                <button 
+                                    onClick={() => setShowPassModal(false)}
+                                    className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleChangePassword}
+                                    className="flex-1 py-3 bg-slate-900 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all"
+                                >
+                                    Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -9,7 +9,7 @@ import USER_CONFIG from '../src/config/users.json';
 
 // Keys for LocalStorage (Legacy / Cache Flags)
 const STORAGE_KEYS = {
-  INIT: 'fieldaudit_initialized_v6', // Force re-init for V6 (Default Auto SKU)
+  INIT: 'fieldaudit_initialized_v7', // Force re-init for V7 (Stored Users)
   LAST_SYNC: 'fieldaudit_last_sync',
   USER: 'fieldaudit_current_user',
   // Legacy keys (will be migrated from)
@@ -29,6 +29,13 @@ const SEED_SETTINGS: CompanySettings = {
     category_enabled: false
 }; 
 
+const SEED_USERS: User[] = USER_CONFIG.users.map((u, index) => ({
+    id: `user-${index + 1}`,
+    username: u.username,
+    password: u.password,
+    role: u.role as 'admin' | 'rep',
+    full_name: u.rep_name
+}));
 // --- Dexie Database Schema ---
 class PartFlowDB extends Dexie {
     customers!: Table<Customer, string>;
@@ -36,15 +43,17 @@ class PartFlowDB extends Dexie {
     orders!: Table<Order, string>;
     settings!: Table<CompanySettings, string>; 
     stockAdjustments!: Table<StockAdjustment, string>;
+    users!: Table<User, string>; // New users table
 
     constructor() {
         super('PartFlowDB');
-        this.version(4).stores({
+        this.version(5).stores({
             customers: 'customer_id, shop_name, sync_status',
             items: 'item_id, item_number, item_display_name, sync_status, status',
             orders: 'order_id, customer_id, order_date, sync_status, payment_status',
             stockAdjustments: 'adjustment_id, item_id, sync_status',
-            settings: 'id'
+            settings: 'id',
+            users: 'id, username'
         });
     }
 }
@@ -58,6 +67,7 @@ class LocalDB {
       orders: Order[];
       settings: CompanySettings;
       adjustments: StockAdjustment[];
+      users: User[];
   };
   private initialized: boolean = false;
 
@@ -69,7 +79,8 @@ class LocalDB {
         items: [],
         orders: [],
         settings: {} as CompanySettings,
-        adjustments: []
+        adjustments: [],
+        users: []
     };
   }
 
@@ -102,6 +113,7 @@ class LocalDB {
       let itemsToSave = SEED_ITEMS;
       let ordersToSave: Order[] = [];
       let settingsToSave = SEED_SETTINGS;
+      let usersToSave = SEED_USERS;
 
       if (legCustomers) {
           console.log("Migrating Customers from LocalStorage...");
@@ -122,12 +134,13 @@ class LocalDB {
 
       // Bulk Add to Dexie
       try {
-          await this.db.transaction('rw', this.db.customers, this.db.items, this.db.orders, this.db.settings, async () => {
+          await this.db.transaction('rw', [this.db.customers, this.db.items, this.db.orders, this.db.settings, this.db.users], async () => {
               // Clear existing to be safe
               await this.db.customers.clear();
               await this.db.items.clear();
               await this.db.orders.clear();
               await this.db.settings.clear();
+              await this.db.users.clear();
 
               // Migration Logic: Ensure new fields exist
               const migratedCustomers = customersToSave.map(c => ({
@@ -146,6 +159,7 @@ class LocalDB {
               if (migratedCustomers.length > 0) await this.db.customers.bulkPut(migratedCustomers);
               if (itemsToSave.length > 0) await this.db.items.bulkPut(itemsToSave);
               if (migratedOrders.length > 0) await this.db.orders.bulkPut(migratedOrders);
+              if (usersToSave.length > 0) await this.db.users.bulkPut(usersToSave);
               
               await this.db.settings.put({ ...settingsToSave, id: 'main' } as any);
           });
@@ -162,18 +176,20 @@ class LocalDB {
   }
 
   private async refreshCache() {
-      const [c, i, o, s, a] = await Promise.all([
+      const [c, i, o, s, a, u] = await Promise.all([
           this.db.customers.toArray(),
           this.db.items.toArray(),
           this.db.orders.toArray(),
           this.db.settings.get('main'),
-          this.db.stockAdjustments.toArray()
+          this.db.stockAdjustments.toArray(),
+          this.db.users.toArray()
       ]);
       this.cache.customers = c;
       this.cache.items = i;
       this.cache.orders = o;
       this.cache.settings = (s as CompanySettings) || SEED_SETTINGS;
       this.cache.adjustments = a;
+      this.cache.users = u;
   }
 
   // --- Customers ---
@@ -392,18 +408,34 @@ class LocalDB {
   }
 
   login(username: string, password?: string): User | null {
-    const found = USER_CONFIG.users.find(u => u.username === username);
+    const found = this.cache.users.find(u => u.username === username);
     if (!found) return null;
     if (password && found.password !== password) return null;
 
     const user: User = {
-        id: 0,
+        id: found.id,
         username: found.username,
-        role: found.role as 'admin' | 'rep',
-        full_name: found.rep_name
+        role: found.role,
+        full_name: found.full_name
     };
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
     return user;
+  }
+
+  async changePassword(userId: string | number, oldPassword: string, newPassword: string): Promise<void> {
+      const user = await this.db.users.get(userId.toString());
+      if (!user) throw new Error("User not found");
+      
+      if (user.password !== oldPassword) {
+          throw new Error("Incorrect old password");
+      }
+
+      user.password = newPassword;
+      await this.db.users.put(user);
+      
+      // Update cache
+      const idx = this.cache.users.findIndex(u => u.id === userId);
+      if (idx >= 0) this.cache.users[idx].password = newPassword;
   }
 
   logout() {

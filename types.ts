@@ -9,10 +9,11 @@ export interface BaseEntity {
 }
 
 export interface User {
-  id: number;
+  id: string | number;
   username: string;
   full_name: string;
   role: 'admin' | 'rep';
+  password?: string; // Optional for authenticated state, required for storage
 }
 
 export interface AuthState {
