@@ -300,17 +300,41 @@ class LocalDB {
       if (index === -1) throw new Error("Order not found");
 
       const order = this.cache.orders[index];
+      const oldStatus = order.delivery_status;
       order.delivery_status = status;
       if (notes !== undefined) order.delivery_notes = notes;
       order.updated_at = new Date().toISOString();
       order.sync_status = 'pending';
 
+      // Logical Fix: Restore stock if delivery failed or cancelled
+      // only if it wasn't already failed/cancelled (to prevent double restoration)
+      if ((status === 'failed' || status === 'cancelled') && (oldStatus !== 'failed' && oldStatus !== 'cancelled')) {
+          order.lines.forEach(async line => {
+              await this.updateStock(line.item_id, line.quantity);
+          });
+      } 
+      // If moving BACK to an active state, re-deduce stock
+      else if ((status !== 'failed' && status !== 'cancelled') && (oldStatus === 'failed' || oldStatus === 'cancelled')) {
+          order.lines.forEach(async line => {
+              await this.updateStock(line.item_id, -line.quantity);
+          });
+      }
+
       await this.db.orders.put(order);
+      
+      // Update Customer Balance (Failed/Cancelled orders removed from balance)
+      await this.recalcCustomerBalance(order.customer_id);
   }
 
   private async recalcCustomerBalance(customerId: string) {
       // Find all unpaid orders for this customer
-      const orders = this.cache.orders.filter(o => o.customer_id === customerId && o.order_status !== 'draft');
+      // Filter out 'failed' and 'cancelled' delivery statuses as requested
+      const orders = this.cache.orders.filter(o => 
+          o.customer_id === customerId && 
+          o.order_status !== 'draft' &&
+          o.delivery_status !== 'failed' &&
+          o.delivery_status !== 'cancelled'
+      );
       const totalDue = orders.reduce((sum, o) => sum + (o.balance_due || 0), 0);
 
       const customerIndex = this.cache.customers.findIndex(c => c.customer_id === customerId);
@@ -399,11 +423,19 @@ class LocalDB {
     const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
     const dailySales = orders
-        .filter(o => o.order_date === today)
+        .filter(o => 
+            o.order_date === today && 
+            o.delivery_status !== 'failed' && 
+            o.delivery_status !== 'cancelled'
+        )
         .reduce((sum, o) => sum + o.net_total, 0);
 
     const monthlySales = orders
-        .filter(o => o.order_date >= firstOfMonth)
+        .filter(o => 
+            o.order_date >= firstOfMonth && 
+            o.delivery_status !== 'failed' && 
+            o.delivery_status !== 'cancelled'
+        )
         .reduce((sum, o) => sum + o.net_total, 0);
 
     const criticalItems = items.filter(i => i.current_stock_qty <= i.low_stock_threshold);
