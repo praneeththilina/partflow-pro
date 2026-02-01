@@ -14,6 +14,7 @@ interface OrderBuilderProps {
 
 export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCreated, existingCustomer }) => {
     const { user } = useAuth();
+    const settings = db.getSettings();
     const [customer] = useState<Customer | undefined>(existingCustomer);
     const [items, setItems] = useState<Item[]>([]);
     const [lines, setLines] = useState<OrderLine[]>([]);
@@ -73,7 +74,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         const qty = parseInt(qtyInput);
         
         if (isNaN(qty) || qty <= 0) return;
-        if (qty > selectedItem.current_stock_qty) {
+        
+        if (settings.stock_tracking_enabled && qty > selectedItem.current_stock_qty) {
             alert(`Insufficient stock. Only ${selectedItem.current_stock_qty} available.`);
             return;
         }
@@ -82,7 +84,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         if (existingLineIndex >= 0) {
              const newLines = [...lines];
              const newQty = newLines[existingLineIndex].quantity + qty;
-             if (newQty > selectedItem.current_stock_qty) {
+             if (settings.stock_tracking_enabled && newQty > selectedItem.current_stock_qty) {
                  alert("Total quantity exceeds stock.");
                  return;
              }
@@ -103,7 +105,6 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         }
         setSelectedItem(null);
         setQtyInput('1');
-        // On mobile, show a small feedback or stay on catalog? Stay on catalog.
     };
 
     const removeLine = (lineId: string) => {
@@ -163,8 +164,10 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         };
 
         // Deduce Stock
-        for (const line of finalLines) {
-            await db.updateStock(line.item_id, -line.quantity);
+        if (settings.stock_tracking_enabled) {
+            for (const line of finalLines) {
+                await db.updateStock(line.item_id, -line.quantity);
+            }
         }
 
         // Save Order (DB handles balance updates)
@@ -273,9 +276,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                     
                                     <div className="text-right pl-2">
                                         <div className="font-black text-slate-900 text-sm">{formatCurrency(item.unit_value)}</div>
-                                        <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                                            {item.current_stock_qty} in stock
-                                        </div>
+                                        {settings.stock_tracking_enabled && (
+                                            <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                {item.current_stock_qty} in stock
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/0 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -376,7 +381,9 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                     <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="text-center mb-6">
                             <h3 className="text-lg font-bold text-slate-900">{selectedItem.item_display_name}</h3>
-                            <p className="text-sm text-slate-500">Available: {selectedItem.current_stock_qty}</p>
+                            {settings.stock_tracking_enabled && (
+                                <p className="text-sm text-slate-500">Available: {selectedItem.current_stock_qty}</p>
+                            )}
                         </div>
                         
                         <div className="flex items-center justify-center gap-4 mb-8">

@@ -8,7 +8,7 @@ import USER_CONFIG from '../src/config/users.json';
 
 // Keys for LocalStorage (Legacy / Cache Flags)
 const STORAGE_KEYS = {
-  INIT: 'fieldaudit_initialized_v4', // Force re-init for V4 (Stock Adjustments)
+  INIT: 'fieldaudit_initialized_v5', // Force re-init for V5 (Optional Stock Tracking)
   LAST_SYNC: 'fieldaudit_last_sync',
   USER: 'fieldaudit_current_user',
   // Legacy keys (will be migrated from)
@@ -21,7 +21,11 @@ const STORAGE_KEYS = {
 // Seed Data
 const SEED_CUSTOMERS: Customer[] = (SEED_DATA.customers as any[]).map(c => ({...c, outstanding_balance: 0}));
 const SEED_ITEMS: Item[] = SEED_DATA.items as Item[];
-const SEED_SETTINGS: CompanySettings = { ...APP_SETTINGS, auto_sku_enabled: false }; // Default disabled
+const SEED_SETTINGS: CompanySettings = { 
+    ...(APP_SETTINGS as any), 
+    auto_sku_enabled: false, 
+    stock_tracking_enabled: false 
+}; 
 
 // --- Dexie Database Schema ---
 class PartFlowDB extends Dexie {
@@ -33,7 +37,7 @@ class PartFlowDB extends Dexie {
 
     constructor() {
         super('PartFlowDB');
-        this.version(3).stores({
+        this.version(4).stores({
             customers: 'customer_id, shop_name, sync_status',
             items: 'item_id, item_number, item_display_name, sync_status, status',
             orders: 'order_id, customer_id, order_date, sync_status, payment_status',

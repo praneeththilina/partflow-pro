@@ -76,6 +76,7 @@ export interface Item extends BaseEntity {
   unit_value: number;
   current_stock_qty: number;
   low_stock_threshold: number;
+  is_out_of_stock: boolean; // New Manual Flag
   status: EntityStatus; // 'active' or 'discontinued'
 }
 
@@ -89,19 +90,6 @@ export interface OrderLine {
   line_total: number;
 }
 
-export interface Order extends BaseEntity {
-  order_id: string;
-  customer_id: string;
-  rep_id?: string; // Track which rep made the sale
-  order_date: string;
-  discount_rate: number;
-  gross_total: number;
-  discount_value: number;
-  net_total: number;
-  order_status: OrderStatus;
-  lines: OrderLine[];
-}
-
 export interface CompanySettings {
   company_name: string;
   address: string;
@@ -111,6 +99,7 @@ export interface CompanySettings {
   footer_note: string;
   currency_symbol: string;
   auto_sku_enabled: boolean;
+  stock_tracking_enabled: boolean;
   google_sheet_id?: string;
 }
 

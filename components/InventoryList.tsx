@@ -38,7 +38,7 @@ export const InventoryList: React.FC = () => {
     setItems(db.getItems());
   }, []);
 
-  const categories = ['All', 'Low Stock', ...Array.from(new Set(items.map(i => i.category || 'Uncategorized')))];
+  const categories = ['All', settings.stock_tracking_enabled ? 'Low Stock' : 'Out of Stock', ...Array.from(new Set(items.map(i => i.category || 'Uncategorized')))].filter(Boolean) as string[];
 
   const showAlert = (title: string, message: string, type: 'info' | 'danger' | 'success' = 'info') => {
       setAlertConfig({ isOpen: true, title, message, type });
@@ -117,6 +117,13 @@ export const InventoryList: React.FC = () => {
       setShowAddForm(true);
   };
 
+  const toggleStockFlag = async (e: React.MouseEvent, item: Item) => {
+      e.stopPropagation();
+      const updatedItem = { ...item, is_out_of_stock: !item.is_out_of_stock, sync_status: 'pending' as const, updated_at: new Date().toISOString() };
+      await db.saveItem(updatedItem);
+      setItems(db.getItems());
+  };
+
   const openAdjustModal = (e: React.MouseEvent, item: Item) => {
       e.stopPropagation();
       setAdjustItem(item);
@@ -172,6 +179,8 @@ export const InventoryList: React.FC = () => {
     let matchesCategory = true;
     if (categoryFilter === 'Low Stock') {
         matchesCategory = item.current_stock_qty <= item.low_stock_threshold;
+    } else if (categoryFilter === 'Out of Stock') {
+        matchesCategory = item.is_out_of_stock === true;
     } else if (categoryFilter !== 'All') {
         matchesCategory = item.category === categoryFilter;
     }
@@ -324,20 +333,24 @@ export const InventoryList: React.FC = () => {
                             <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
                             <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.category || ''} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="e.g. Engine" />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
-                            <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
-                        </div>
+                        {settings.stock_tracking_enabled && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
+                                <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                            </div>
+                        )}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Unit Value (Price) *</label>
                             <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.unit_value || ''} onChange={e => setNewItem({...newItem, unit_value: parseFloat(e.target.value)})} placeholder="0.00" />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Opening Stock</label>
-                            <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.current_stock_qty || ''} onChange={e => setNewItem({...newItem, current_stock_qty: parseInt(e.target.value)})} placeholder="0" />
-                        </div>
+                        {settings.stock_tracking_enabled && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Opening Stock</label>
+                                <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.current_stock_qty || ''} onChange={e => setNewItem({...newItem, current_stock_qty: parseInt(e.target.value)})} placeholder="0" />
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
@@ -362,17 +375,19 @@ export const InventoryList: React.FC = () => {
                         <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Item Details</th>
                         <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Origin</th>
                         <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Price</th>
-                        <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Stock</th>
+                        {settings.stock_tracking_enabled && (
+                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Stock</th>
+                        )}
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
                     {filteredItems.map(item => (
-                        <tr key={item.item_id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => startEdit(item)}>
+                        <tr key={item.item_id} className={`hover:bg-slate-50 transition-colors cursor-pointer ${item.is_out_of_stock ? 'bg-rose-50/50' : ''}`} onClick={() => startEdit(item)}>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center gap-3">
                                     {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" title="Pending Sync"></span>}
                                     <div>
-                                        <div className="text-sm font-bold text-slate-900">{item.item_display_name}</div>
+                                        <div className={`text-sm font-bold ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{item.item_display_name}</div>
                                         <div className="text-xs text-slate-500 font-mono mt-0.5">{item.item_number}</div>
                                     </div>
                                 </div>
@@ -389,21 +404,33 @@ export const InventoryList: React.FC = () => {
                             </td>
                              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                    <button 
-                                        onClick={(e) => openAdjustModal(e, item)}
-                                        className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors"
-                                    >
-                                        Adjust
-                                    </button>
-                                    {item.current_stock_qty <= item.low_stock_threshold && (
-                                        <span className="text-[10px] font-black text-rose-500 uppercase">Low</span>
+                                    {!settings.stock_tracking_enabled && (
+                                        <button 
+                                            onClick={(e) => toggleStockFlag(e, item)}
+                                            className={`text-[10px] font-bold px-2 py-1 rounded transition-colors ${item.is_out_of_stock ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
+                                        >
+                                            {item.is_out_of_stock ? 'In Stock' : 'Out Stock'}
+                                        </button>
                                     )}
-                                    <span className={`px-3 py-1 inline-flex text-sm leading-5 font-black rounded-lg border ${
-                                        item.current_stock_qty > item.low_stock_threshold ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                                        item.current_stock_qty > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'
-                                    }`}>
-                                        {item.current_stock_qty}
-                                    </span>
+                                    {settings.stock_tracking_enabled && (
+                                        <>
+                                            <button 
+                                                onClick={(e) => openAdjustModal(e, item)}
+                                                className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors"
+                                            >
+                                                Adjust
+                                            </button>
+                                            {item.current_stock_qty <= item.low_stock_threshold && (
+                                                <span className="text-[10px] font-black text-rose-500 uppercase">Low</span>
+                                            )}
+                                            <span className={`px-3 py-1 inline-flex text-sm leading-5 font-black rounded-lg border ${
+                                                item.current_stock_qty > item.low_stock_threshold ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
+                                                item.current_stock_qty > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'
+                                            }`}>
+                                                {item.current_stock_qty}
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                             </td>
                         </tr>
@@ -430,23 +457,33 @@ export const InventoryList: React.FC = () => {
                 </div>
                 <div className="text-right flex flex-col items-end space-y-1">
                     <span className="text-sm font-black text-indigo-700 block">{formatCurrency(item.unit_value)}</span>
-                    <div className="flex items-center gap-1">
+                    {!settings.stock_tracking_enabled && (
                         <button 
-                            onClick={(e) => openAdjustModal(e, item)}
-                            className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded mr-1"
+                            onClick={(e) => toggleStockFlag(e, item)}
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${item.is_out_of_stock ? 'bg-rose-100 text-rose-600 border border-rose-200' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}
                         >
-                            Adj
+                            {item.is_out_of_stock ? 'Out of Stock' : 'In Stock'}
                         </button>
-                        {item.current_stock_qty <= item.low_stock_threshold && (
-                            <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-                        )}
-                        <span className={`text-xs font-black px-2 py-0.5 rounded-md border ${
-                            item.current_stock_qty > item.low_stock_threshold ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                            item.current_stock_qty > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'
-                        }`}>
-                            {item.current_stock_qty}
-                        </span>
-                    </div>
+                    )}
+                    {settings.stock_tracking_enabled && (
+                        <div className="flex items-center gap-1">
+                            <button 
+                                onClick={(e) => openAdjustModal(e, item)}
+                                className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded mr-1"
+                            >
+                                Adj
+                            </button>
+                            {item.current_stock_qty <= item.low_stock_threshold && (
+                                <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                            )}
+                            <span className={`text-xs font-black px-2 py-0.5 rounded-md border ${
+                                item.current_stock_qty > item.low_stock_threshold ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
+                                item.current_stock_qty > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'
+                            }`}>
+                                {item.current_stock_qty}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
             </div>

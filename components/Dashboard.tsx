@@ -11,6 +11,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) => {
     const [stats, setStats] = useState(db.getDashboardStats());
     const [recentOrders, setRecentOrders] = useState(db.getOrders().slice(0, 5));
+    const settings = db.getSettings();
 
     useEffect(() => {
         const updateWidget = async () => {
@@ -67,14 +68,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                     <p className="text-3xl font-black text-slate-800 relative z-10">{formatCurrency(stats.monthlySales)}</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all group" onClick={() => onAction('inventory')}>
-                    <div className="flex justify-between items-start mb-2">
-                         <p className="text-xs uppercase font-bold text-rose-400 tracking-wider">Critical Stock</p>
-                         {stats.criticalItems > 0 && <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span>}
+                {settings.stock_tracking_enabled ? (
+                    <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all group" onClick={() => onAction('inventory')}>
+                        <div className="flex justify-between items-start mb-2">
+                            <p className="text-xs uppercase font-bold text-rose-400 tracking-wider">Critical Stock</p>
+                            {stats.criticalItems > 0 && <span className="flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span>}
+                        </div>
+                        <p className="text-3xl font-black text-rose-600 group-hover:scale-110 origin-left transition-transform">{stats.criticalItems}</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">Items below threshold</p>
                     </div>
-                    <p className="text-3xl font-black text-rose-600 group-hover:scale-110 origin-left transition-transform">{stats.criticalItems}</p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-1">Items below threshold</p>
-                </div>
+                ) : (
+                    <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                         <p className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">Platform Status</p>
+                         <p className="text-3xl font-black text-emerald-600">Online</p>
+                         <p className="text-[10px] text-slate-400 font-medium mt-1">Stock tracking disabled</p>
+                    </div>
+                )}
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all group" onClick={() => onAction('history')}>
                     <p className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">Total Orders</p>
@@ -129,9 +138,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                 </div>
             </div>
 
-            {/* Low Stock Alerts Mini List */}
+            {/* Conditional Lists Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {stats.criticalItems > 0 && (
+                {settings.stock_tracking_enabled && stats.criticalItems > 0 && (
                     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                         <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                             <h3 className="font-black text-slate-800 text-sm">Low Stock Alerts</h3>
