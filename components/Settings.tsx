@@ -3,6 +3,8 @@ import { CompanySettings } from '../types';
 import { db } from '../services/db';
 import { useAuth } from '../context/AuthContext';
 
+import { API_CONFIG } from '../config';
+
 interface SettingsProps {
     onLogout: () => void;
 }
@@ -39,12 +41,38 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
         }
 
         try {
-            await db.changePassword(user.id, passData.old, passData.new);
-            setPassMsg({ text: 'Password changed successfully!', type: 'success' });
-            setPassData({ old: '', new: '', confirm: '' });
-            setTimeout(() => setShowPassModal(false), 2000);
+            // Call Python Backend
+            const response = await fetch(`${API_CONFIG.BACKEND_URL}/change-password`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': API_CONFIG.BACKEND_KEY
+                },
+                body: JSON.stringify({
+                    userId: user.id,
+                    oldPassword: passData.old,
+                    newPassword: passData.new
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Also update local DB for offline access if applicable
+                try {
+                    await db.changePassword(user.id, passData.old, passData.new);
+                } catch (e) {
+                    console.log("Local password sync skipped or failed:", e);
+                }
+
+                setPassMsg({ text: 'Password changed successfully!', type: 'success' });
+                setPassData({ old: '', new: '', confirm: '' });
+                setTimeout(() => setShowPassModal(false), 2000);
+            } else {
+                setPassMsg({ text: data.message || 'Failed to change password', type: 'danger' });
+            }
         } catch (e: any) {
-            setPassMsg({ text: e.message || 'Failed to change password', type: 'danger' });
+            setPassMsg({ text: 'Could not connect to backend server', type: 'danger' });
         }
     };
 

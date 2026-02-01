@@ -66,6 +66,25 @@ def authenticate_user(username, password):
         conn.close()
     return None
 
+def update_user_password(user_id, old_password, new_password):
+    conn = get_db_connection()
+    try:
+        user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+        if not user:
+            return False, "User not found"
+        
+        if not check_password_hash(user['password_hash'], old_password):
+            return False, "Incorrect old password"
+        
+        password_hash = generate_password_hash(new_password)
+        conn.execute('UPDATE users SET password_hash = ? WHERE id = ?', (password_hash, user_id))
+        conn.commit()
+        return True, "Password updated successfully"
+    except Exception as e:
+        return False, str(e)
+    finally:
+        conn.close()
+
 if __name__ == '__main__':
     init_db()
     print("Database initialized.")

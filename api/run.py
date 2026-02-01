@@ -19,7 +19,7 @@ from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
 
 # Import from our local database.py
-from database import init_db, create_user, authenticate_user, DB_PATH
+from database import init_db, create_user, authenticate_user, update_user_password, DB_PATH
 
 app = Flask(__name__)
 CORS(app)
@@ -231,6 +231,23 @@ def login():
     user = authenticate_user(data.get('username'), data.get('password'))
     if user: return jsonify({"success": True, "user": user, "token": API_KEY})
     return jsonify({"success": False, "message": "Invalid credentials"}), 401
+
+@app.route('/change-password', methods=['POST'])
+def change_password():
+    if not check_auth(): return jsonify({"success": False, "message": "Unauthorized API Access"}), 401
+    
+    data = request.json
+    user_id = data.get('userId')
+    old_password = data.get('oldPassword')
+    new_password = data.get('newPassword')
+    
+    if not all([user_id, old_password, new_password]):
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+        
+    success, message = update_user_password(user_id, old_password, new_password)
+    if success:
+        return jsonify({"success": True, "message": message})
+    return jsonify({"success": False, "message": message}), 400
 
 @app.route('/cron/keepalive', methods=['GET'])
 def keepalive():
