@@ -28,7 +28,7 @@ CORS(app)
 init_db()
 
 # SECURITY: Basic API Key for internal bridge
-API_KEY = "partflow_secret_token_2026"
+API_KEY = "partflow_secret_token_2026_v2"
 
 def check_auth():
     auth_header = request.headers.get('X-API-KEY')
@@ -140,13 +140,17 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
     if not rows or not rows[0]:
         rows = [headers]
     else:
+        # Case insensitive compare
         current = [str(h).strip().lower() for h in rows[0]]
         expected = [str(h).strip().lower() for h in headers]
         
         if current != expected:
+            print(f"HEADER MISMATCH in {sheet_name}. Expected {len(headers)} cols, found {len(rows[0])}.")
+            # Keep data, but reset headers
             old_data = rows[1:]
             rows = [headers]
             for od in old_data:
+                # Pad/Truncate row to match new headers
                 new_r = od[:len(headers)]
                 while len(new_r) < len(headers): new_r.append('0')
                 rows.append(new_r)
@@ -159,14 +163,17 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
             if nid in id_map: rows[id_map[nid]] = new_row
             else: rows.append(new_row)
 
+    # 3. Write back (Ensuring Row 1 is ALWAYS the headers we want)
     rows[0] = headers
     body = {'values': rows}
+    
+    # Clear first to ensure no stale columns/rows remain
     service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1:Z").execute()
-    service.spreadsheets().values().update(spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1", valueInputOption='USER_ENTERED', body=body).execute()
+    
+    service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
+        valueInputOption='USER_ENTERED', body=body).execute()
     return True
-
-
-
 
 # --- API Routes ---
 
@@ -176,12 +183,12 @@ def health():
     now = datetime.datetime.now(datetime.timezone.utc)
     
     # Validation info
-    expected_customer_cols = 10
-    expected_order_cols = 16
+    expected_customer_cols = 11
+    expected_order_cols = 17
     
     diag = {
         "status": "ok",
-        "version": "1.1.8-header-diagnostic",
+        "version": "1.1.9-credit-period",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
         "credentials_source": source,
@@ -193,50 +200,14 @@ def health():
     
     if config:
         diag["client_email"] = config.get("client_email")
-        key = config.get("private_key", "")
-        diag["key_info"] = {
-            "length": len(key),
-            "has_actual_newlines": "\n" in key,
-            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----"),
-            "ends_with_footer": "-----END PRIVATE KEY-----" in key
-        }
-        
-        # Test 1: RSA Signing (Local)
-        try:
-            from google.auth import crypt, jwt
-            signer = crypt.RSASigner.from_service_account_info(config)
-            jwt.encode(signer, {'test': 'data'})
-            diag["rsa_signing_test"] = "passed"
-        except Exception as sign_err:
-            diag["rsa_signing_test"] = "failed"
-            diag["rsa_signing_error"] = str(sign_err)
-            
-        # Test 2: Google Auth & Sheet Access
         try:
             creds_test = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
-            creds_test.refresh(Request())
             diag["google_auth_test"] = "passed"
-            
-            # Specific Sheet Access Test
-            test_sheet_id = "148T7oXqEAjUcH3zyQy93x1H92LYSheEZh8ja7rpg_1o"
-            service = build('sheets', 'v4', credentials=creds_test)
-            service.spreadsheets().get(spreadsheetId=test_sheet_id).execute()
-            diag["sheet_access_test"] = "passed"
         except Exception as auth_err:
             diag["google_auth_test"] = "failed"
             diag["google_auth_error"] = str(auth_err)
-            diag["sheet_access_test"] = "skipped (auth failed)"
             
     return jsonify(diag)
-
-@app.route('/debug-env', methods=['GET'])
-def debug_env():
-    json_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-    b64_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_B64')
-    return jsonify({
-        "JSON_VAR": {"exists": json_raw is not None, "length": len(json_raw) if json_raw else 0},
-        "B64_VAR": {"exists": b64_raw is not None, "length": len(b64_raw) if b64_raw else 0}
-    })
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -286,21 +257,25 @@ def sync():
     if not spreadsheet_id: return jsonify({"success": False, "message": "Spreadsheet ID is required"}), 400
     try:
         service = get_sheets_service()
-        customer_headers = ['ID', 'Shop Name', 'Address', 'Phone', 'City', 'Discount 1', 'Discount 2', 'Balance', 'Status', 'Last Updated']
+        customer_headers = ['ID', 'Shop Name', 'Address', 'Phone', 'City', 'Discount 1', 'Discount 2', 'Balance', 'Credit Period', 'Status', 'Last Updated']
         inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Out of Stock', 'Status', 'Last Updated']
-        order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Gross Total', 'Disc 1 Rate', 'Disc 1 Value', 'Disc 2 Rate', 'Disc 2 Value', 'Net Total', 'Paid', 'Balance Due', 'Payment Status', 'Delivery Status', 'Status', 'Last Updated']
+        order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Gross Total', 'Disc 1 Rate', 'Disc 1 Value', 'Disc 2 Rate', 'Disc 2 Value', 'Net Total', 'Paid', 'Balance Due', 'Payment Status', 'Delivery Status', 'Credit Period', 'Status', 'Last Updated']
         line_headers = ['Line ID', 'Order ID', 'Item ID', 'Item Name', 'Qty', 'Unit Price', 'Line Total']
+
         ensure_headers(service, spreadsheet_id, 'Customers', customer_headers)
         ensure_headers(service, spreadsheet_id, 'Inventory', inventory_headers)
         ensure_headers(service, spreadsheet_id, 'Orders', order_headers)
         ensure_headers(service, spreadsheet_id, 'OrderLines', line_headers)
+        
         if customers:
-            values = [[c['customer_id'], c['shop_name'], c['address'], c['phone'], c['city_ref'], c['discount_rate'], c.get('secondary_discount_rate', 0), c.get('outstanding_balance', 0), c['status'], c['updated_at']] for c in customers]
+            values = [[c['customer_id'], c['shop_name'], c['address'], c['phone'], c['city_ref'], c['discount_rate'], c.get('secondary_discount_rate', 0), c.get('outstanding_balance', 0), c.get('credit_period', 90), c['status'], c['updated_at']] for c in customers]
             if mode == 'overwrite':
                 service.spreadsheets().values().update(spreadsheetId=spreadsheet_id, range="'Customers'!A1", valueInputOption="RAW", body={"values": [customer_headers]}).execute()
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Customers'!A2:Z").execute()
-                service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
-            else: upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
+                if values:
+                    service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
+            else: 
+                upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
         else:
             upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, [], 0)
 
@@ -315,7 +290,7 @@ def sync():
             upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, [], 0)
 
         if orders:
-            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o.get('gross_total', 0), o.get('discount_rate', 0), o.get('discount_value', 0), o.get('secondary_discount_rate', 0), o.get('secondary_discount_value', 0), o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
+            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o.get('gross_total', 0), o.get('discount_rate', 0), o.get('discount_value', 0), o.get('secondary_discount_rate', 0), o.get('secondary_discount_value', 0), o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o.get('credit_period', 90), o['order_status'], o['updated_at']] for o in orders]
             if mode == 'overwrite':
                 service.spreadsheets().values().update(spreadsheetId=spreadsheet_id, range="'Orders'!A1", valueInputOption="RAW", body={"values": [order_headers]}).execute()
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Orders'!A2:Z").execute()
@@ -329,8 +304,8 @@ def sync():
             if line_values: upsert_rows(service, spreadsheet_id, 'OrderLines', line_headers, line_values, 0)
         else:
             upsert_rows(service, spreadsheet_id, 'Orders', order_headers, [], 0)
+
         # --- PULL ALL DATA ---
-        
         # 1. Pull Inventory
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="'Inventory'!A:Z").execute()
         pulled_items = []
@@ -339,12 +314,10 @@ def sync():
             for row in rows[1:]:
                 if not row or not row[0]: continue
                 while len(row) < 13: row.append('')
-                try: unit_val = float(row[7]) if row[7] else 0
-                except: unit_val = 0
                 pulled_items.append({
                     "item_id": str(row[0]), "item_display_name": str(row[1]), "item_name": str(row[2] or row[1]),
                     "item_number": str(row[3]), "vehicle_model": str(row[4]), "source_brand": str(row[5] or 'Unknown'),
-                    "category": str(row[6] or 'Uncategorized'), "unit_value": unit_val, "current_stock_qty": int(row[8]) if row[8] else 0,
+                    "category": str(row[6] or 'Uncategorized'), "unit_value": float(row[7]) if row[7] else 0, "current_stock_qty": int(row[8]) if row[8] else 0,
                     "low_stock_threshold": int(row[9]) if row[9] else 10, "is_out_of_stock": str(row[10]).lower() == 'true',
                     "status": str(row[11] or 'active'), "updated_at": str(row[12] or ''), "sync_status": 'synced'
                 })
@@ -356,25 +329,18 @@ def sync():
         if len(rows) > 1:
             for row in rows[1:]:
                 if not row or not row[0]: continue
-                while len(row) < 10: row.append('')
-                try: disc1 = float(row[5]) if row[5] else 0
-                except: disc1 = 0
-                try: disc2 = float(row[6]) if row[6] else 0
-                except: disc2 = 0
-                try: bal = float(row[7]) if row[7] else 0
-                except: bal = 0
+                while len(row) < 11: row.append('')
                 pulled_customers.append({
                     "customer_id": str(row[0]), "shop_name": str(row[1]), "address": str(row[2]),
                     "phone": str(row[3]), "city_ref": str(row[4]), 
-                    "discount_rate": disc1, "secondary_discount_rate": disc2,
-                    "outstanding_balance": bal, "status": str(row[8] or 'active'),
-                    "updated_at": str(row[9] or ''), "sync_status": 'synced'
+                    "discount_rate": float(row[5]) if row[5] else 0, "secondary_discount_rate": float(row[6]) if row[6] else 0,
+                    "outstanding_balance": float(row[7]) if row[7] else 0, "credit_period": int(row[8]) if row[8] else 90,
+                    "status": str(row[9] or 'active'), "updated_at": str(row[10] or ''), "sync_status": 'synced'
                 })
 
-        # 3. Pull Orders & Lines
+        # 3. Pull Orders
         result_orders = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="'Orders'!A:Z").execute()
         result_lines = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="'OrderLines'!A:Z").execute()
-        
         pulled_orders = []
         order_rows = result_orders.get('values', [])
         line_rows = result_lines.get('values', [])
@@ -384,48 +350,26 @@ def sync():
             for row in line_rows[1:]:
                 if len(row) < 7: continue
                 oid = str(row[1])
-                line = {
-                    "line_id": str(row[0]), "order_id": oid, "item_id": str(row[2]),
-                    "item_name": str(row[3]), "quantity": int(row[4]) if row[4] else 0,
-                    "unit_value": float(row[5]) if row[5] else 0, "line_total": float(row[6]) if row[6] else 0
-                }
+                line = {"line_id": str(row[0]), "order_id": oid, "item_id": str(row[2]), "item_name": str(row[3]), "quantity": int(row[4]) if row[4] else 0, "unit_value": float(row[5]) if row[5] else 0, "line_total": float(row[6]) if row[6] else 0}
                 if oid not in lines_by_order: lines_by_order[oid] = []
                 lines_by_order[oid].append(line)
 
         if len(order_rows) > 1:
             for row in order_rows[1:]:
                 if not row or not row[0]: continue
-                while len(row) < 16: row.append('')
+                while len(row) < 17: row.append('')
                 oid = str(row[0])
                 pulled_orders.append({
-                    "order_id": oid, "customer_id": str(row[1]), "rep_id": str(row[2]),
-                    "order_date": str(row[3]), 
-                    "gross_total": float(row[4]) if row[4] else 0,
-                    "discount_rate": float(row[5]) if row[5] else 0,
-                    "discount_value": float(row[6]) if row[6] else 0,
-                    "secondary_discount_rate": float(row[7]) if row[7] else 0,
-                    "secondary_discount_value": float(row[8]) if row[8] else 0,
-                    "net_total": float(row[9]) if row[9] else 0,
-                    "paid_amount": float(row[10]) if row[10] else 0, 
-                    "balance_due": float(row[11]) if row[11] else 0,
-                    "payment_status": str(row[12] or 'unpaid'), 
-                    "delivery_status": str(row[13] or 'pending'),
-                    "order_status": str(row[14] or 'confirmed'), 
-                    "updated_at": str(row[15] or ''),
+                    "order_id": oid, "customer_id": str(row[1]), "rep_id": str(row[2]), "order_date": str(row[3]), 
+                    "gross_total": float(row[4]) if row[4] else 0, "discount_rate": float(row[5]) if row[5] else 0, "discount_value": float(row[6]) if row[6] else 0,
+                    "secondary_discount_rate": float(row[7]) if row[7] else 0, "secondary_discount_value": float(row[8]) if row[8] else 0,
+                    "net_total": float(row[9]) if row[9] else 0, "paid_amount": float(row[10]) if row[10] else 0, "balance_due": float(row[11]) if row[11] else 0,
+                    "payment_status": str(row[12] or 'unpaid'), "delivery_status": str(row[13] or 'pending'),
+                    "credit_period": int(row[14]) if row[14] else 90, "order_status": str(row[15] or 'confirmed'), "updated_at": str(row[16] or ''),
                     "lines": lines_by_order.get(oid, []), "sync_status": 'synced'
                 })
 
-        return jsonify({
-            "success": True, 
-            "pulledItems": pulled_items,
-            "pulledCustomers": pulled_customers,
-            "pulledOrders": pulled_orders,
-            "debug": {
-                "customer_header_len": len(customer_headers),
-                "order_header_len": len(order_headers)
-            },
-            "message": f"Sync completed successfully ({mode} mode)"
-        })
+        return jsonify({"success": True, "pulledItems": pulled_items, "pulledCustomers": pulled_customers, "pulledOrders": pulled_orders, "debug": {"customer_header_len": len(customer_headers), "order_header_len": len(order_headers)}, "message": f"Sync completed successfully ({mode} mode)"})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500

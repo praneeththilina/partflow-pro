@@ -60,6 +60,7 @@ export interface Order extends BaseEntity {
   secondary_discount_rate?: number;
   secondary_discount_value?: number;
   net_total: number;
+  credit_period?: number; // Snapshot of credit terms at time of order
   
   // Payment Tracking
   paid_amount: number;

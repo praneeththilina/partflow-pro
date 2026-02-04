@@ -193,6 +193,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             secondary_discount_rate: secondaryDiscountRate / 100,
             secondary_discount_value: secondaryDiscountValue,
             net_total: netTotal,
+            credit_period: customer.credit_period || 90,
             
             // Payment Fields (Will be recalculated by db.saveOrder but good to pass)
             paid_amount: payments.reduce((sum, p) => sum + p.amount, 0),
