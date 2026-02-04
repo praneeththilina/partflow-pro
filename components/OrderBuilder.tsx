@@ -25,6 +25,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     const [itemFilter, setItemFilter] = useState('');
     const [modelFilter, setModelFilter] = useState('All');
     const [countryFilter, setCountryFilter] = useState('All');
+    const [sortOrder, setSortOrder] = useState<'A-Z' | 'Price-High' | 'Price-Low'>('A-Z');
     const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog'); // Mobile Toggle
     const [showScanner, setShowScanner] = useState(false);
     
@@ -222,6 +223,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         const matchesCountry = countryFilter === 'All' || i.source_brand === countryFilter;
 
         return matchesSearch && matchesModel && matchesCountry && i.status === 'active';
+    }).sort((a, b) => {
+        if (sortOrder === 'A-Z') return a.item_display_name.localeCompare(b.item_display_name);
+        if (sortOrder === 'Price-High') return b.unit_value - a.unit_value;
+        if (sortOrder === 'Price-Low') return a.unit_value - b.unit_value;
+        return 0;
     });
 
     const isInCart = (itemId: string) => lines.some(l => l.item_id === itemId);
@@ -282,10 +288,18 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 </div>
                                 <input 
                                     placeholder="Search parts or SKU..." 
-                                    className="block w-full pl-9 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                    className="block w-full pl-9 pr-10 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                                     value={itemFilter}
                                     onChange={e => setItemFilter(e.target.value)}
                                 />
+                                {itemFilter && (
+                                    <button 
+                                        onClick={() => setItemFilter('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                )}
                             </div>
                             <button 
                                 onClick={() => setShowScanner(!showScanner)}
@@ -295,9 +309,9 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             </button>
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
                             <select 
-                                className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-32 md:flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shrink-0"
                                 value={modelFilter}
                                 onChange={e => setModelFilter(e.target.value)}
                             >
@@ -305,12 +319,21 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 {availableModels.filter(m => m !== 'All').map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                             <select 
-                                className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-32 md:flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shrink-0"
                                 value={countryFilter}
                                 onChange={e => setCountryFilter(e.target.value)}
                             >
                                 <option value="All">All Origins</option>
                                 {availableCountries.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <select 
+                                className="w-32 md:flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shrink-0"
+                                value={sortOrder}
+                                onChange={e => setSortOrder(e.target.value as any)}
+                            >
+                                <option value="A-Z">Name A-Z</option>
+                                <option value="Price-High">Price High</option>
+                                <option value="Price-Low">Price Low</option>
                             </select>
                         </div>
                     </div>
