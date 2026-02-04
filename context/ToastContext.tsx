@@ -28,17 +28,17 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return (
         <ToastContext.Provider value={{ showToast }}>
             {children}
-            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-full max-w-[90%] pointer-events-none">
+            <div className="fixed top-20 right-4 z-[200] flex flex-col gap-2 pointer-events-none items-end">
                 {toasts.map((toast) => (
                     <div
                         key={toast.id}
-                        className={`px-6 py-3 rounded-2xl shadow-2xl text-white font-bold text-sm flex items-center justify-center gap-2 animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto ${
-                            toast.type === 'success' ? 'bg-emerald-600' :
-                            toast.type === 'error' ? 'bg-rose-600' :
-                            toast.type === 'warning' ? 'bg-amber-500' : 'bg-slate-800'
+                        className={`px-4 py-2 rounded-full shadow-lg backdrop-blur-md text-white font-bold text-xs flex items-center justify-center gap-2 animate-in slide-in-from-right-5 fade-in duration-300 pointer-events-auto border border-white/20 ${
+                            toast.type === 'success' ? 'bg-emerald-600/80' :
+                            toast.type === 'error' ? 'bg-rose-600/80' :
+                            toast.type === 'warning' ? 'bg-amber-500/80' : 'bg-slate-800/80'
                         }`}
                     >
-                        {toast.type === 'success' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                        {toast.type === 'success' && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         {toast.type === 'error' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>}
                         {toast.message}
                     </div>
@@ -46,6 +46,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             </div>
         </ToastContext.Provider>
     );
+
 };
 
 export const useToast = () => {

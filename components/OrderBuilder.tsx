@@ -5,14 +5,16 @@ import { generateUUID } from '../utils/uuid';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils/currency';
+import { useToast } from '../context/ToastContext';
 
 interface OrderBuilderProps {
-    onCancel: () => void;
-    onOrderCreated: (order: Order) => void;
-    existingCustomer?: Customer;
+  onCancel: () => void;
+  onOrderCreated: (order: Order) => void;
+  existingCustomer?: Customer;
 }
 
 export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCreated, existingCustomer }) => {
+    const { showToast } = useToast();
     const { user } = useAuth();
     const settings = db.getSettings();
     const [customer] = useState<Customer | undefined>(existingCustomer);
@@ -106,6 +108,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             };
             setLines([...lines, newLine]);
         }
+        showToast("Added to cart", "success");
         setSelectedItem(null);
         setQtyInput('1');
     };
@@ -206,6 +209,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
         // Save Order (DB handles balance updates)
         await db.saveOrder(newOrder);
+        showToast("Sale confirmed!", "success");
         
         setShowPaymentModal(false);
         onOrderCreated(newOrder);

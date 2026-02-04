@@ -107,42 +107,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <button 
                         onClick={() => onAction('customers')}
-                        className="flex flex-col items-center justify-center bg-indigo-50 hover:bg-indigo-100 p-6 rounded-3xl transition-colors group"
+                        className="flex flex-col items-center justify-center bg-indigo-50 hover:bg-indigo-100 p-6 rounded-3xl transition-all active:scale-95 group"
                     >
-                        <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-indigo-200 group-hover:rotate-12 transition-transform">
                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
                         </div>
                         <span className="font-bold text-indigo-900 text-sm">New Sale</span>
                     </button>
 
                     <button 
-                        onClick={() => onAction('inventory')}
-                        className="flex flex-col items-center justify-center bg-white border border-slate-200 hover:border-indigo-300 p-6 rounded-3xl transition-colors group"
+                        onClick={() => {
+                            onAction('inventory');
+                            showToast("Checking stock levels", "info");
+                        }}
+                        className="flex flex-col items-center justify-center bg-emerald-50 hover:bg-emerald-100 p-6 rounded-3xl transition-all active:scale-95 group"
                     >
-                        <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-emerald-200 group-hover:-rotate-12 transition-transform">
                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         </div>
-                        <span className="font-bold text-slate-700 text-sm">Inventory</span>
+                        <span className="font-bold text-emerald-900 text-sm">Stock Check</span>
                     </button>
 
                     <button 
-                        onClick={() => onAction('sync')}
-                        className="flex flex-col items-center justify-center bg-white border border-slate-200 hover:border-indigo-300 p-6 rounded-3xl transition-colors group"
+                        onClick={() => {
+                            onAction('sync');
+                            showToast("Opening sync center", "info");
+                        }}
+                        className="flex flex-col items-center justify-center bg-amber-50 hover:bg-amber-100 p-6 rounded-3xl transition-all active:scale-95 group"
                     >
-                        <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                        <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-amber-200 group-hover:scale-110 transition-transform">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         </div>
-                        <span className="font-bold text-slate-700 text-sm">Sync Data</span>
+                        <span className="font-bold text-amber-900 text-sm">Cloud Sync</span>
                     </button>
                     
                     <button 
                         onClick={() => onAction('reports')}
-                        className="flex flex-col items-center justify-center bg-white border border-slate-200 hover:border-indigo-300 p-6 rounded-3xl transition-colors group"
+                        className="flex flex-col items-center justify-center bg-rose-50 hover:bg-rose-100 p-6 rounded-3xl transition-all active:scale-95 group"
                     >
-                        <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                        <div className="w-12 h-12 bg-rose-500 text-white rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-rose-200 group-hover:rotate-12 transition-transform">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         </div>
-                        <span className="font-bold text-slate-700 text-sm">Reports</span>
+                        <span className="font-bold text-rose-900 text-sm">Reports</span>
                     </button>
                 </div>
             </div>

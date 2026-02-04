@@ -4,10 +4,12 @@ import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 import { formatCurrency } from '../utils/currency';
 import { generateSKU } from '../utils/skuGenerator';
+import { useToast } from '../context/ToastContext';
 
 import { Modal } from './ui/Modal';
 
 export const InventoryList: React.FC = () => {
+  const { showToast } = useToast();
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState('');
   const [modelFilter, setModelFilter] = useState('');
@@ -105,6 +107,7 @@ export const InventoryList: React.FC = () => {
 
     await db.saveItem(item);
     setItems([...db.getItems()]); // Spread to force new array reference for React
+    showToast(editingItem ? "Item updated" : "Item added to stock", "success");
     setShowAddForm(false);
     setEditingItem(null);
     setNewItem({});
@@ -148,10 +151,12 @@ export const InventoryList: React.FC = () => {
               // 1. Update Database
               await db.saveItem(updatedItem);
               
-              // 2. Immediate UI Update (Local State)
-              setItems(prev => prev.map(i => i.item_id === item.item_id ? updatedItem : i));
-              
-              setAlertConfig(null);
+               // 2. Immediate UI Update (Local State)
+               setItems(prev => prev.map(i => i.item_id === item.item_id ? updatedItem : i));
+               showToast(`Marked as ${action}`, "info");
+               
+               setAlertConfig(null);
+
           },
           onCancel: () => setAlertConfig(null)
       } as any);
@@ -187,6 +192,7 @@ export const InventoryList: React.FC = () => {
 
       await db.addStockAdjustment(adjustment);
       setItems([...db.getItems()]);
+      showToast("Stock level adjusted", "success");
       setShowAdjustModal(false);
       setAdjustItem(null);
   };

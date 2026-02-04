@@ -3,6 +3,7 @@ import { Customer } from '../types';
 import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 import { formatCurrency } from '../utils/currency';
+import { useToast } from '../context/ToastContext';
 
 interface CustomerListProps {
   onSelectCustomer: (customer: Customer) => void;
@@ -10,6 +11,7 @@ interface CustomerListProps {
 }
 
 export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, onOpenProfile }) => {
+  const { showToast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -56,6 +58,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
 
     await db.saveCustomer(customer);
     setCustomers([...db.getCustomers()]);
+    showToast(editingCustomer ? "Shop details updated" : "New shop registered", "success");
     setShowAddForm(false);
     setEditingCustomer(null);
     setNewCustomer({});
@@ -76,6 +79,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       const updatedCustomer = { ...customer, status: updatedStatus as any, sync_status: 'pending' as const };
       await db.saveCustomer(updatedCustomer);
       setCustomers([...db.getCustomers()]);
+      showToast(`Shop ${updatedStatus}`, "info");
       setActionCustomer(null);
   };
 

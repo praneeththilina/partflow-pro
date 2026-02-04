@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { SyncStats } from '../types';
 import { API_CONFIG } from '../config';
+import { useToast } from '../context/ToastContext';
 
 interface SyncDashboardProps {
     onSyncComplete: () => void;
 }
 
 export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) => {
+    const { showToast } = useToast();
     const [stats, setStats] = useState<SyncStats>(db.getSyncStats());
     const [status, setStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
     const [logs, setLogs] = useState<string[]>([]);
@@ -63,12 +65,14 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
             await db.performSync((msg) => addLog(msg), mode);
             
             setStatus('success');
+            showToast("Sync completed successfully!", "success");
             setStats(db.getSyncStats());
             onSyncComplete();
         } catch (e: any) {
             console.error(e);
             setStatus('error');
             addLog(`Error: ${e.message}`);
+            showToast(`Sync failed: ${e.message}`, "error");
         }
     };
 
@@ -81,11 +85,13 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
             // Upsert mode but we are mainly interested in the pulledItems return
             await db.performSync((msg) => addLog(msg), 'upsert'); 
             setStatus('success');
+            showToast("Master records downloaded", "success");
             setStats(db.getSyncStats());
             onSyncComplete();
         } catch (e: any) {
             setStatus('error');
             addLog(`Error: ${e.message}`);
+            showToast(`Download failed: ${e.message}`, "error");
         }
     };
 
