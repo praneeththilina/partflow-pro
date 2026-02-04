@@ -171,8 +171,8 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                     <td className="border border-slate-300 p-1.5 text-center">{globalIdx + 1}</td>
                                                     <td className="border border-slate-300 p-1.5">{line.item_name}</td>
                                                     <td className="border border-slate-300 p-1.5 text-center">{line.quantity}</td>
-                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.unit_value)}</td>
-                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.line_total)}</td>
+                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.unit_value, false)}</td>
+                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.line_total, false)}</td>
                                                 </tr>
                                             );
                                         })}
@@ -181,7 +181,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                             <tr className="font-bold bg-slate-50">
                                                 <td colSpan={4} className="border border-slate-300 p-2 text-right uppercase italic text-[10px]">Sub Total (Carried Forward)</td>
                                                 <td className="border border-slate-300 p-2 text-right underline decoration-double">
-                                                    {formatCurrency(cumulativeTotal)}
+                                                    {formatCurrency(cumulativeTotal, false)}
                                                 </td>
                                             </tr>
                                         )}
@@ -197,7 +197,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                     <tr>
                                                         <td className="border border-black px-2 py-2 text-left align-middle font-medium">Gross Total</td>
                                                         <td className="border border-black px-2 py-2 text-right align-middle font-bold">
-                                                            {formatCurrency(order.gross_total)}
+                                                            {formatCurrency(order.gross_total, false)}
                                                         </td>
                                                     </tr>
                                                     {order.discount_value > 0 && (
@@ -206,7 +206,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                                 Less Disc 1 ({(order.discount_rate * 100).toFixed(0)}%)
                                                             </td>
                                                             <td className="border border-black px-2 py-2 text-right align-middle text-rose-600 font-bold">
-                                                                -{formatCurrency(order.discount_value)}
+                                                                -{formatCurrency(order.discount_value, false)}
                                                             </td>
                                                         </tr>
                                                     )}
@@ -216,7 +216,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                                 Less Disc 2 ({( (order.secondary_discount_rate || 0) * 100).toFixed(0)}%)
                                                             </td>
                                                             <td className="border border-black px-2 py-2 text-right align-middle text-rose-600 font-bold">
-                                                                -{formatCurrency(order.secondary_discount_value || 0)}
+                                                                -{formatCurrency(order.secondary_discount_value || 0, false)}
                                                             </td>
                                                         </tr>
                                                     )}
