@@ -82,6 +82,7 @@ export const InventoryList: React.FC = () => {
         unit_value: newItem.unit_value ?? editingItem.unit_value,
         current_stock_qty: newItem.current_stock_qty ?? editingItem.current_stock_qty,
         low_stock_threshold: newItem.low_stock_threshold ?? editingItem.low_stock_threshold ?? 10,
+        is_out_of_stock: newItem.is_out_of_stock ?? editingItem.is_out_of_stock,
         updated_at: new Date().toISOString(),
         sync_status: 'pending'
     } : {
@@ -95,6 +96,7 @@ export const InventoryList: React.FC = () => {
       unit_value: newItem.unit_value || 0,
       current_stock_qty: newItem.current_stock_qty || 0,
       low_stock_threshold: newItem.low_stock_threshold || 10,
+      is_out_of_stock: false,
       status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

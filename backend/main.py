@@ -107,7 +107,23 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
     result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
     rows = result.get('values', [])
     
-    if not rows: rows = [headers]
+    if not rows: 
+        rows = [headers]
+    else:
+        # Check if we need to migrate headers (e.g. from 12 to 13 columns)
+        if len(rows[0]) < len(headers):
+            print(f"DEBUG: Migrating {sheet_name} headers from {len(rows[0])} to {len(headers)}")
+            old_headers = rows[0]
+            rows[0] = headers
+            # Pad all existing rows to match new header length
+            for i in range(1, len(rows)):
+                # If it's the Inventory sheet and we are adding 'Out of Stock' at index 10
+                if sheet_name == 'Inventory' and len(old_headers) == 12 and len(headers) == 13:
+                    # Insert 'False' at index 10 (shifting Status and Last Updated)
+                    rows[i].insert(10, 'FALSE')
+                
+                while len(rows[i]) < len(headers):
+                    rows[i].append('')
     
     # 2. Build ID map (ID -> Row Index)
     id_map = {}
@@ -127,7 +143,7 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
             # Append new row
             rows.append(new_row)
             
-    # 4. Write back the FULL dataset (Safe but slower for massive sheets)
+    # 4. Write back the FULL dataset
     body = {'values': rows}
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",

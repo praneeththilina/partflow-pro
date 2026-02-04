@@ -36,7 +36,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
         address: newCustomer.address || editingCustomer.address,
         phone: newCustomer.phone || editingCustomer.phone,
         city_ref: newCustomer.city_ref || editingCustomer.city_ref,
-        discount_rate: newCustomer.discount_rate ?? editingCustomer.discount_rate,
+        discount_rate: (newCustomer.discount_rate ?? (editingCustomer.discount_rate * 100)) / 100,
         status: newCustomer.status || editingCustomer.status,
         updated_at: new Date().toISOString(),
         sync_status: 'pending'
@@ -46,11 +46,11 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       address: newCustomer.address || '',
       phone: newCustomer.phone || '',
       city_ref: newCustomer.city_ref || '',
-      discount_rate: (newCustomer.discount_rate || 0),
-      status: 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      sync_status: 'pending'
+        discount_rate: (newCustomer.discount_rate || 0) / 100,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sync_status: 'pending'
     };
 
     await db.saveCustomer(customer);
@@ -63,7 +63,10 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
   const startEdit = (e: React.MouseEvent, customer: Customer) => {
       e.stopPropagation();
       setEditingCustomer(customer);
-      setNewCustomer(customer);
+      setNewCustomer({
+          ...customer,
+          discount_rate: customer.discount_rate * 100
+      });
       setShowAddForm(true);
   };
 
@@ -238,8 +241,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                         <textarea className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" rows={2} value={newCustomer.address || ''} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Discount Rate (0.1 = 10%)</label>
-                        <input type="number" step="0.01" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="0.00" />
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Default Discount (%)</label>
+                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="0" />
                     </div>
                 </div>
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">

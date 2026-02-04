@@ -142,7 +142,21 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
     range_name = f"'{sheet_name}'!A:Z"
     result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
     rows = result.get('values', [])
-    if not rows: rows = [headers]
+    
+    if not rows: 
+        rows = [headers]
+    else:
+        # Auto-migrate headers if new columns added
+        if len(rows[0]) < len(headers):
+            old_headers = rows[0]
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                if sheet_name == 'Inventory' and len(old_headers) == 12 and len(headers) == 13:
+                    # Insert FALSE for Out of Stock flag at correct index
+                    rows[i].insert(10, 'FALSE')
+                while len(rows[i]) < len(headers):
+                    rows[i].append('')
+
     id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
     for new_row in data:
         new_id = str(new_row[id_column_index])

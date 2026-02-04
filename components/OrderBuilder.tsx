@@ -19,10 +19,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     const [items, setItems] = useState<Item[]>([]);
     const [lines, setLines] = useState<OrderLine[]>([]);
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
-    const [discountRate, setDiscountRate] = useState<number>(existingCustomer?.discount_rate || 0);
+    const [discountRate, setDiscountRate] = useState<number>((existingCustomer?.discount_rate || 0) * 100);
     
     // UI State
     const [itemFilter, setItemFilter] = useState('');
+    const [modelFilter, setModelFilter] = useState('All');
+    const [countryFilter, setCountryFilter] = useState('All');
     const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog'); // Mobile Toggle
     const [showScanner, setShowScanner] = useState(false);
     
@@ -66,7 +68,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     }, [showScanner]);
 
     const grossTotal = lines.reduce((sum, line) => sum + line.line_total, 0);
-    const discountValue = grossTotal * discountRate;
+    const discountValue = grossTotal * (discountRate / 100);
     const netTotal = grossTotal - discountValue;
 
     const addItem = () => {
@@ -175,7 +177,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             customer_id: customer.customer_id,
             rep_id: user?.id.toString(),
             order_date: orderDate,
-            discount_rate: discountRate,
+            discount_rate: discountRate / 100,
             gross_total: grossTotal,
             discount_value: discountValue,
             net_total: netTotal,
@@ -187,6 +189,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             payments: payments,
 
             order_status: 'confirmed',
+            delivery_status: 'pending',
             lines: finalLines,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -207,12 +210,19 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         onOrderCreated(newOrder);
     };
 
-    const filteredItems = items.filter(i => 
-        (i.item_display_name.toLowerCase().includes(itemFilter.toLowerCase()) ||
-        i.item_number.toLowerCase().includes(itemFilter.toLowerCase()) ||
-        (i.source_brand && i.source_brand.toLowerCase().includes(itemFilter.toLowerCase()))) &&
-        i.status === 'active'
-    );
+    // Filter Logic
+    const availableModels = ['All', ...Array.from(new Set(items.map(i => i.vehicle_model).filter(Boolean)))].sort();
+    const availableCountries = ['All', ...Array.from(new Set(items.map(i => i.source_brand).filter(Boolean)))].sort();
+
+    const filteredItems = items.filter(i => {
+        const matchesSearch = (i.item_display_name.toLowerCase().includes(itemFilter.toLowerCase()) ||
+                               i.item_number.toLowerCase().includes(itemFilter.toLowerCase()));
+        
+        const matchesModel = modelFilter === 'All' || i.vehicle_model === modelFilter;
+        const matchesCountry = countryFilter === 'All' || i.source_brand === countryFilter;
+
+        return matchesSearch && matchesModel && matchesCountry && i.status === 'active';
+    });
 
     const isInCart = (itemId: string) => lines.some(l => l.item_id === itemId);
 
@@ -262,19 +272,47 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                 {/* Catalog Pane (Left on Desktop, Tab 1 on Mobile) */}
                 <div className={`w-full md:w-3/5 flex flex-col h-full ${mobileTab === 'catalog' ? 'block' : 'hidden md:flex'}`}>
                     {/* Search & Scan */}
-                    <div className="p-3 bg-white border-b border-slate-100 flex items-center gap-2">
-                        <input 
-                            placeholder="Search parts or SKU..." 
-                            className="flex-1 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                            value={itemFilter}
-                            onChange={e => setItemFilter(e.target.value)}
-                        />
-                        <button 
-                            onClick={() => setShowScanner(!showScanner)}
-                            className={`p-2 rounded-lg transition-colors ${showScanner ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-600'}`}
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v-3m0 4h3m-3 4h3m-6 0h3m0-4h.01M9 16h.01" /></svg>
-                        </button>
+                    <div className="p-3 bg-white border-b border-slate-100 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <input 
+                                    placeholder="Search parts or SKU..." 
+                                    className="block w-full pl-9 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                    value={itemFilter}
+                                    onChange={e => setItemFilter(e.target.value)}
+                                />
+                            </div>
+                            <button 
+                                onClick={() => setShowScanner(!showScanner)}
+                                className={`p-2.5 rounded-lg transition-colors ${showScanner ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-600'}`}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v-3m0 4h3m-3 4h3m-6 0h3m0-4h.01M9 16h.01" /></svg>
+                            </button>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                            <select 
+                                className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                value={modelFilter}
+                                onChange={e => setModelFilter(e.target.value)}
+                            >
+                                <option value="All">All Models</option>
+                                {availableModels.filter(m => m !== 'All').map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                            <select 
+                                className="flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                value={countryFilter}
+                                onChange={e => setCountryFilter(e.target.value)}
+                            >
+                                <option value="All">All Origins</option>
+                                {availableCountries.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
                     </div>
 
                     {showScanner && (
@@ -363,7 +401,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 </svg>
                             </div>
                             <input 
-                                type="text"
+                                type="text" 
                                 placeholder="Quick add item..."
                                 className="block w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
                                 value={itemFilter}
@@ -469,13 +507,13 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 </div>
 
                                 <div className="flex justify-between items-center text-sm text-slate-600">
-                                    <span>Discount</span>
+                                    <span>Discount (%)</span>
                                     <div className="flex items-center gap-2">
                                         <input 
-                                            type="number" step="0.01" 
-                                            className="w-16 p-1 text-right text-xs border rounded focus:ring-indigo-500"
+                                            type="number" step="1" 
+                                            className="w-16 p-1 text-right text-xs border rounded focus:ring-indigo-500 font-bold"
                                             value={discountRate}
-                                            onChange={(e) => setDiscountRate(parseFloat(e.target.value))}
+                                            onChange={(e) => setDiscountRate(parseFloat(e.target.value) || 0)}
                                         />
                                         <span className="text-rose-600">-{formatCurrency(discountValue)}</span>
                                     </div>
