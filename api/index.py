@@ -146,14 +146,18 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
     if not rows: 
         rows = [headers]
     else:
-        # Auto-migrate headers if new columns added
-        if len(rows[0]) < len(headers):
-            old_headers = rows[0]
+        # Robust Migration: Check if 'Out of Stock' exists in header
+        existing_headers = [str(h).strip() for h in rows[0]]
+        if sheet_name == 'Inventory' and 'Out of Stock' not in existing_headers:
+            rows[0] = headers # Update to 13-column headers
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 11:
+                    rows[i].insert(10, 'FALSE')
+                while len(rows[i]) < 13:
+                    rows[i].append('')
+        elif len(rows[0]) < len(headers):
             rows[0] = headers
             for i in range(1, len(rows)):
-                if sheet_name == 'Inventory' and len(old_headers) == 12 and len(headers) == 13:
-                    # Insert FALSE for Out of Stock flag at correct index
-                    rows[i].insert(10, 'FALSE')
                 while len(rows[i]) < len(headers):
                     rows[i].append('')
 

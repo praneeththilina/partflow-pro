@@ -102,7 +102,7 @@ def ensure_headers(service, spreadsheet_id, sheet_name, headers):
 def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
     if not data: return
     
-    # 1. Fetch existing data to find matches
+    # 1. Fetch existing data
     range_name = f"'{sheet_name}'!A:Z"
     result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
     rows = result.get('values', [])
@@ -110,40 +110,40 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
     if not rows: 
         rows = [headers]
     else:
-        # Check if we need to migrate headers (e.g. from 12 to 13 columns)
-        if len(rows[0]) < len(headers):
-            print(f"DEBUG: Migrating {sheet_name} headers from {len(rows[0])} to {len(headers)}")
-            old_headers = rows[0]
-            rows[0] = headers
-            # Pad all existing rows to match new header length
+        # Robust Migration: Check if 'Out of Stock' exists in header
+        existing_headers = [str(h).strip() for h in rows[0]]
+        if sheet_name == 'Inventory' and 'Out of Stock' not in existing_headers:
+            print(f"CRITICAL: Migrating Inventory Sheet - Adding 'Out of Stock' column")
+            # We want 'Out of Stock' at index 10 (Column K)
+            # Old format: ...[9]=Threshold, [10]=Status, [11]=Updated
+            rows[0] = headers # Update to 13-column headers
             for i in range(1, len(rows)):
-                # If it's the Inventory sheet and we are adding 'Out of Stock' at index 10
-                if sheet_name == 'Inventory' and len(old_headers) == 12 and len(headers) == 13:
-                    # Insert 'False' at index 10 (shifting Status and Last Updated)
+                # If row is at least 11 columns long, insert at 10 to shift Status/Updated
+                if len(rows[i]) >= 11:
                     rows[i].insert(10, 'FALSE')
-                
+                # Pad to full 13 columns
+                while len(rows[i]) < 13:
+                    rows[i].append('')
+        
+        # General padding for any other sheet
+        elif len(rows[0]) < len(headers):
+            rows[0] = headers
+            for i in range(1, len(rows)):
                 while len(rows[i]) < len(headers):
                     rows[i].append('')
     
     # 2. Build ID map (ID -> Row Index)
-    id_map = {}
-    for i, row in enumerate(rows):
-        if i == 0: continue # Skip header
-        if len(row) > id_column_index:
-            # Normalize to string for comparison
-            id_map[str(row[id_column_index])] = i
+    id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if i > 0 and len(row) > id_column_index}
             
     # 3. Update or Append
     for new_row in data:
         new_id = str(new_row[id_column_index])
         if new_id in id_map:
-            # Update existing row
             rows[id_map[new_id]] = new_row
         else:
-            # Append new row
             rows.append(new_row)
             
-    # 4. Write back the FULL dataset
+    # 4. Write back
     body = {'values': rows}
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
