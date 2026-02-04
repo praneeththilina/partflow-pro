@@ -5,6 +5,8 @@ interface SheetsSyncResult {
   success: boolean;
   message?: string;
   pulledItems?: Item[];
+  pulledCustomers?: Customer[];
+  pulledOrders?: Order[];
   logs?: string[];
 }
 
@@ -53,10 +55,14 @@ class SheetsService {
 
       this.addLog("Backend sync successful.");
       this.addLog(`Fetched ${data.pulledItems?.length || 0} items from cloud.`);
+      this.addLog(`Fetched ${data.pulledCustomers?.length || 0} customers from cloud.`);
+      this.addLog(`Fetched ${data.pulledOrders?.length || 0} orders from cloud.`);
 
       return { 
           success: true, 
           pulledItems: data.pulledItems, 
+          pulledCustomers: data.pulledCustomers,
+          pulledOrders: data.pulledOrders,
           logs: this.currentLogs 
       };
     } catch (err: any) {

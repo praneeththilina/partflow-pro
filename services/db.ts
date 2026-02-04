@@ -606,6 +606,29 @@ class LocalDB {
         this.cache.items = result.pulledItems;
     }
 
+    // FULLY REPLACE CUSTOMERS FROM PULL
+    if (result.pulledCustomers && result.pulledCustomers.length > 0) {
+        if (onLog) onLog(`Updating local shop directory with ${result.pulledCustomers.length} records.`);
+        await this.db.transaction('rw', this.db.customers, async () => {
+            // Logic: Upsert pulled data (Cloud is source of truth for synced data)
+            // But we keep local pending changes if they exist? 
+            // Better: If user is pulling, they want to sync. For simplicity, match Item replacement.
+            await this.db.customers.clear();
+            await this.db.customers.bulkPut(result.pulledCustomers!);
+        });
+        this.cache.customers = result.pulledCustomers;
+    }
+
+    // FULLY REPLACE ORDERS FROM PULL
+    if (result.pulledOrders && result.pulledOrders.length > 0) {
+        if (onLog) onLog(`Restoring order history: ${result.pulledOrders.length} records found.`);
+        await this.db.transaction('rw', this.db.orders, async () => {
+            await this.db.orders.clear();
+            await this.db.orders.bulkPut(result.pulledOrders!);
+        });
+        this.cache.orders = result.pulledOrders;
+    }
+
     localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
   }
 }
