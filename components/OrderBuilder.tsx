@@ -22,6 +22,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     const [lines, setLines] = useState<OrderLine[]>([]);
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
     const [discountRate, setDiscountRate] = useState<number>((existingCustomer?.discount_rate || 0) * 100);
+    const [secondaryDiscountRate, setSecondaryDiscountRate] = useState<number>((existingCustomer?.secondary_discount_rate || 0) * 100);
     
     // UI State
     const [itemFilter, setItemFilter] = useState('');
@@ -71,8 +72,10 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     }, [showScanner]);
 
     const grossTotal = lines.reduce((sum, line) => sum + line.line_total, 0);
-    const discountValue = grossTotal * (discountRate / 100);
-    const netTotal = grossTotal - discountValue;
+    const primaryDiscountValue = grossTotal * (discountRate / 100);
+    const amountAfterPrimary = grossTotal - primaryDiscountValue;
+    const secondaryDiscountValue = amountAfterPrimary * (secondaryDiscountRate / 100);
+    const netTotal = amountAfterPrimary - secondaryDiscountValue;
 
     const addItem = () => {
         if (!selectedItem) return;
@@ -183,7 +186,9 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             order_date: orderDate,
             discount_rate: discountRate / 100,
             gross_total: grossTotal,
-            discount_value: discountValue,
+            discount_value: primaryDiscountValue,
+            secondary_discount_rate: secondaryDiscountRate / 100,
+            secondary_discount_value: secondaryDiscountValue,
             net_total: netTotal,
             
             // Payment Fields (Will be recalculated by db.saveOrder but good to pass)
@@ -546,7 +551,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 </div>
 
                                 <div className="flex justify-between items-center text-sm text-slate-600">
-                                    <span>Discount (%)</span>
+                                    <span>Discount 1 (%)</span>
                                     <div className="flex items-center gap-2">
                                         <input 
                                             type="number" step="1" 
@@ -554,9 +559,24 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             value={discountRate}
                                             onChange={(e) => setDiscountRate(parseFloat(e.target.value) || 0)}
                                         />
-                                        <span className="text-rose-600">-{formatCurrency(discountValue)}</span>
+                                        <span className="text-rose-600">-{formatCurrency(primaryDiscountValue)}</span>
                                     </div>
                                 </div>
+
+                                {secondaryDiscountRate > 0 && (
+                                    <div className="flex justify-between items-center text-sm text-slate-600">
+                                        <span>Discount 2 (%)</span>
+                                        <div className="flex items-center gap-2">
+                                            <input 
+                                                type="number" step="1" 
+                                                className="w-16 p-1 text-right text-xs border rounded focus:ring-indigo-500 font-bold"
+                                                value={secondaryDiscountRate}
+                                                onChange={(e) => setSecondaryDiscountRate(parseFloat(e.target.value) || 0)}
+                                            />
+                                            <span className="text-rose-600">-{formatCurrency(secondaryDiscountValue)}</span>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-lg font-bold text-slate-900 pt-2 border-t border-slate-200">
                                     <span>Total</span>
                                     <span>{formatCurrency(netTotal)}</span>

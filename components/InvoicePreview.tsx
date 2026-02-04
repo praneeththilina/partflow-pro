@@ -202,11 +202,21 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                     </tr>
                                                     {order.discount_value > 0 && (
                                                         <tr>
-                                                            <td className="border border-black px-2 py-2 text-left align-middle text-rose-600 font-medium">
-                                                                Discount ({(order.discount_rate * 100).toFixed(0)}%)
+                                                            <td className="border border-black px-2 py-2 text-left align-middle text-rose-600 font-medium text-[10px]">
+                                                                Less Disc 1 ({(order.discount_rate * 100).toFixed(0)}%)
                                                             </td>
                                                             <td className="border border-black px-2 py-2 text-right align-middle text-rose-600 font-bold">
                                                                 -{formatCurrency(order.discount_value)}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {(order.secondary_discount_value || 0) > 0 && (
+                                                        <tr>
+                                                            <td className="border border-black px-2 py-2 text-left align-middle text-rose-600 font-medium text-[10px]">
+                                                                Less Disc 2 ({( (order.secondary_discount_rate || 0) * 100).toFixed(0)}%)
+                                                            </td>
+                                                            <td className="border border-black px-2 py-2 text-right align-middle text-rose-600 font-bold">
+                                                                -{formatCurrency(order.secondary_discount_value || 0)}
                                                             </td>
                                                         </tr>
                                                     )}

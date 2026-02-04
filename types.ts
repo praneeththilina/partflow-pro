@@ -42,7 +42,8 @@ export interface Customer extends BaseEntity {
   address: string;
   phone: string;
   city_ref: string;
-  discount_rate: number; // 0.0 to 1.0
+  discount_rate: number; // Primary discount 0.0 to 1.0
+  secondary_discount_rate?: number; // Secondary discount 0.0 to 1.0
   outstanding_balance: number; // Track credit
   status: EntityStatus;
 }
@@ -55,6 +56,8 @@ export interface Order extends BaseEntity {
   discount_rate: number;
   gross_total: number;
   discount_value: number;
+  secondary_discount_rate?: number;
+  secondary_discount_value?: number;
   net_total: number;
   
   // Payment Tracking

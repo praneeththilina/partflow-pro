@@ -40,6 +40,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
         phone: newCustomer.phone || editingCustomer.phone,
         city_ref: newCustomer.city_ref || editingCustomer.city_ref,
         discount_rate: (newCustomer.discount_rate ?? (editingCustomer.discount_rate * 100)) / 100,
+        secondary_discount_rate: (newCustomer.secondary_discount_rate ?? ((editingCustomer.secondary_discount_rate || 0) * 100)) / 100,
         status: newCustomer.status || editingCustomer.status,
         updated_at: new Date().toISOString(),
         sync_status: 'pending'
@@ -50,6 +51,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       phone: newCustomer.phone || '',
       city_ref: newCustomer.city_ref || '',
         discount_rate: (newCustomer.discount_rate || 0) / 100,
+        secondary_discount_rate: (newCustomer.secondary_discount_rate || 0) / 100,
         status: 'active',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -69,7 +71,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       setEditingCustomer(customer);
       setNewCustomer({
           ...customer,
-          discount_rate: customer.discount_rate * 100
+          discount_rate: customer.discount_rate * 100,
+          secondary_discount_rate: (customer.secondary_discount_rate || 0) * 100
       });
       setShowAddForm(true);
   };
@@ -259,7 +262,11 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Default Discount (%)</label>
-                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="0" />
+                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="Primary (e.g. 30)" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Secondary Discount (%) - Optional</label>
+                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.secondary_discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, secondary_discount_rate: parseFloat(e.target.value)})} placeholder="Secondary (e.g. 5)" />
                     </div>
                 </div>
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
