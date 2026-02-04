@@ -68,6 +68,8 @@ export const Reports: React.FC = () => {
                 totalGross: customerOrders.reduce((sum, o) => sum + o.gross_total, 0),
                 totalDisc1: customerOrders.reduce((sum, o) => sum + o.discount_value, 0),
                 totalDisc2: customerOrders.reduce((sum, o) => sum + (o.secondary_discount_value || 0), 0),
+                totalPaid: customerOrders.reduce((sum, o) => sum + (o.paid_amount || 0), 0),
+                totalBalance: customerOrders.reduce((sum, o) => sum + (o.balance_due || 0), 0),
                 invoiceCount: customerOrders.length,
                 total
             };
@@ -151,15 +153,16 @@ export const Reports: React.FC = () => {
                                 <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
                                     <th className="pb-4 px-2">Shop Name</th>
                                     <th className="pb-4 px-2 text-right">Inv Count</th>
-                                    <th className="pb-4 px-2 text-right">Total Gross</th>
-                                    <th className="pb-4 px-2 text-right">Disc 1 Total</th>
-                                    <th className="pb-4 px-2 text-right">Disc 2 Total</th>
-                                    <th className="pb-4 px-2 text-right">Total Net</th>
+                                    <th className="pb-4 px-2 text-right">Gross Total</th>
+                                    <th className="pb-4 px-2 text-right text-rose-500">Disc Total</th>
+                                    <th className="pb-4 px-2 text-right">Net Total</th>
+                                    <th className="pb-4 px-2 text-right text-emerald-600">Recovery</th>
+                                    <th className="pb-4 px-2 text-right text-rose-600">Balance</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {topCustomers.length === 0 && (
-                                    <tr><td colSpan={6} className="py-4 text-slate-400 text-sm italic">No sales found.</td></tr>
+                                    <tr><td colSpan={7} className="py-4 text-slate-400 text-sm italic">No sales found.</td></tr>
                                 )}
                                 {topCustomers.map((c, i) => (
                                     <tr 
@@ -169,10 +172,11 @@ export const Reports: React.FC = () => {
                                     >
                                         <td className="py-3 px-2 font-bold text-slate-700 text-sm group-hover:text-indigo-600 transition-colors">{c.name}</td>
                                         <td className="py-3 px-2 text-right font-medium text-slate-500 text-xs">{c.invoiceCount}</td>
-                                        <td className="py-3 px-2 text-right font-medium text-slate-500 text-xs">{formatCurrency(c.totalGross)}</td>
-                                        <td className="py-3 px-2 text-right font-medium text-rose-500 text-xs">-{formatCurrency(c.totalDisc1)}</td>
-                                        <td className="py-3 px-2 text-right font-medium text-rose-500 text-xs">-{formatCurrency(c.totalDisc2)}</td>
-                                        <td className="py-3 px-2 text-right font-black text-slate-900 text-sm">{formatCurrency(c.total)}</td>
+                                        <td className="py-3 px-2 text-right font-medium text-slate-500 text-xs">{formatCurrency(c.totalGross, false)}</td>
+                                        <td className="py-3 px-2 text-right font-medium text-rose-500 text-xs">-{formatCurrency(c.totalDisc1 + c.totalDisc2, false)}</td>
+                                        <td className="py-3 px-2 text-right font-bold text-slate-900 text-xs">{formatCurrency(c.total, false)}</td>
+                                        <td className="py-3 px-2 text-right font-bold text-emerald-600 text-xs">{formatCurrency(c.totalPaid, false)}</td>
+                                        <td className="py-3 px-2 text-right font-black text-rose-600 text-sm">{formatCurrency(c.totalBalance, false)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -346,6 +350,8 @@ export const Reports: React.FC = () => {
         const customer = customers.find(c => c.customer_id === selectedId);
         const custOrders = filteredOrders.filter(o => o.customer_id === selectedId);
         const totalPurchased = custOrders.reduce((sum, o) => sum + o.net_total, 0);
+        const totalPaid = custOrders.reduce((sum, o) => sum + (o.paid_amount || 0), 0);
+        const totalBalance = custOrders.reduce((sum, o) => sum + (o.balance_due || 0), 0);
 
         return (
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2">
@@ -354,12 +360,21 @@ export const Reports: React.FC = () => {
                         <h3 className="font-black text-slate-800 uppercase tracking-tight text-xl">{customer?.shop_name}</h3>
                         <p className="text-xs text-slate-500 font-bold">{customer?.city_ref} • {customer?.phone}</p>
                     </div>
-                    <button 
-                        onClick={() => setView('overview')}
-                        className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:text-indigo-800 transition-colors"
-                    >
-                        ← Back to Summary
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={handlePrint}
+                            className="bg-white p-2 text-slate-600 rounded-full border shadow-sm active:scale-90 transition-all"
+                            title="Print Shop Ledger"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                        </button>
+                        <button 
+                            onClick={() => setView('overview')}
+                            className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:text-indigo-800 transition-colors"
+                        >
+                            ← Back
+                        </button>
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -367,9 +382,10 @@ export const Reports: React.FC = () => {
                             <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
                                 <th className="px-6 py-4">Date</th>
                                 <th className="px-6 py-4">Inv #</th>
-                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Delivery</th>
+                                <th className="px-6 py-4 text-center">Recovery</th>
                                 <th className="px-6 py-4 text-right">Items</th>
-                                <th className="px-6 py-4 text-right">Total Amount</th>
+                                <th className="px-6 py-4 text-right">Net Amount</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -387,21 +403,38 @@ export const Reports: React.FC = () => {
                                         {settings.invoice_prefix}{o.order_id.substring(0, 6).toUpperCase()}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase border ${
-                                            o.order_status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500'
+                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                                            o.delivery_status === 'delivered' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                                            o.delivery_status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-500'
                                         }`}>
-                                            {o.order_status}
+                                            {o.delivery_status || 'pending'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right">{o.lines.length} items</td>
-                                    <td className="px-6 py-4 text-right font-black text-slate-900">{formatCurrency(o.net_total)}</td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                                            o.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                                            o.payment_status === 'partial' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-rose-50 text-rose-600 border-rose-100'
+                                        }`}>
+                                            {o.payment_status || 'unpaid'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-medium text-slate-500">{o.lines.length}</td>
+                                    <td className="px-6 py-4 text-right font-black text-slate-900">{formatCurrency(o.net_total, false)}</td>
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot className="bg-slate-900 text-white font-black">
+                        <tfoot className="bg-slate-900 text-white font-black border-t-4 border-slate-800">
                             <tr>
-                                <td colSpan={4} className="px-6 py-4 text-right uppercase tracking-widest text-[10px]">Lifetime Value (Period)</td>
-                                <td className="px-6 py-4 text-right">{formatCurrency(totalPurchased)}</td>
+                                <td colSpan={5} className="px-6 py-3 text-right uppercase tracking-widest text-[9px] text-slate-400">Total Bill Volume</td>
+                                <td className="px-6 py-3 text-right text-sm">{formatCurrency(totalPurchased, false)}</td>
+                            </tr>
+                            <tr className="bg-slate-800">
+                                <td colSpan={5} className="px-6 py-3 text-right uppercase tracking-widest text-[9px] text-emerald-400">Total Recovered</td>
+                                <td className="px-6 py-3 text-right text-sm text-emerald-400">-{formatCurrency(totalPaid, false)}</td>
+                            </tr>
+                            <tr className="bg-slate-900 border-t border-slate-700">
+                                <td colSpan={5} className="px-6 py-4 text-right uppercase tracking-widest text-[10px]">Net Outstanding Balance</td>
+                                <td className="px-6 py-4 text-right text-lg text-rose-500 underline decoration-double underline-offset-4">{formatCurrency(totalBalance)}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -460,11 +493,20 @@ export const Reports: React.FC = () => {
 
             {/* Content Area */}
             <div id="report-content" className="bg-white p-6 md:p-10 rounded-3xl border border-slate-100 shadow-sm text-slate-900">
-                {/* PDF Header */}
-                <div id="pdf-header" className="hidden text-center border-b-2 border-black pb-4 mb-8">
-                    <h1 className="text-3xl font-black uppercase">{settings.company_name}</h1>
-                    <p className="text-sm font-bold">BUSINESS INTELLIGENCE REPORT</p>
-                    <p className="text-xs">Period: {dateRange.start} to {dateRange.end}</p>
+                {/* PDF Header (Visible only during print capture) */}
+                <div id="pdf-header" className="hidden text-center border-b-2 border-slate-900 pb-6 mb-10">
+                    <h1 className="text-[32px] font-black uppercase text-black m-0 tracking-tighter">{settings.company_name}</h1>
+                    <p className="text-[12px] font-bold text-slate-600 mt-1">{settings.address}</p>
+                    <div className="mt-6 inline-block bg-slate-900 text-white px-6 py-2 rounded-lg font-black text-sm tracking-widest uppercase">
+                        {view === 'overview' ? 'Business Summary' : 
+                         view === 'revenue' ? 'Transaction Journal' :
+                         view === 'customer' ? 'Shop Performance Ledger' : 
+                         view === 'stock' ? 'Inventory Status' : 'System Report'}
+                    </div>
+                    <div className="flex justify-between mt-8 text-[10px] font-black text-slate-500 uppercase">
+                        <span>Period: {dateRange.start} to {dateRange.end}</span>
+                        <span>Generated: {new Date().toLocaleDateString()}</span>
+                    </div>
                 </div>
 
                 {view === 'overview' && renderOverview()}
