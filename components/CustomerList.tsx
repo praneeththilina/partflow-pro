@@ -19,6 +19,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
   
   // Action Sheet State
   const [actionCustomer, setActionCustomer] = useState<Customer | null>(null);
+  const [showAdminActions, setShowAdminActions] = useState(false);
 
   useEffect(() => {
     setCustomers(db.getCustomers());
@@ -148,8 +149,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
 
         {/* Customer Action Sheet */}
       {actionCustomer && (
-          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4" onClick={() => setActionCustomer(null)}>
-              <div className="bg-white w-full max-w-sm rounded-t-3xl md:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-200" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4" onClick={() => { setActionCustomer(null); setShowAdminActions(false); }}>
+              <div className="bg-white w-full max-w-sm rounded-t-3xl md:rounded-2xl p-6 pb-24 md:pb-6 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-200" onClick={e => e.stopPropagation()}>
                   <div className="text-center mb-6">
                       <div className={`w-16 h-16 ${actionCustomer.status === 'inactive' ? 'bg-slate-200 text-slate-400' : 'bg-indigo-100 text-indigo-600'} rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-3`}>
                           {getInitials(actionCustomer.shop_name)}
@@ -167,6 +168,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                           onClick={() => {
                               onSelectCustomer(actionCustomer);
                               setActionCustomer(null);
+                              setShowAdminActions(false);
                           }}
                           className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform ${actionCustomer.status === 'inactive' ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-indigo-600 text-white'}`}
                       >
@@ -179,6 +181,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                               onClick={() => {
                                   onOpenProfile(actionCustomer);
                                   setActionCustomer(null);
+                                  setShowAdminActions(false);
                               }}
                               className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-700 py-4 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform"
                           >
@@ -187,26 +190,36 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                           </button>
                       )}
 
-                      <div className="grid grid-cols-2 gap-3">
+                      {!showAdminActions ? (
                           <button 
-                              onClick={() => toggleCustomerStatus(actionCustomer)}
-                              className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold border-2 transition-all ${
-                                  actionCustomer.status === 'inactive' 
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
-                                  : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                              }`}
+                              onClick={() => setShowAdminActions(true)}
+                              className="w-full flex items-center justify-center gap-2 py-3 text-slate-500 font-bold text-xs uppercase tracking-widest hover:text-slate-800 transition-colors"
                           >
-                              {actionCustomer.status === 'inactive' ? 'Enable' : 'Disable'}
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                              Management Options
                           </button>
-                          <button 
-                              onClick={() => handleDeleteCustomer(actionCustomer)}
-                              className="flex items-center justify-center gap-2 py-3 bg-rose-50 border-2 border-rose-200 text-rose-700 rounded-xl font-bold hover:bg-rose-100 transition-all"
-                          >
-                              Delete
-                          </button>
-                      </div>
+                      ) : (
+                          <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                              <button 
+                                  onClick={() => toggleCustomerStatus(actionCustomer)}
+                                  className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold border-2 transition-all ${
+                                      actionCustomer.status === 'inactive' 
+                                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
+                                      : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                                  }`}
+                              >
+                                  {actionCustomer.status === 'inactive' ? 'Enable' : 'Disable'}
+                              </button>
+                              <button 
+                                  onClick={() => handleDeleteCustomer(actionCustomer)}
+                                  className="flex items-center justify-center gap-2 py-3 bg-rose-50 border-2 border-rose-200 text-rose-700 rounded-xl font-bold hover:bg-rose-100 transition-all"
+                              >
+                                  Delete
+                              </button>
+                          </div>
+                      )}
                   </div>
-                  <button onClick={() => setActionCustomer(null)} className="w-full mt-6 py-3 text-slate-400 font-bold text-sm">Cancel</button>
+                  <button onClick={() => { setActionCustomer(null); setShowAdminActions(false); }} className="w-full mt-6 py-3 text-slate-400 font-bold text-sm">Cancel</button>
               </div>
           </div>
       )}
