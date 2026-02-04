@@ -420,6 +420,10 @@ def sync():
             "pulledItems": pulled_items,
             "pulledCustomers": pulled_customers,
             "pulledOrders": pulled_orders,
+            "debug": {
+                "customer_header_len": len(customer_headers),
+                "order_header_len": len(order_headers)
+            },
             "message": f"Sync completed successfully ({mode} mode)"
         })
     except Exception as e:
