@@ -11,18 +11,19 @@ interface OrderBuilderProps {
   onCancel: () => void;
   onOrderCreated: (order: Order) => void;
   existingCustomer?: Customer;
+  editingOrder?: Order;
 }
 
-export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCreated, existingCustomer }) => {
+export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCreated, existingCustomer, editingOrder }) => {
     const { showToast } = useToast();
     const { user } = useAuth();
     const settings = db.getSettings();
-    const [customer] = useState<Customer | undefined>(existingCustomer);
+    const [customer] = useState<Customer | undefined>(existingCustomer || (editingOrder ? db.getCustomers().find(c => c.customer_id === editingOrder.customer_id) : undefined));
     const [items, setItems] = useState<Item[]>([]);
-    const [lines, setLines] = useState<OrderLine[]>([]);
-    const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
-    const [discountRate, setDiscountRate] = useState<number>((existingCustomer?.discount_rate || 0) * 100);
-    const [secondaryDiscountRate, setSecondaryDiscountRate] = useState<number>((existingCustomer?.secondary_discount_rate || 0) * 100);
+    const [lines, setLines] = useState<OrderLine[]>(editingOrder?.lines || []);
+    const [orderDate, setOrderDate] = useState(editingOrder?.order_date || new Date().toISOString().split('T')[0]);
+    const [discountRate, setDiscountRate] = useState<number>((editingOrder ? editingOrder.discount_rate : (existingCustomer?.discount_rate || 0)) * 100);
+    const [secondaryDiscountRate, setSecondaryDiscountRate] = useState<number>((editingOrder ? (editingOrder.secondary_discount_rate || 0) : (existingCustomer?.secondary_discount_rate || 0)) * 100);
     
     // UI State
     const [itemFilter, setItemFilter] = useState('');
@@ -161,12 +162,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     const handleFinalizeOrder = async () => {
         if (!customer) return;
         
-        const orderId = generateUUID().substring(0, 6).toUpperCase();
+        const orderId = editingOrder ? editingOrder.order_id : generateUUID().substring(0, 6).toUpperCase();
         const finalLines = lines.map(l => ({...l, order_id: orderId}));
         
         // Prepare Payment Data
         const payAmount = parseFloat(paymentAmount) || 0;
-        const payments: Payment[] = [];
+        const payments: Payment[] = editingOrder ? editingOrder.payments : [];
         
         if (payAmount > 0) {
             payments.push({
@@ -176,11 +177,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                 payment_date: new Date().toISOString(),
                 payment_type: paymentType,
                 reference_number: paymentRef,
-                notes: 'Initial payment at checkout'
+                notes: editingOrder ? 'Additional payment during edit' : 'Initial payment at checkout'
             });
         }
 
         const newOrder: Order = {
+            ...editingOrder,
             order_id: orderId,
             customer_id: customer.customer_id,
             rep_id: user?.id.toString(),
@@ -193,20 +195,27 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             net_total: netTotal,
             
             // Payment Fields (Will be recalculated by db.saveOrder but good to pass)
-            paid_amount: payAmount,
-            balance_due: netTotal - payAmount,
+            paid_amount: payments.reduce((sum, p) => sum + p.amount, 0),
+            balance_due: netTotal - payments.reduce((sum, p) => sum + p.amount, 0),
             payment_status: 'unpaid', // DB will calculate 'paid' | 'partial' | 'unpaid'
             payments: payments,
 
             order_status: 'confirmed',
-            delivery_status: 'pending',
+            delivery_status: editingOrder?.delivery_status || 'pending',
             lines: finalLines,
-            created_at: new Date().toISOString(),
+            created_at: editingOrder?.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString(),
             sync_status: 'pending'
         };
 
-        // Deduce Stock
+        // If editing, restore original stock first
+        if (editingOrder && settings.stock_tracking_enabled) {
+            for (const line of editingOrder.lines) {
+                await db.updateStock(line.item_id, line.quantity);
+            }
+        }
+
+        // Deduce New Stock
         if (settings.stock_tracking_enabled) {
             for (const line of finalLines) {
                 await db.updateStock(line.item_id, -line.quantity);
@@ -215,7 +224,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
         // Save Order (DB handles balance updates)
         await db.saveOrder(newOrder);
-        showToast("Sale confirmed!", "success");
+        showToast(editingOrder ? "Order updated!" : "Sale confirmed!", "success");
         
         setShowPaymentModal(false);
         onOrderCreated(newOrder);

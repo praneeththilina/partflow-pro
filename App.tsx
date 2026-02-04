@@ -26,6 +26,7 @@ function AppContent() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [profileCustomer, setProfileCustomer] = useState<Customer | null>(null); 
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [dbInitialized, setDbInitialized] = useState(false);
@@ -103,10 +104,12 @@ function AppContent() {
 
   const handleOrderCreated = (order: Order) => {
     setActiveOrder(order);
+    setEditingOrder(null);
   };
 
   const handleInvoiceClose = () => {
     setActiveOrder(null);
+    setEditingOrder(null);
     setSelectedCustomer(null);
     navigateTo('history');
   };
@@ -117,6 +120,17 @@ function AppContent() {
       if (customer) {
           setSelectedCustomer(customer);
           setActiveOrder(order);
+          setEditingOrder(null);
+      }
+  };
+
+  const handleEditOrder = (order: Order) => {
+      const customer = db.getCustomers().find(c => c.customer_id === order.customer_id);
+      if (customer) {
+          setSelectedCustomer(customer);
+          setEditingOrder(order);
+          setActiveOrder(null);
+          navigateTo('orders');
       }
   };
 
@@ -180,7 +194,7 @@ function AppContent() {
       case 'inventory':
         return <InventoryList />;
       case 'orders':
-        if (!selectedCustomer) {
+        if (!selectedCustomer && !editingOrder) {
             return (
                 <div className="space-y-4">
                     <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl text-center">
@@ -192,16 +206,18 @@ function AppContent() {
         }
         return <OrderBuilder 
             onCancel={() => {
-                if(window.confirm("Abandon current order?")) {
+                if(window.confirm(editingOrder ? "Discard changes?" : "Abandon current order?")) {
                     setSelectedCustomer(null);
-                    navigateTo('home');
+                    setEditingOrder(null);
+                    navigateTo(editingOrder ? 'history' : 'home');
                 }
             }} 
             onOrderCreated={handleOrderCreated}
             existingCustomer={selectedCustomer || undefined} 
+            editingOrder={editingOrder || undefined}
         />;
       case 'history':
-        return <OrderHistory onViewInvoice={handleViewInvoice} />;
+        return <OrderHistory onViewInvoice={handleViewInvoice} onEditOrder={handleEditOrder} />;
       case 'reports':
         return <Reports />;
       case 'sync':
