@@ -26,6 +26,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     
     // UI State
     const [itemFilter, setItemFilter] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [modelFilter, setModelFilter] = useState('All');
     const [countryFilter, setCountryFilter] = useState('All');
     const [sortOrder, setSortOrder] = useState<'A-Z' | 'Price-High' | 'Price-Low'>('A-Z');
@@ -259,7 +260,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)]">
             
             {/* Header */}
-            <div className="bg-white p-4 border-b border-slate-200 flex justify-between items-center rounded-t-xl shadow-sm shrink-0">
+            <div className={`bg-white p-4 border-b border-slate-200 flex justify-between items-center rounded-t-xl shadow-sm shrink-0 transition-all ${isSearchFocused ? 'md:flex hidden' : 'flex'}`}>
                 <div>
                     <h2 className="text-lg font-bold text-slate-800">{customer.shop_name}</h2>
                     <div className="text-xs text-slate-500 flex items-center gap-2">
@@ -278,7 +279,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             </div>
 
             {/* Mobile Tabs */}
-            <div className="md:hidden flex border-b border-slate-200 bg-white">
+            <div className={`md:hidden flex border-b border-slate-200 bg-white transition-all ${isSearchFocused ? 'hidden' : 'flex'}`}>
                 <button 
                     onClick={() => setMobileTab('catalog')} 
                     className={`flex-1 py-3 text-sm font-semibold text-center border-b-2 transition-colors ${mobileTab === 'catalog' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'}`}
@@ -311,6 +312,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                     placeholder="Search parts or SKU..." 
                                     className="block w-full pl-9 pr-10 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                                     value={itemFilter}
+                                    onFocus={() => setIsSearchFocused(true)}
+                                    onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                                     onChange={e => setItemFilter(e.target.value)}
                                 />
                                 {itemFilter && (
@@ -330,7 +333,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             </button>
                         </div>
                         
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        <div className={`flex gap-2 overflow-x-auto no-scrollbar transition-all ${isSearchFocused ? 'hidden md:flex' : 'flex'}`}>
                             <select 
                                 className="w-32 md:flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shrink-0"
                                 value={modelFilter}
@@ -386,30 +389,34 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             : 'border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer active:scale-[0.98]'
                                     } ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : ''}`}
                                 >
-                                    <div className="p-4 flex justify-between items-center relative z-10">
+                                    <div className={`${isSearchFocused ? 'p-2' : 'p-4'} flex justify-between items-center relative z-10`}>
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            <div className={`${isSearchFocused ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
                                                 {isInCart(item.item_id) ? (
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                    <svg className={`${isSearchFocused ? 'w-4 h-4' : 'w-5 h-5'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                                 ) : item.vehicle_model.substring(0, 2).toUpperCase()}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className={`font-bold text-sm truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>
+                                                <div className={`font-bold ${isSearchFocused ? 'text-xs' : 'text-sm'} truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>
                                                     {item.item_display_name}
                                                     {isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-rose-600 underline decoration-double">Out of Stock</span>}
                                                     {isInCart(item.item_id) && !isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-indigo-600">In Cart</span>}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                     <span className={`text-[10px] font-black uppercase tracking-tighter ${isOutOfStock ? 'text-rose-400' : 'text-indigo-600'}`}>{item.vehicle_model}</span>
-                                                    <span className="text-[10px] text-slate-400 font-bold">•</span>
-                                                    <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
+                                                    {!isSearchFocused && (
+                                                        <>
+                                                            <span className="text-[10px] text-slate-400 font-bold">•</span>
+                                                            <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <div className="text-right pl-2">
-                                            <div className={`font-black text-sm ${isOutOfStock ? 'text-rose-400' : 'text-slate-900'}`}>{formatCurrency(item.unit_value)}</div>
-                                            {settings.stock_tracking_enabled && (
+                                            <div className={`font-black ${isSearchFocused ? 'text-xs' : 'text-sm'} ${isOutOfStock ? 'text-rose-400' : 'text-slate-900'}`}>{formatCurrency(item.unit_value)}</div>
+                                            {!isSearchFocused && settings.stock_tracking_enabled && (
                                                 <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-100 text-rose-700'}`}>
                                                     {item.current_stock_qty} in stock
                                                 </div>
