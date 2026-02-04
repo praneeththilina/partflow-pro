@@ -84,7 +84,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice }) => 
                             <div>
                                 <h3 className="font-bold text-slate-900">{getCustomerName(order.customer_id)}</h3>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-[10px] text-slate-400 font-mono">{order.order_id.substring(0, 8).toUpperCase()}</p>
+                                    <p className="text-[10px] text-slate-400 font-mono">{order.order_id.substring(0, 6).toUpperCase()}</p>
                                     <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${getDeliveryColor(order.delivery_status || 'pending')}`}>
                                         {order.delivery_status || 'pending'}
                                     </span>
@@ -154,7 +154,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice }) => 
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                         <h3 className="text-lg font-black text-slate-800 mb-1">Update Delivery</h3>
-                        <p className="text-sm text-slate-500 mb-6">Order #{selectedOrder.order_id.substring(0,8).toUpperCase()}</p>
+                        <p className="text-sm text-slate-500 mb-6">Order #{selectedOrder.order_id.substring(0, 6).toUpperCase()}</p>
                         
                         <div className="grid grid-cols-1 gap-2 mb-8">
                             {(['pending', 'shipped', 'out_for_delivery', 'delivered', 'failed', 'cancelled'] as DeliveryStatus[]).map(status => (
