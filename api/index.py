@@ -29,7 +29,7 @@ CORS(app)
 init_db()
 
 # SECURITY: Basic API Key for internal bridge
-API_KEY = "partflow_secret_token_2026"
+API_KEY = "partflow_secret_token_2026_v2"
 
 def check_auth():
     auth_header = request.headers.get('X-API-KEY')
