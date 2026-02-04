@@ -498,10 +498,10 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             <div className="flex-1">
                                 <ul className="divide-y divide-slate-100">
                                     {lines.map(line => (
-                                        <li key={line.line_id} className="p-4 flex justify-between items-center hover:bg-white transition-colors group bg-white">
+                                        <li key={line.line_id} className="p-4 flex justify-between items-start hover:bg-white transition-colors group bg-white">
                                             <div className="flex-1 min-w-0 pr-2">
-                                                <div className="text-sm font-bold text-slate-900 line-clamp-1">{line.item_name}</div>
-                                                <div className="flex items-center gap-2 mt-1.5">
+                                                <div className="text-sm font-bold text-slate-900 break-words leading-relaxed">{line.item_name}</div>
+                                                <div className="flex items-center gap-2 mt-2">
                                                     <div className="flex items-center bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
                                                         <button 
                                                             onClick={() => updateLineQty(line.line_id, -1)}
