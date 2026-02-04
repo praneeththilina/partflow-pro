@@ -145,16 +145,19 @@ class LocalDB {
               // Migration Logic: Ensure new fields exist
               const migratedCustomers = customersToSave.map(c => ({
                   ...c,
-                  outstanding_balance: c.outstanding_balance || 0
+                  outstanding_balance: c.outstanding_balance || 0,
+                  secondary_discount_rate: c.secondary_discount_rate || 0
               }));
 
               const migratedOrders = ordersToSave.map(o => ({
                   ...o,
                   paid_amount: o.paid_amount || 0,
-                  balance_due: o.balance_due ?? o.net_total, // If undefined, assume full amount due
+                  balance_due: o.balance_due ?? o.net_total, 
                   payment_status: o.payment_status || (o.net_total === 0 ? 'paid' : 'unpaid'),
                   payments: o.payments || [],
-                  delivery_status: o.delivery_status || 'pending'
+                  delivery_status: o.delivery_status || 'pending',
+                  secondary_discount_rate: o.secondary_discount_rate || 0,
+                  secondary_discount_value: o.secondary_discount_value || 0
               }));
 
               if (migratedCustomers.length > 0) await this.db.customers.bulkPut(migratedCustomers);

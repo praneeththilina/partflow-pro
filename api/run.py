@@ -175,12 +175,20 @@ def health():
     config, source = get_google_config()
     now = datetime.datetime.now(datetime.timezone.utc)
     
+    # Validation info
+    expected_customer_cols = 10
+    expected_order_cols = 16
+    
     diag = {
         "status": "ok",
-        "version": "1.1.7-final-stable",
+        "version": "1.1.8-header-diagnostic",
         "server_time_utc": now.isoformat(),
         "database_exists": os.path.exists(DB_PATH),
         "credentials_source": source,
+        "config_check": {
+            "customers": expected_customer_cols,
+            "orders": expected_order_cols
+        }
     }
     
     if config:
