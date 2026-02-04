@@ -303,6 +303,7 @@ def sync():
         if customers:
             values = [[c['customer_id'], c['shop_name'], c['address'], c['phone'], c['city_ref'], c['discount_rate'], c.get('secondary_discount_rate', 0), c.get('outstanding_balance', 0), c['status'], c['updated_at']] for c in customers]
             if mode == 'overwrite':
+                service.spreadsheets().values().update(spreadsheetId=spreadsheet_id, range="'Customers'!A1", valueInputOption="RAW", body={"values": [customer_headers]}).execute()
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Customers'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else: upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
@@ -312,6 +313,7 @@ def sync():
         if items:
             values = [[i['item_id'], i['item_display_name'], i['item_name'], i['item_number'], i['vehicle_model'], i['source_brand'], i.get('category', 'Uncategorized'), i['unit_value'], i['current_stock_qty'], i.get('low_stock_threshold', 10), i.get('is_out_of_stock', False), i['status'], i['updated_at']] for i in items]
             if mode == 'overwrite':
+                service.spreadsheets().values().update(spreadsheetId=spreadsheet_id, range="'Inventory'!A1", valueInputOption="RAW", body={"values": [inventory_headers]}).execute()
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Inventory'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else: upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, values, 0)
@@ -320,7 +322,12 @@ def sync():
 
         if orders:
             order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o.get('gross_total', 0), o.get('discount_rate', 0), o.get('discount_value', 0), o.get('secondary_discount_rate', 0), o.get('secondary_discount_value', 0), o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
-            upsert_rows(service, spreadsheet_id, 'Orders', order_headers, order_values, 0)
+            if mode == 'overwrite':
+                service.spreadsheets().values().update(spreadsheetId=spreadsheet_id, range="'Orders'!A1", valueInputOption="RAW", body={"values": [order_headers]}).execute()
+                service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Orders'!A2:Z").execute()
+                service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Orders'!A2", valueInputOption="USER_ENTERED", body={"values": order_values}).execute()
+            else:
+                upsert_rows(service, spreadsheet_id, 'Orders', order_headers, order_values, 0)
             
             line_values = []
             for o in orders:
