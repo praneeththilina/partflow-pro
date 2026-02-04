@@ -4,7 +4,9 @@ import { Order, Item, Customer } from '../types';
 import { pdfService } from '../services/pdf';
 import { formatCurrency } from '../utils/currency';
 
-type ReportView = 'overview' | 'revenue' | 'category' | 'customer' | 'stock';
+import { InvoicePreview } from './InvoicePreview';
+
+type ReportView = 'overview' | 'revenue' | 'category' | 'customer' | 'stock' | 'invoice';
 
 export const Reports: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
@@ -12,6 +14,7 @@ export const Reports: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [view, setView] = useState<ReportView>('overview');
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isPrinting, setIsPrinting] = useState(false);
     const [stockFilter, setStockFilter] = useState<'all' | 'out' | 'in'>('all');
     const [dateRange, setDateRange] = useState({ 
@@ -56,11 +59,19 @@ export const Reports: React.FC = () => {
 
     const topCustomers = Object.entries(customerStats)
         .sort((a, b) => b[1] - a[1])
-        .map(([id, total]) => ({
-            id,
-            name: customers.find(c => c.customer_id === id)?.shop_name || 'Unknown',
-            total
-        }));
+        .map(([id, total]) => {
+            const customer = customers.find(c => c.customer_id === id);
+            const customerOrders = filteredOrders.filter(o => o.customer_id === id);
+            return {
+                id,
+                name: customer?.shop_name || 'Unknown',
+                totalGross: customerOrders.reduce((sum, o) => sum + o.gross_total, 0),
+                totalDisc1: customerOrders.reduce((sum, o) => sum + o.discount_value, 0),
+                totalDisc2: customerOrders.reduce((sum, o) => sum + (o.secondary_discount_value || 0), 0),
+                invoiceCount: customerOrders.length,
+                total
+            };
+        });
 
     const handleDrillDown = (newView: ReportView, id: string | null = null) => {
         setView(newView);
@@ -127,33 +138,41 @@ export const Reports: React.FC = () => {
                 </div>
 
                 {/* Top Customers Table */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm lg:col-span-2">
                     <h3 className="font-black text-slate-800 mb-6 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="w-1.5 h-4 bg-emerald-500 rounded-full"></span>
-                            Top Performing Shops
+                            Customer Sales Performance
                         </div>
                     </h3>
-                    <div className="overflow-hidden">
-                        <table className="w-full">
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[600px]">
                             <thead>
                                 <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
-                                    <th className="pb-4">Shop Name</th>
-                                    <th className="pb-4 text-right">Volume</th>
+                                    <th className="pb-4 px-2">Shop Name</th>
+                                    <th className="pb-4 px-2 text-right">Inv Count</th>
+                                    <th className="pb-4 px-2 text-right">Total Gross</th>
+                                    <th className="pb-4 px-2 text-right">Disc 1 Total</th>
+                                    <th className="pb-4 px-2 text-right">Disc 2 Total</th>
+                                    <th className="pb-4 px-2 text-right">Total Net</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {topCustomers.length === 0 && (
-                                    <tr><td colSpan={2} className="py-4 text-slate-400 text-sm italic">No sales found.</td></tr>
+                                    <tr><td colSpan={6} className="py-4 text-slate-400 text-sm italic">No sales found.</td></tr>
                                 )}
-                                {topCustomers.slice(0, 8).map((c, i) => (
+                                {topCustomers.map((c, i) => (
                                     <tr 
                                         key={i} 
                                         className="group cursor-pointer hover:bg-slate-50"
                                         onClick={() => handleDrillDown('customer', c.id)}
                                     >
-                                        <td className="py-3 font-bold text-slate-700 text-sm group-hover:text-indigo-600 transition-colors">{c.name}</td>
-                                        <td className="py-3 text-right font-black text-slate-900 text-sm">{formatCurrency(c.total)}</td>
+                                        <td className="py-3 px-2 font-bold text-slate-700 text-sm group-hover:text-indigo-600 transition-colors">{c.name}</td>
+                                        <td className="py-3 px-2 text-right font-medium text-slate-500 text-xs">{c.invoiceCount}</td>
+                                        <td className="py-3 px-2 text-right font-medium text-slate-500 text-xs">{formatCurrency(c.totalGross)}</td>
+                                        <td className="py-3 px-2 text-right font-medium text-rose-500 text-xs">-{formatCurrency(c.totalDisc1)}</td>
+                                        <td className="py-3 px-2 text-right font-medium text-rose-500 text-xs">-{formatCurrency(c.totalDisc2)}</td>
+                                        <td className="py-3 px-2 text-right font-black text-slate-900 text-sm">{formatCurrency(c.total)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -330,9 +349,17 @@ export const Reports: React.FC = () => {
 
         return (
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-                <div className="p-6 bg-slate-50 border-b border-slate-100 no-print">
-                    <h3 className="font-black text-slate-800 uppercase tracking-tight text-xl">{customer?.shop_name}</h3>
-                    <p className="text-xs text-slate-500 font-bold">{customer?.city_ref} • {customer?.phone}</p>
+                <div className="p-6 bg-slate-50 border-b border-slate-100 no-print flex justify-between items-center">
+                    <div>
+                        <h3 className="font-black text-slate-800 uppercase tracking-tight text-xl">{customer?.shop_name}</h3>
+                        <p className="text-xs text-slate-500 font-bold">{customer?.city_ref} • {customer?.phone}</p>
+                    </div>
+                    <button 
+                        onClick={() => setView('overview')}
+                        className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:text-indigo-800 transition-colors"
+                    >
+                        ← Back to Summary
+                    </button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -346,10 +373,19 @@ export const Reports: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {custOrders.sort((a,b) => b.order_date.localeCompare(a.date)).map(o => (
-                                <tr key={o.order_id} className="hover:bg-slate-50">
+                            {custOrders.sort((a,b) => b.order_date.localeCompare(a.order_date)).map(o => (
+                                <tr 
+                                    key={o.order_id} 
+                                    className="hover:bg-slate-50 cursor-pointer group"
+                                    onClick={() => {
+                                        setSelectedOrder(o);
+                                        setView('invoice');
+                                    }}
+                                >
                                     <td className="px-6 py-4 text-slate-500">{o.order_date}</td>
-                                    <td className="px-6 py-4 font-mono font-bold text-indigo-600">{settings.invoice_prefix}{o.order_id.substring(0, 6).toUpperCase()}</td>
+                                    <td className="px-6 py-4 font-mono font-bold text-indigo-600 group-hover:underline">
+                                        {settings.invoice_prefix}{o.order_id.substring(0, 6).toUpperCase()}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase border ${
                                             o.order_status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500'
@@ -436,6 +472,14 @@ export const Reports: React.FC = () => {
                 {view === 'category' && renderCategoryDetails()}
                 {view === 'customer' && renderCustomerDetails()}
                 {view === 'stock' && renderStockReport()}
+                {view === 'invoice' && selectedOrder && (
+                    <InvoicePreview 
+                        order={selectedOrder} 
+                        customer={customers.find(c => c.customer_id === selectedOrder.customer_id)!} 
+                        settings={settings} 
+                        onClose={() => setView('customer')} 
+                    />
+                )}
             </div>
 
             {/* Global Actions */}
