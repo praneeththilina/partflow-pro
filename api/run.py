@@ -123,22 +123,8 @@ def ensure_headers(service, spreadsheet_id, sheet_name, headers):
         if not sheet_exists:
             body = {'requests': [{'addSheet': {'properties': {'title': sheet_name}}}]}
             service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
-
-        # Check existing headers
-        result = service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1:Z1").execute()
-        
-        existing_values = result.get('values', [[]])
-        
-        # Migration Logic: If headers are missing or length doesn't match
-        if not existing_values or not existing_values[0] or len(existing_values[0]) < len(headers):
-            print(f"INFO: Updating headers for {sheet_name}")
-            body = {'values': [headers]}
-            service.spreadsheets().values().update(
-                spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
-                valueInputOption='RAW', body=body).execute()
     except Exception as err:
-        print(f"Error in ensure_headers for {sheet_name}: {err}")
+        print(f"Error creating sheet {sheet_name}: {err}")
         pass
 
 def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
@@ -149,49 +135,46 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
     if not rows: 
         rows = [headers]
     else:
-        # Robust Migration: Check if 'Out of Stock' exists in header
+        # ATOMIC MIGRATION: Check actual header content
         existing_headers = [str(h).strip() for h in rows[0]]
+        
+        # 1. Inventory Migration (Out of Stock)
         if sheet_name == 'Inventory' and 'Out of Stock' not in existing_headers:
-            rows[0] = headers # Update to 13-column headers
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 11:
-                    rows[i].insert(10, 'FALSE')
-                while len(rows[i]) < 13:
-                    rows[i].append('')
-        elif sheet_name == 'Customers' and 'Discount 2' not in existing_headers:
-            rows[0] = headers # Update to 10-column headers
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 6:
-                    rows[i].insert(6, '0') # Discount 2 init 0
-                while len(rows[i]) < 10:
-                    rows[i].append('')
-        elif sheet_name == 'Orders' and 'Disc 2 Value' not in existing_headers:
-            rows[0] = headers # Update to 16-column headers
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 7:
-                    rows[i].insert(7, '0') # Disc 2 Rate
-                    rows[i].insert(8, '0') # Disc 2 Value
-                while len(rows[i]) < 16:
-                    rows[i].append('')
-        elif len(rows[0]) < len(headers):
             rows[0] = headers
             for i in range(1, len(rows)):
-                while len(rows[i]) < len(headers):
-                    rows[i].append('')
+                if len(rows[i]) >= 11: rows[i].insert(10, 'FALSE')
+                while len(rows[i]) < 13: rows[i].append('')
+        
+        # 2. Customers Migration (Discount 2)
+        elif sheet_name == 'Customers' and 'Discount 2' not in existing_headers:
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 6: rows[i].insert(6, '0') 
+                while len(rows[i]) < 10: rows[i].append('')
+        
+        # 3. Orders Migration (Disc 2 Value)
+        elif sheet_name == 'Orders' and 'Disc 2 Value' not in existing_headers:
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 7:
+                    rows[i].insert(7, '0')
+                    rows[i].insert(8, '0')
+                while len(rows[i]) < 16: rows[i].append('')
+        
+        # 4. Fallback Header Sync
+        elif len(existing_headers) < len(headers):
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                while len(rows[i]) < len(headers): rows[i].append('')
 
-    if not data:
-        # Just write back the potentially migrated headers
-        body = {'values': rows}
-        service.spreadsheets().values().update(
-            spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
-            valueInputOption='USER_ENTERED', body=body).execute()
-        return
-
-    id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
-    for new_row in data:
-        new_id = str(new_row[id_column_index])
-        if new_id in id_map: rows[id_map[new_id]] = new_row
-        else: rows.append(new_row)
+    # Perform Upsert if data provided
+    if data:
+        id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
+        for new_row in data:
+            new_id = str(new_row[id_column_index])
+            if new_id in id_map: rows[id_map[new_id]] = new_row
+            else: rows.append(new_row)
+            
     body = {'values': rows}
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
