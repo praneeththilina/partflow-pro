@@ -101,89 +101,70 @@ def ensure_headers(service, spreadsheet_id, sheet_name, headers):
         pass
 
 def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
-    if not data: return
+    # Fetch first 200 rows to be safe
+    range_name = f"'{sheet_name}'!A1:Z200"
+    try:
+        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
+        rows = result.get('values', [])
+    except:
+        rows = []
     
-    # 1. Fetch existing data
-    range_name = f"'{sheet_name}'!A:Z"
-    result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-    rows = result.get('values', [])
-    
-    if not rows: 
+    if not rows or not rows[0]: 
         rows = [headers]
     else:
-        # Robust Migration: Check if 'Out of Stock' exists in header
-        existing_headers = [str(h).strip() for h in rows[0]]
-        if sheet_name == 'Inventory' and 'Out of Stock' not in existing_headers:
-            print(f"CRITICAL: Migrating Inventory Sheet - Adding 'Out of Stock' column")
-            # We want 'Out of Stock' at index 10 (Column K)
-            # Old format: ...[9]=Threshold, [10]=Status, [11]=Updated
-            rows[0] = headers # Update to 13-column headers
-            for i in range(1, len(rows)):
-                # If row is at least 11 columns long, insert at 10 to shift Status/Updated
-                if len(rows[i]) >= 11:
-                    rows[i].insert(10, 'FALSE')
-                # Pad to full 13 columns
-                while len(rows[i]) < 13:
-                    rows[i].append('')
-        elif sheet_name == 'Customers' and 'Discount 2' not in existing_headers:
-            print(f"CRITICAL: Migrating Customers Sheet - Adding 'Discount 2' column")
-            rows[0] = headers 
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 6:
-                    rows[i].insert(6, '0') # Discount 2 
-                while len(rows[i]) < 10:
-                    rows[i].append('')
-        elif sheet_name == 'Orders' and 'Disc 2 Value' not in existing_headers:
-            print(f"CRITICAL: Migrating Orders Sheet - Adding 'Disc 2 Value' columns")
-            rows[0] = headers 
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 7:
-                    rows[i].insert(7, '0') # Rate 2
-                    rows[i].insert(8, '0') # Value 2
-                while len(rows[i]) < 16:
-                    rows[i].append('')
-
-        elif sheet_name == 'Customers' and 'Discount 2' not in existing_headers:
-            print(f"CRITICAL: Migrating Customers Sheet - Adding 'Discount 2' column")
-            rows[0] = headers 
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 6:
-                    rows[i].insert(6, '0') 
-                while len(rows[i]) < 10:
-                    rows[i].append('')
-        elif sheet_name == 'Orders' and 'Disc 2 Value' not in existing_headers:
-            print(f"CRITICAL: Migrating Orders Sheet - Adding 'Disc 2 Value' columns")
-            rows[0] = headers 
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 7:
-                    rows[i].insert(7, '0') # Rate 2
-                    rows[i].insert(8, '0') # Value 2
-                while len(rows[i]) < 16:
-                    rows[i].append('')
+        # ATOMIC MIGRATION: Check actual header content
+        existing_headers = [str(h).strip().lower() for h in rows[0]]
         
-        # General padding for any other sheet
-        elif len(rows[0]) < len(headers):
+        # 1. Inventory Migration (Out of Stock)
+        if sheet_name == 'Inventory' and 'out of stock' not in existing_headers:
             rows[0] = headers
             for i in range(1, len(rows)):
-                while len(rows[i]) < len(headers):
-                    rows[i].append('')
-    
-    # 2. Build ID map (ID -> Row Index)
-    id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if i > 0 and len(row) > id_column_index}
+                if len(rows[i]) >= 11: rows[i].insert(10, 'FALSE')
+                while len(rows[i]) < 13: rows[i].append('')
+        
+        # 2. Customers Migration (Discount 2)
+        elif sheet_name == 'Customers' and 'discount 2' not in existing_headers:
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 6: rows[i].insert(6, '0') 
+                while len(rows[i]) < 10: rows[i].append('')
+        
+        # 3. Orders Migration (Disc 2 Value)
+        elif sheet_name == 'Orders' and 'disc 2 value' not in existing_headers:
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 7:
+                    rows[i].insert(7, '0')
+                    rows[i].insert(8, '0')
+                while len(rows[i]) < 16: rows[i].append('')
+        
+        # 4. Fallback Header Sync
+        elif len(existing_headers) < len(headers):
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                while len(rows[i]) < len(headers): rows[i].append('')
+
+    # Perform Upsert if data provided
+    if data:
+        id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if i > 0 and len(row) > id_column_index}
+        for new_row in data:
+            new_id = str(new_row[id_column_index])
+            if new_id in id_map:
+                rows[id_map[new_id]] = new_row
+            else:
+                rows.append(new_row)
             
-    # 3. Update or Append
-    for new_row in data:
-        new_id = str(new_row[id_column_index])
-        if new_id in id_map:
-            rows[id_map[new_id]] = new_row
-        else:
-            rows.append(new_row)
-            
-    # 4. Write back
+    # Force Headers Correctness
+    if not rows[0] or rows[0][0].lower() != headers[0].lower():
+        rows[0] = headers
+
+    # Write back the full corrected dataset
     body = {'values': rows}
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
         valueInputOption='USER_ENTERED', body=body).execute()
+    return True
+
 
 @app.route('/health', methods=['GET'])
 def health():
