@@ -101,56 +101,50 @@ def ensure_headers(service, spreadsheet_id, sheet_name, headers):
         pass
 
 def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
-    range_name = f"'{sheet_name}'!A1:Z500"
+    # Fetch existing
+    range_name = f"'{sheet_name}'!A1:Z1000"
     try:
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
         rows = result.get('values', [])
     except:
         rows = []
     
-    if not rows or not rows[0]: 
+    # 1. Force Header Match
+    if not rows or not rows[0]:
         rows = [headers]
     else:
-        # ATOMIC MIGRATION
-        current_headers = [str(h).strip().lower() for h in rows[0]]
-        expected_headers = [str(h).strip().lower() for h in headers]
+        # Case insensitive compare
+        current = [str(h).strip().lower() for h in rows[0]]
+        expected = [str(h).strip().lower() for h in headers]
         
-        if current_headers != expected_headers:
-            old_rows = rows[1:]
+        if current != expected:
+            old_data = rows[1:]
             rows = [headers]
-            for old_row in old_rows:
-                new_row = [''] * len(headers)
-                if sheet_name == 'Customers' and len(old_row) >= 6:
-                    for j in range(6): 
-                        if j < len(old_row): new_row[j] = old_row[j]
-                    new_row[6] = '0'
-                    for j in range(6, len(old_row)):
-                        if j+1 < len(new_row): new_row[j+1] = old_row[j]
-                elif sheet_name == 'Orders' and len(old_row) >= 7:
-                    for j in range(7):
-                        if j < len(old_row): new_row[j] = old_row[j]
-                    new_row[7] = '0'
-                    new_row[8] = '0'
-                    for j in range(7, len(old_row)):
-                        if j+2 < len(new_row): new_row[j+2] = old_row[j]
-                else:
-                    for j in range(min(len(old_row), len(new_row))):
-                        new_row[j] = old_row[j]
-                rows.append(new_row)
+            for od in old_data:
+                new_r = od[:len(headers)]
+                while len(new_r) < len(headers): new_r.append('0')
+                rows.append(new_r)
 
+    # 2. Map Data
     if data:
         id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if i > 0 and len(row) > id_column_index}
         for new_row in data:
-            new_id = str(new_row[id_column_index])
-            if new_id in id_map: rows[id_map[new_id]] = new_row
+            nid = str(new_row[id_column_index])
+            if nid in id_map: rows[id_map[nid]] = new_row
             else: rows.append(new_row)
-            
+
+    # 3. Write back
     rows[0] = headers
     body = {'values': rows}
+    
+    # Clear first
+    service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1:Z").execute()
+    
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
         valueInputOption='USER_ENTERED', body=body).execute()
     return True
+
 
 
 

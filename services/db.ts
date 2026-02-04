@@ -524,6 +524,8 @@ class LocalDB {
     const items = this.getItems();
     const pendingItems = mode === 'overwrite' ? items : items.filter(i => i.sync_status === 'pending');
 
+    console.log("DEBUG: Pending Customers for Sync:", pendingCustomers);
+
     const result = await sheetsService.syncData(
         settings.google_sheet_id,
         pendingCustomers,
