@@ -58,6 +58,10 @@ class SheetsService {
       this.addLog(`Fetched ${data.pulledCustomers?.length || 0} customers from cloud.`);
       this.addLog(`Fetched ${data.pulledOrders?.length || 0} orders from cloud.`);
 
+      if (data.debug) {
+          this.addLog(`Cloud Schema Check: Customers(${data.debug.customer_header_len} cols), Orders(${data.debug.order_header_len} cols)`);
+      }
+
       return { 
           success: true, 
           pulledItems: data.pulledItems, 

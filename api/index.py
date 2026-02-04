@@ -291,11 +291,16 @@ def sync():
         if customers:
             values = [[c['customer_id'], c['shop_name'], c['address'], c['phone'], c['city_ref'], c['discount_rate'], c.get('secondary_discount_rate', 0), c.get('outstanding_balance', 0), c['status'], c['updated_at']] for c in customers]
             if mode == 'overwrite':
+                # Force update Row 1
                 service.spreadsheets().values().update(spreadsheetId=spreadsheet_id, range="'Customers'!A1", valueInputOption="RAW", body={"values": [customer_headers]}).execute()
+                # Clear all and append
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Customers'!A2:Z").execute()
-                service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
-            else: upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
+                if values:
+                    service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
+            else: 
+                upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
         else:
+            # Even if no customers, ensure headers are correct
             upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, [], 0)
 
         if items:
@@ -415,6 +420,10 @@ def sync():
             "pulledItems": pulled_items,
             "pulledCustomers": pulled_customers,
             "pulledOrders": pulled_orders,
+            "debug": {
+                "customer_header_len": len(customer_headers),
+                "order_header_len": len(order_headers)
+            },
             "message": f"Sync completed successfully ({mode} mode)"
         })
     except Exception as e:
