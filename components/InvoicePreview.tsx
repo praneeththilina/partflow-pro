@@ -157,33 +157,33 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                   )}
 
                                 {/* Items Table */}
-                                <table className="w-full border-collapse mb-5 border border-black overflow-hidden rounded-lg">
+                                <table className="w-full border-collapse mb-5 overflow-hidden rounded-lg">
                                     <thead>
-                                        <tr className="bg-slate-100">
-                                            <th className="border border-black p-2 w-[5%] text-center font-black uppercase text-[10px]">No</th>
-                                            <th className="border border-black p-2 w-[55%] text-left font-black uppercase text-[10px]">Description</th>
-                                            <th className="border border-black p-2 w-[10%] text-center font-black uppercase text-[10px]">Qty</th>
-                                            <th className="border border-black p-2 w-[15%] text-right font-black uppercase text-[10px]">Price</th>
-                                            <th className="border border-black p-2 w-[15%] text-right font-black uppercase text-[10px]">Amount</th>
+                                        <tr className="bg-slate-100 border-y border-black">
+                                            <th className="p-2 w-[5%] text-center font-black uppercase text-[10px]">No</th>
+                                            <th className="p-2 w-[55%] text-left font-black uppercase text-[10px]">Description</th>
+                                            <th className="p-2 w-[10%] text-center font-black uppercase text-[10px]">Qty</th>
+                                            <th className="p-2 w-[15%] text-right font-black uppercase text-[10px]">Price</th>
+                                            <th className="p-2 w-[15%] text-right font-black uppercase text-[10px]">Amount</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-slate-100">
                                         {pageLines.map((line, idx) => {
                                             const globalIdx = linePages.slice(0, pageIndex).flat().length + idx;
                                             return (
                                                 <tr key={line.line_id} className="even:bg-slate-50/50">
-                                                    <td className="border border-black p-2 text-center font-medium">{globalIdx + 1}</td>
-                                                    <td className="border border-black p-2 font-bold uppercase text-[11px]">{line.item_name}</td>
-                                                    <td className="border border-black p-2 text-center font-bold">{line.quantity}</td>
-                                                    <td className="border border-black p-2 text-right font-medium">{formatCurrency(line.unit_value, false)}</td>
-                                                    <td className="border border-black p-2 text-right font-black">{formatCurrency(line.line_total, false)}</td>
+                                                    <td className="p-2 text-center font-medium">{globalIdx + 1}</td>
+                                                    <td className="p-2 font-bold uppercase text-[11px]">{line.item_name}</td>
+                                                    <td className="p-2 text-center font-bold">{line.quantity}</td>
+                                                    <td className="p-2 text-right font-medium">{formatCurrency(line.unit_value, false)}</td>
+                                                    <td className="p-2 text-right font-black">{formatCurrency(line.line_total, false)}</td>
                                                 </tr>
                                             );
                                         })}
                                         {isMultiPage && !isLastPage && (
-                                            <tr className="font-black bg-slate-100">
-                                                <td colSpan={4} className="border border-black p-2 text-right uppercase italic text-[10px]">Sub Total (C/F)</td>
-                                                <td className="border border-black p-2 text-right underline decoration-double">
+                                            <tr className="font-black bg-slate-100 border-t border-black">
+                                                <td colSpan={4} className="p-2 text-right uppercase italic text-[10px]">Sub Total (C/F)</td>
+                                                <td className="p-2 text-right underline decoration-double">
                                                     {formatCurrency(cumulativeTotal, false)}
                                                 </td>
                                             </tr>
@@ -195,52 +195,52 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                 {isLastPage && (
                                     <div className="mt-auto pt-4">
                                         <div className="flex justify-end">
-                                            <table className="w-[45%] border-collapse border border-black">
-                                                <tbody>
+                                            <table className="w-[45%] border-collapse overflow-hidden rounded-lg">
+                                                <tbody className="divide-y divide-slate-100">
                                                     <tr>
-                                                        <td className="border border-black px-3 py-2 text-left font-bold uppercase text-[10px]">Gross Total</td>
-                                                        <td className="border border-black px-3 py-2 text-right font-black">
+                                                        <td className="px-3 py-2 text-left font-bold uppercase text-[10px]">Gross Total</td>
+                                                        <td className="px-3 py-2 text-right font-black">
                                                             {formatCurrency(order.gross_total, false)}
                                                         </td>
                                                     </tr>
                                                     {(order.discount_value || 0) > 0 && (
                                                         <tr>
-                                                            <td className="border border-black px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
+                                                            <td className="px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
                                                                 Less Disc 1 ({((order.discount_rate || 0) * 100).toFixed(0)}%)
                                                             </td>
-                                                            <td className="border border-black px-3 py-2 text-right font-black text-rose-600">
+                                                            <td className="px-3 py-2 text-right font-black text-rose-600">
                                                                 -{formatCurrency(order.discount_value || 0, false)}
                                                             </td>
                                                         </tr>
                                                     )}
                                                     {(order.secondary_discount_value || 0) > 0 && (
                                                         <tr>
-                                                            <td className="border border-black px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
+                                                            <td className="px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
                                                                 Less Disc 2 ({((order.secondary_discount_rate || 0) * 100).toFixed(0)}%)
                                                             </td>
-                                                            <td className="border border-black px-3 py-2 text-right font-black text-rose-600">
+                                                            <td className="px-3 py-2 text-right font-black text-rose-600">
                                                                 -{formatCurrency(order.secondary_discount_value || 0, false)}
                                                             </td>
                                                         </tr>
                                                     )}
-                                                    <tr className="bg-slate-100">
-                                                        <td className="border border-black px-3 py-3 text-left font-black text-[14px] uppercase tracking-tighter">Net Total</td>
-                                                        <td className="border border-black px-3 py-3 text-right font-black text-[16px]">
+                                                    <tr className="bg-slate-100 border-y border-black">
+                                                        <td className="px-3 py-3 text-left font-black text-[14px] uppercase tracking-tighter">Net Total</td>
+                                                        <td className="px-3 py-3 text-right font-black text-[16px]">
                                                             {formatCurrency(order.net_total)}
                                                         </td>
                                                     </tr>
                                                     { (order.paid_amount || 0) > 0 && (
                                                         <tr>
-                                                            <td className="border border-black px-3 py-2 text-left font-bold text-emerald-700 uppercase text-[10px]">Paid Amount</td>
-                                                            <td className="border border-black px-3 py-2 text-right font-black text-emerald-700">
+                                                            <td className="px-3 py-2 text-left font-bold text-emerald-700 uppercase text-[10px]">Paid Amount</td>
+                                                            <td className="px-3 py-2 text-right font-black text-emerald-700">
                                                                 -{formatCurrency(order.paid_amount || 0, false)}
                                                             </td>
                                                         </tr>
                                                     )}
                                                     {(order.balance_due || 0) > 0.5 && (
-                                                        <tr className="bg-rose-50">
-                                                            <td className="border border-black px-3 py-3 text-left font-black text-rose-700 uppercase text-[12px]">Balance Due</td>
-                                                            <td className="border border-black px-3 py-3 text-right font-black text-[18px] text-rose-700">
+                                                        <tr className="bg-rose-50 border-t border-rose-200">
+                                                            <td className="px-3 py-3 text-left font-black text-rose-700 uppercase text-[12px]">Balance Due</td>
+                                                            <td className="px-3 py-3 text-right font-black text-[18px] text-rose-700">
                                                                 {formatCurrency(order.balance_due)}
                                                             </td>
                                                         </tr>
