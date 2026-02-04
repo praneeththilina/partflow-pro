@@ -129,6 +129,24 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
             rows[0] = headers 
             for i in range(1, len(rows)):
                 if len(rows[i]) >= 6:
+                    rows[i].insert(6, '0') # Discount 2 
+                while len(rows[i]) < 10:
+                    rows[i].append('')
+        elif sheet_name == 'Orders' and 'Disc 2 Value' not in existing_headers:
+            print(f"CRITICAL: Migrating Orders Sheet - Adding 'Disc 2 Value' columns")
+            rows[0] = headers 
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 7:
+                    rows[i].insert(7, '0') # Rate 2
+                    rows[i].insert(8, '0') # Value 2
+                while len(rows[i]) < 16:
+                    rows[i].append('')
+
+        elif sheet_name == 'Customers' and 'Discount 2' not in existing_headers:
+            print(f"CRITICAL: Migrating Customers Sheet - Adding 'Discount 2' column")
+            rows[0] = headers 
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 6:
                     rows[i].insert(6, '0') 
                 while len(rows[i]) < 10:
                     rows[i].append('')
@@ -236,6 +254,8 @@ def sync():
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else:
                 upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
+        else:
+            upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, [], 0)
 
         # --- Process Inventory ---
         if items:
@@ -245,6 +265,8 @@ def sync():
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else:
                 upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, values, 0)
+        else:
+            upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, [], 0)
 
         # --- Process Orders ---
         if orders:
@@ -257,6 +279,8 @@ def sync():
                     line_values.append([l['line_id'], o['order_id'], l['item_id'], l['item_name'], l['quantity'], l['unit_value'], l['line_total']])
             if line_values:
                 upsert_rows(service, spreadsheet_id, 'OrderLines', line_headers, line_values, 0)
+        else:
+            upsert_rows(service, spreadsheet_id, 'Orders', order_headers, [], 0)
 
         # --- PULL ALL DATA ---
         

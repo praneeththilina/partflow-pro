@@ -312,7 +312,10 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                     <div className="mt-2 flex items-center text-xs text-slate-400 space-x-2">
                         <span>{customer.phone || 'No Phone'}</span>
                         <span>•</span>
-                        <span className="text-indigo-600 font-medium">{(customer.discount_rate * 100).toFixed(0)}% Deal</span>
+                        <span className="text-indigo-600 font-medium">
+                            {(customer.discount_rate * 100).toFixed(0)}%
+                            {customer.secondary_discount_rate ? ` + ${(customer.secondary_discount_rate * 100).toFixed(0)}%` : ''} Deal
+                        </span>
                     </div>
                 </div>
             </button>

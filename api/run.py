@@ -138,7 +138,6 @@ def ensure_headers(service, spreadsheet_id, sheet_name, headers):
         raise err
 
 def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
-    if not data: return
     range_name = f"'{sheet_name}'!A:Z"
     result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
     rows = result.get('values', [])
@@ -175,6 +174,14 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
             for i in range(1, len(rows)):
                 while len(rows[i]) < len(headers):
                     rows[i].append('')
+
+    if not data:
+        # Just write back the potentially migrated headers
+        body = {'values': rows}
+        service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
+            valueInputOption='USER_ENTERED', body=body).execute()
+        return
 
     id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
     for new_row in data:
@@ -310,19 +317,28 @@ def sync():
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Customers'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else: upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
+        else:
+            upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, [], 0)
+
         if items:
             values = [[i['item_id'], i['item_display_name'], i['item_name'], i['item_number'], i['vehicle_model'], i['source_brand'], i.get('category', 'Uncategorized'), i['unit_value'], i['current_stock_qty'], i.get('low_stock_threshold', 10), i.get('is_out_of_stock', False), i['status'], i['updated_at']] for i in items]
             if mode == 'overwrite':
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Inventory'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else: upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, values, 0)
+        else:
+            upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, [], 0)
+
         if orders:
             order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o.get('gross_total', 0), o.get('discount_rate', 0), o.get('discount_value', 0), o.get('secondary_discount_rate', 0), o.get('secondary_discount_value', 0), o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
             upsert_rows(service, spreadsheet_id, 'Orders', order_headers, order_values, 0)
+            
             line_values = []
             for o in orders:
                 for l in o.get('lines', []): line_values.append([l['line_id'], o['order_id'], l['item_id'], l['item_name'], l['quantity'], l['unit_value'], l['line_total']])
             if line_values: upsert_rows(service, spreadsheet_id, 'OrderLines', line_headers, line_values, 0)
+        else:
+            upsert_rows(service, spreadsheet_id, 'Orders', order_headers, [], 0)
         # --- PULL ALL DATA ---
         
         # 1. Pull Inventory
