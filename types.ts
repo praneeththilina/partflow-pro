@@ -68,6 +68,7 @@ export interface Order extends BaseEntity {
 
   order_status: OrderStatus;
   lines: OrderLine[];
+  manual_invoice_number?: string;
 }
 
 export interface Item extends BaseEntity {
@@ -106,6 +107,7 @@ export interface CompanySettings {
   auto_sku_enabled: boolean;
   stock_tracking_enabled: boolean;
   category_enabled: boolean; // New Setting
+  manual_invoice_enabled: boolean; // New Setting
   google_sheet_id?: string;
 }
 

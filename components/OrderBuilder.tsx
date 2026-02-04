@@ -20,6 +20,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     const [lines, setLines] = useState<OrderLine[]>([]);
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
     const [discountRate, setDiscountRate] = useState<number>((existingCustomer?.discount_rate || 0) * 100);
+    const [manualInvoiceNo, setManualInvoiceNo] = useState('');
     
     // UI State
     const [itemFilter, setItemFilter] = useState('');
@@ -192,6 +193,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             order_status: 'confirmed',
             delivery_status: 'pending',
             lines: finalLines,
+            manual_invoice_number: settings.manual_invoice_enabled ? manualInvoiceNo : undefined,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             sync_status: 'pending'
@@ -262,6 +264,18 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             className="bg-slate-50 border-none p-0 text-xs focus:ring-0 text-indigo-600 font-medium" 
                         />
                     </div>
+                    {settings.manual_invoice_enabled && (
+                        <div className="text-xs text-slate-500 flex items-center gap-2 mt-1">
+                            <span>Invoice No:</span>
+                            <input 
+                                type="text" 
+                                value={manualInvoiceNo} 
+                                onChange={e => setManualInvoiceNo(e.target.value)} 
+                                placeholder="Auto-generated"
+                                className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none text-indigo-600 font-bold w-24" 
+                            />
+                        </div>
+                    )}
                 </div>
                 <button onClick={onCancel} className="text-slate-400 hover:text-slate-600 bg-slate-50 p-2 rounded-full">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>

@@ -215,6 +215,12 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                             checked={settings.category_enabled}
                             onChange={val => setSettings({...settings, category_enabled: val})}
                         />
+                        <ToggleRow 
+                            label="Manual Invoice Entry"
+                            description="Manually enter invoice numbers at checkout."
+                            checked={settings.manual_invoice_enabled}
+                            onChange={val => setSettings({...settings, manual_invoice_enabled: val})}
+                        />
                     </div>
                 </div>
 

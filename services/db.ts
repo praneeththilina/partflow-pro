@@ -26,7 +26,8 @@ const SEED_SETTINGS: CompanySettings = {
     ...(APP_SETTINGS as any), 
     auto_sku_enabled: true, 
     stock_tracking_enabled: false,
-    category_enabled: false
+    category_enabled: false,
+    manual_invoice_enabled: true
 }; 
 
 const SEED_USERS: User[] = USER_CONFIG.users.map((u, index) => ({

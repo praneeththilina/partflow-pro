@@ -185,7 +185,7 @@ export const Reports: React.FC = () => {
                         {filteredOrders.sort((a, b) => b.order_date.localeCompare(a.order_date)).map(o => (
                             <tr key={o.order_id} className="hover:bg-slate-50">
                                 <td className="px-6 py-4 font-medium text-slate-600">{o.order_date}</td>
-                                <td className="px-6 py-4 font-mono font-bold text-indigo-600">{settings.invoice_prefix}{o.order_id.substring(0,6).toUpperCase()}</td>
+                                <td className="px-6 py-4 font-mono font-bold text-indigo-600">{o.manual_invoice_number || (settings.invoice_prefix + o.order_id.substring(0, 6).toUpperCase())}</td>
                                 <td className="px-6 py-4 font-bold text-slate-800">
                                     {customers.find(c => c.customer_id === o.customer_id)?.shop_name || 'Deleted Customer'}
                                 </td>
@@ -349,7 +349,7 @@ export const Reports: React.FC = () => {
                             {custOrders.sort((a,b) => b.order_date.localeCompare(a.date)).map(o => (
                                 <tr key={o.order_id} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 text-slate-500">{o.order_date}</td>
-                                    <td className="px-6 py-4 font-mono font-bold text-indigo-600">{settings.invoice_prefix}{o.order_id.substring(0,6).toUpperCase()}</td>
+                                    <td className="px-6 py-4 font-mono font-bold text-indigo-600">{o.manual_invoice_number || (settings.invoice_prefix + o.order_id.substring(0, 6).toUpperCase())}</td>
                                     <td className="px-6 py-4">
                                         <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase border ${
                                             o.order_status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500'

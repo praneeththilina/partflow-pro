@@ -155,6 +155,13 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
                     rows[i].insert(10, 'FALSE')
                 while len(rows[i]) < 13:
                     rows[i].append('')
+        elif sheet_name == 'Orders' and 'Invoice No' not in existing_headers:
+            rows[0] = headers # Update to 12-column headers
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 4:
+                    rows[i].insert(4, '') # Empty invoice no for old records
+                while len(rows[i]) < 12:
+                    rows[i].append('')
         elif len(rows[0]) < len(headers):
             rows[0] = headers
             for i in range(1, len(rows)):
@@ -283,7 +290,7 @@ def sync():
         service = get_sheets_service()
         customer_headers = ['ID', 'Shop Name', 'Address', 'Phone', 'City', 'Discount', 'Balance', 'Status', 'Last Updated']
         inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Out of Stock', 'Status', 'Last Updated']
-        order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Net Total', 'Paid', 'Balance Due', 'Payment Status', 'Delivery Status', 'Status', 'Last Updated']
+        order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Invoice No', 'Net Total', 'Paid', 'Balance Due', 'Payment Status', 'Delivery Status', 'Status', 'Last Updated']
         line_headers = ['Line ID', 'Order ID', 'Item ID', 'Item Name', 'Qty', 'Unit Price', 'Line Total']
         ensure_headers(service, spreadsheet_id, 'Customers', customer_headers)
         ensure_headers(service, spreadsheet_id, 'Inventory', inventory_headers)
@@ -302,7 +309,7 @@ def sync():
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else: upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, values, 0)
         if orders:
-            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
+            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o.get('manual_invoice_number', ''), o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
             upsert_rows(service, spreadsheet_id, 'Orders', order_headers, order_values, 0)
             line_values = []
             for o in orders:
