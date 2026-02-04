@@ -556,17 +556,6 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                         </div>
                      </div>
                 </div>
-
-                {/* Mobile Floating Action Button (Cart) */}
-                {mobileTab === 'catalog' && lines.length > 0 && (
-                    <button 
-                        onClick={() => setMobileTab('cart')}
-                        className="md:hidden absolute bottom-4 right-4 bg-indigo-600 text-white px-6 py-3 rounded-full font-bold shadow-xl flex items-center gap-2 animate-in slide-in-from-bottom-5"
-                    >
-                        <span>View Cart</span>
-                        <span className="bg-white text-indigo-600 text-xs px-2 py-0.5 rounded-full">{lines.length}</span>
-                    </button>
-                )}
             </div>
 
             {/* Quantity Modal */}
