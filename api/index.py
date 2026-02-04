@@ -273,7 +273,7 @@ def sync():
         ensure_headers(service, spreadsheet_id, 'Orders', order_headers)
         ensure_headers(service, spreadsheet_id, 'OrderLines', line_headers)
         if customers:
-            values = [[c['customer_id'], c['shop_name'], c['address'], c['phone'], c['city_ref'], c['discount_rate'], c['status'], c['updated_at']] for c in customers]
+            values = [[c['customer_id'], c['shop_name'], c['address'], c['phone'], c['city_ref'], c['discount_rate'], c.get('outstanding_balance', 0), c['status'], c['updated_at']] for c in customers]
             if mode == 'overwrite':
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Customers'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
@@ -285,7 +285,7 @@ def sync():
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else: upsert_rows(service, spreadsheet_id, 'Inventory', inventory_headers, values, 0)
         if orders:
-            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o['net_total'], o['order_status'], o['updated_at']] for o in orders]
+            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
             upsert_rows(service, spreadsheet_id, 'Orders', order_headers, order_values, 0)
             line_values = []
             for o in orders:
