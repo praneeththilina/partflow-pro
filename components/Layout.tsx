@@ -134,41 +134,46 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
 
       {/* Mobile Menu Overlay */}
       {showMobileMenu && (
-          <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm md:hidden" onClick={() => setShowMobileMenu(false)}>
-              <div className="absolute bottom-24 right-4 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 p-2 animate-in slide-in-from-bottom-5 fade-in zoom-in-95 duration-200">
-                  <div className="space-y-1">
-                      {['history', 'reports', 'settings'].map(id => {
-                          const tab = tabs.find(t => t.id === id);
-                          if (!tab) return null;
-                          return (
-                              <button 
-                                key={id} 
-                                onClick={() => handleMobileNavClick(id)}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-left text-slate-600 font-medium text-sm transition-colors"
-                              >
-                                  <span className="text-indigo-500">{tab.icon}</span>
-                                  {tab.label}
-                              </button>
-                          );
-                      })}
+          <div className="fixed inset-0 z-[60] md:hidden" onClick={() => setShowMobileMenu(false)}>
+              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] animate-in fade-in duration-300"></div>
+              <div className="absolute bottom-24 left-4 right-4 bg-white rounded-3xl shadow-2xl border border-slate-100 p-3 animate-in slide-in-from-bottom-10 fade-in zoom-in-95 duration-300 overflow-hidden">
+                  <div className="grid grid-cols-3 gap-2">
+                      {[
+                          { id: 'history', label: 'History', icon: tabs.find(t => t.id === 'history')?.icon, color: 'text-blue-600', bg: 'bg-blue-50' },
+                          { id: 'reports', label: 'Reports', icon: tabs.find(t => t.id === 'reports')?.icon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                          { id: 'settings', label: 'Settings', icon: tabs.find(t => t.id === 'settings')?.icon, color: 'text-slate-600', bg: 'bg-slate-50' }
+                      ].map(item => (
+                          <button 
+                            key={item.id} 
+                            onClick={() => handleMobileNavClick(item.id)}
+                            className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl hover:bg-slate-50 transition-all active:scale-95"
+                          >
+                              <div className={`w-12 h-12 ${item.bg} ${item.color} rounded-xl flex items-center justify-center shadow-sm`}>
+                                  {item.icon}
+                              </div>
+                              <span className="text-[11px] font-black uppercase tracking-tight text-slate-600">{item.label}</span>
+                          </button>
+                      ))}
                   </div>
               </div>
           </div>
       )}
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.05)] z-50 pb-safe no-print">
-        <div className="flex justify-around items-end pb-2 pt-1 h-16 px-2">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 shadow-[0_-15px_50px_-15px_rgba(0,0,0,0.1)] z-50 pb-safe no-print">
+        <div className="flex justify-between items-center h-20 px-2 max-w-md mx-auto">
           {mobileNavOrder.map(id => {
             if (id === 'menu') {
                  return (
                     <button
                         key="menu"
                         onClick={() => handleMobileNavClick('menu')}
-                        className={`flex flex-col items-center justify-center w-full space-y-1 transition-colors ${showMobileMenu ? 'text-indigo-600' : 'text-slate-300'}`}
+                        className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all active:scale-90 ${showMobileMenu ? 'text-indigo-600' : 'text-slate-400'}`}
                     >
-                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                        <span className="text-[10px] font-bold">More</span>
+                         <div className={`p-2 rounded-xl transition-colors ${showMobileMenu ? 'bg-indigo-50' : ''}`}>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                         </div>
+                        <span className="text-[9px] font-black uppercase tracking-tighter">More</span>
                     </button>
                  );
             }
@@ -181,12 +186,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
 
             if (isFab) {
                 return (
-                    <div key={id} className="relative -top-5">
+                    <div key={id} className="relative px-2">
                         <button
                             onClick={() => handleMobileNavClick(id)}
-                            className="w-14 h-14 rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-200 flex items-center justify-center transform transition-transform active:scale-90"
+                            className="w-16 h-16 rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-200 flex flex-col items-center justify-center transform -translate-y-4 border-4 border-white active:scale-95 transition-all"
                         >
-                            {tab.icon}
+                            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+                            <span className="text-[8px] font-black uppercase mt-0.5">Sale</span>
                         </button>
                     </div>
                 );
@@ -196,15 +202,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
               <button
                 key={id}
                 onClick={() => handleMobileNavClick(id)}
-                className={`flex flex-col items-center justify-center w-full space-y-1 transition-colors ${
-                  isActive ? 'text-indigo-600' : 'text-slate-300'
+                className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all active:scale-90 ${
+                  isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
-                <div className="relative">
+                <div className={`p-2 rounded-xl transition-colors ${isActive ? 'bg-indigo-50' : ''}`}>
                   {tab.icon}
-                  {isActive && <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"></span>}
                 </div>
-                <span className={`text-[10px] font-bold ${isActive ? 'text-indigo-900' : 'text-slate-400'}`}>{tab.label}</span>
+                <span className={`text-[9px] font-black uppercase tracking-tighter ${isActive ? 'text-indigo-900' : 'text-slate-500'}`}>{tab.label}</span>
               </button>
             );
           })}
