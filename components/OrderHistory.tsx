@@ -16,8 +16,8 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice }) => 
     const [showDeliveryModal, setShowDeliveryModal] = useState(false);
 
     useEffect(() => {
-        setOrders(db.getOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-        setCustomers(db.getCustomers());
+        setOrders([...db.getOrders()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setCustomers([...db.getCustomers()]);
     }, []);
 
     const getCustomerName = (id: string) => customers.find(c => c.customer_id === id)?.shop_name || 'Unknown';
@@ -35,21 +35,21 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice }) => 
         }
     };
 
-    const handleDelete = (order: Order) => {
+    const handleDelete = async (order: Order) => {
         if (order.sync_status === 'synced') {
             alert("Cannot delete orders that have already been synced to the server.");
             return;
         }
         if (window.confirm("Are you sure you want to delete this order? Stock will be restored.")) {
-            db.deleteOrder(order.order_id);
-            setOrders(db.getOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+            await db.deleteOrder(order.order_id);
+            setOrders([...db.getOrders()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
         }
     };
 
     const handleUpdateDelivery = async (status: DeliveryStatus) => {
         if (!selectedOrder) return;
         await db.updateDeliveryStatus(selectedOrder.order_id, status);
-        setOrders(db.getOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setOrders([...db.getOrders()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
         setShowDeliveryModal(false);
         setSelectedOrder(null);
     };

@@ -191,11 +191,11 @@ export const InventoryList: React.FC = () => {
       setAdjustItem(null);
   };
 
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!editingItem) return;
     if (window.confirm("Are you sure you want to delete this item? It will be marked as inactive.")) {
-        db.deleteItem(editingItem.item_id);
-        setItems(db.getItems());
+        await db.deleteItem(editingItem.item_id);
+        setItems([...db.getItems()]);
         setShowAddForm(false);
         setEditingItem(null);
         setNewItem({});
