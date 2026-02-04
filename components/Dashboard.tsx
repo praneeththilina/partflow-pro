@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
+import { useToast } from '../context/ToastContext';
 import { Preferences } from '@capacitor/preferences';
 import { formatCurrency } from '../utils/currency';
 
@@ -12,6 +13,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
     const [stats, setStats] = useState(db.getDashboardStats());
     const [recentOrders, setRecentOrders] = useState(db.getOrders().slice(0, 5));
     const settings = db.getSettings();
+
+    const { showToast } = useToast();
 
     useEffect(() => {
         const updateWidget = async () => {
@@ -54,7 +57,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
 
             {/* Main Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-5 rounded-3xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group">
+                <div 
+                    onClick={() => {
+                        onAction('reports');
+                        showToast("Opening sales reports", "info");
+                    }}
+                    className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-5 rounded-3xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group cursor-pointer active:scale-95 transition-transform"
+                >
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                          <svg className="w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
                     </div>

@@ -14,6 +14,7 @@ import { Reports } from './components/Reports';
 import { Customer, Order } from './types';
 import { db } from './services/db';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { App as CapApp } from '@capacitor/app';
 import { Modal } from './components/ui/Modal';
 import { ShopProfile } from './components/ShopProfile';
@@ -245,7 +246,9 @@ function AppContent() {
 export default function App() {
     return (
         <AuthProvider>
-            <AppContent />
+            <ToastProvider>
+                <AppContent />
+            </ToastProvider>
         </AuthProvider>
     );
 }
