@@ -611,6 +611,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 type="number" 
                                 className="w-24 text-center text-3xl font-bold border-b-2 border-indigo-500 focus:outline-none" 
                                 value={qtyInput}
+                                onFocus={(e) => e.target.select()}
+                                autoFocus
                                 onChange={e => setQtyInput(e.target.value)}
                              />
                              <button onClick={() => setQtyInput((parseInt(qtyInput)+1).toString())} className="w-12 h-12 rounded-full bg-slate-100 text-2xl font-bold text-slate-600 hover:bg-slate-200">+</button>
@@ -647,6 +649,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                     type="number" 
                                     className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl text-lg font-bold focus:border-indigo-500 focus:outline-none"
                                     value={paymentAmount}
+                                    onFocus={(e) => e.target.select()}
                                     onChange={e => setPaymentAmount(e.target.value)}
                                     placeholder="Enter amount"
                                 />
