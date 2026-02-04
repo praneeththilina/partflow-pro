@@ -210,6 +210,19 @@ class LocalDB {
     await this.db.customers.put(customerToSave);
   }
 
+  async deleteCustomer(customerId: string): Promise<void> {
+    const orders = this.cache.orders.filter(o => o.customer_id === customerId);
+    if (orders.length > 0) {
+        throw new Error("Cannot delete customer with order history. Try disabling them instead.");
+    }
+
+    const index = this.cache.customers.findIndex(c => c.customer_id === customerId);
+    if (index >= 0) {
+        this.cache.customers.splice(index, 1);
+        await this.db.customers.delete(customerId);
+    }
+  }
+
   // --- Items ---
   getItems(): Item[] {
     return this.cache.items;

@@ -15,6 +15,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({});
+  const [showInactive, setShowInactive] = useState(false);
   
   // Action Sheet State
   const [actionCustomer, setActionCustomer] = useState<Customer | null>(null);
@@ -36,6 +37,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
         phone: newCustomer.phone || editingCustomer.phone,
         city_ref: newCustomer.city_ref || editingCustomer.city_ref,
         discount_rate: newCustomer.discount_rate ?? editingCustomer.discount_rate,
+        status: newCustomer.status || editingCustomer.status,
         updated_at: new Date().toISOString(),
         sync_status: 'pending'
     } : {
@@ -65,10 +67,33 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       setShowAddForm(true);
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.city_ref.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const toggleCustomerStatus = async (customer: Customer) => {
+      const updatedStatus = customer.status === 'active' ? 'inactive' : 'active';
+      const updatedCustomer = { ...customer, status: updatedStatus as any, sync_status: 'pending' as const };
+      await db.saveCustomer(updatedCustomer);
+      setCustomers([...db.getCustomers()]);
+      setActionCustomer(null);
+  };
+
+  const handleDeleteCustomer = async (customer: Customer) => {
+      if (!window.confirm(`Are you sure you want to delete ${customer.shop_name}?`)) return;
+      
+      try {
+          await db.deleteCustomer(customer.customer_id);
+          setCustomers([...db.getCustomers()]);
+          setActionCustomer(null);
+      } catch (e: any) {
+          alert(e.message);
+      }
+  };
+
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = c.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          c.city_ref.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (showInactive) return matchesSearch;
+    return matchesSearch && c.status === 'active';
+  });
 
   // Helper for avatars
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
@@ -78,19 +103,28 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       
       {/* Search & Action Bar */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center sticky top-0 bg-slate-50 pt-2 pb-2 z-10">
-        <div className="relative w-full md:w-96 group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
+        <div className="relative w-full md:w-96 group flex items-center gap-2">
+            <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                    </svg>
+                </div>
+                <input 
+                    type="text"
+                    placeholder="Search shops or cities..."
+                    className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow shadow-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
             </div>
-            <input 
-                type="text"
-                placeholder="Search shops or cities..."
-                className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <button 
+                onClick={() => setShowInactive(!showInactive)}
+                className={`p-3 rounded-xl border transition-all ${showInactive ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-400 border-slate-300 hover:border-indigo-500'}`}
+                title={showInactive ? "Showing All Shops" : "Showing Active Only"}
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.882 9.882L5.146 5.146m13.708 13.708L15.146 15.146M21 12a9 9 0 01-1.391 4.876m-9.474-9.474L3 3m18 18l-3-3" /></svg>
+            </button>
         </div>
         <button 
             onClick={() => setShowAddForm(true)}
@@ -114,20 +148,24 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
           <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4" onClick={() => setActionCustomer(null)}>
               <div className="bg-white w-full max-w-sm rounded-t-3xl md:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-200" onClick={e => e.stopPropagation()}>
                   <div className="text-center mb-6">
-                      <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-2xl font-black text-indigo-600 mx-auto mb-3">
+                      <div className={`w-16 h-16 ${actionCustomer.status === 'inactive' ? 'bg-slate-200 text-slate-400' : 'bg-indigo-100 text-indigo-600'} rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-3`}>
                           {getInitials(actionCustomer.shop_name)}
                       </div>
                       <h3 className="text-xl font-black text-slate-900">{actionCustomer.shop_name}</h3>
                       <p className="text-slate-500 text-sm">{actionCustomer.city_ref}</p>
+                      {actionCustomer.status === 'inactive' && (
+                          <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase rounded-full border border-slate-200">Disabled</span>
+                      )}
                   </div>
                   
                   <div className="space-y-3">
                       <button 
+                          disabled={actionCustomer.status === 'inactive'}
                           onClick={() => {
                               onSelectCustomer(actionCustomer);
                               setActionCustomer(null);
                           }}
-                          className="w-full flex items-center justify-center gap-3 bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform"
+                          className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform ${actionCustomer.status === 'inactive' ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-indigo-600 text-white'}`}
                       >
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                           Create New Bill
@@ -145,6 +183,25 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                               Open Shop Profile
                           </button>
                       )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                          <button 
+                              onClick={() => toggleCustomerStatus(actionCustomer)}
+                              className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold border-2 transition-all ${
+                                  actionCustomer.status === 'inactive' 
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
+                                  : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                              }`}
+                          >
+                              {actionCustomer.status === 'inactive' ? 'Enable' : 'Disable'}
+                          </button>
+                          <button 
+                              onClick={() => handleDeleteCustomer(actionCustomer)}
+                              className="flex items-center justify-center gap-2 py-3 bg-rose-50 border-2 border-rose-200 text-rose-700 rounded-xl font-bold hover:bg-rose-100 transition-all"
+                          >
+                              Delete
+                          </button>
+                      </div>
                   </div>
                   <button onClick={() => setActionCustomer(null)} className="w-full mt-6 py-3 text-slate-400 font-bold text-sm">Cancel</button>
               </div>
@@ -199,14 +256,14 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
             <button 
                 key={customer.customer_id} 
                 onClick={() => setActionCustomer(customer)}
-                className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all text-left flex items-start space-x-4 group active:scale-[0.98]"
+                className={`bg-white p-4 rounded-xl shadow-sm border ${customer.status === 'inactive' ? 'border-slate-100 opacity-60' : 'border-slate-200 hover:border-indigo-500'} hover:shadow-md transition-all text-left flex items-start space-x-4 group active:scale-[0.98]`}
             >
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                <div className={`flex-shrink-0 w-12 h-12 rounded-full ${customer.status === 'inactive' ? 'bg-slate-100 text-slate-400' : 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'} flex items-center justify-center font-bold text-lg transition-colors`}>
                     {getInitials(customer.shop_name)}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                        <h3 className="text-base font-bold text-slate-900 truncate pr-2">{customer.shop_name}</h3>
+                        <h3 className={`text-base font-bold truncate pr-2 ${customer.status === 'inactive' ? 'text-slate-400' : 'text-slate-900'}`}>{customer.shop_name}</h3>
                         <div className="flex items-center gap-2">
                             {customer.outstanding_balance > 0 && (
                                 <span className="bg-rose-100 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200">

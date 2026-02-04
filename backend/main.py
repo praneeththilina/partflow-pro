@@ -186,7 +186,7 @@ def sync():
         
         # Define Header Schemas
         customer_headers = ['ID', 'Shop Name', 'Address', 'Phone', 'City', 'Discount', 'Status', 'Last Updated']
-        inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Status', 'Last Updated']
+        inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Out of Stock', 'Status', 'Last Updated']
         order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Net Total', 'Status', 'Last Updated']
         line_headers = ['Line ID', 'Order ID', 'Item ID', 'Item Name', 'Qty', 'Unit Price', 'Line Total']
 
@@ -207,7 +207,7 @@ def sync():
 
         # --- Process Inventory ---
         if items:
-            values = [[i['item_id'], i['item_display_name'], i['item_name'], i['item_number'], i['vehicle_model'], i['source_brand'], i.get('category', 'Uncategorized'), i['unit_value'], i['current_stock_qty'], i.get('low_stock_threshold', 10), i['status'], i['updated_at']] for i in items]
+            values = [[i['item_id'], i['item_display_name'], i['item_name'], i['item_number'], i['vehicle_model'], i['source_brand'], i.get('category', 'Uncategorized'), i['unit_value'], i['current_stock_qty'], i.get('low_stock_threshold', 10), i.get('is_out_of_stock', False), i['status'], i['updated_at']] for i in items]
             if mode == 'overwrite':
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Inventory'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
@@ -236,8 +236,8 @@ def sync():
                 # Basic validation
                 if not row or not row[0]: continue
                 
-                # Pad row to ensure 12 columns
-                while len(row) < 12: row.append('')
+                # Pad row to ensure 13 columns
+                while len(row) < 13: row.append('')
                 
                 try: unit_val = float(row[7]) if row[7] else 0
                 except: unit_val = 0
@@ -255,8 +255,9 @@ def sync():
                     "unit_value": unit_val, 
                     "current_stock_qty": stock_qty,
                     "low_stock_threshold": int(row[9]) if row[9] else 10, 
-                    "status": str(row[10] or 'active'),
-                    "updated_at": str(row[11] or ''), 
+                    "is_out_of_stock": str(row[10]).lower() == 'true',
+                    "status": str(row[11] or 'active'),
+                    "updated_at": str(row[12] or ''), 
                     "sync_status": 'synced'
                 })
 
