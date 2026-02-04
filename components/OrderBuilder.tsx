@@ -211,18 +211,30 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         onOrderCreated(newOrder);
     };
 
-    // Filter Logic
-    const availableModels = ['All', ...Array.from(new Set(items.map(i => i.vehicle_model).filter(Boolean)))].sort();
-    const availableCountries = ['All', ...Array.from(new Set(items.map(i => i.source_brand).filter(Boolean)))].sort();
+    // Faceted Filter Logic
+    const itemsMatchingText = items.filter(i => 
+        i.item_display_name.toLowerCase().includes(itemFilter.toLowerCase()) ||
+        i.item_number.toLowerCase().includes(itemFilter.toLowerCase())
+    );
 
-    const filteredItems = items.filter(i => {
-        const matchesSearch = (i.item_display_name.toLowerCase().includes(itemFilter.toLowerCase()) ||
-                               i.item_number.toLowerCase().includes(itemFilter.toLowerCase()));
-        
+    const availableModels = ['All', ...Array.from(new Set(
+        itemsMatchingText
+            .filter(i => countryFilter === 'All' || i.source_brand === countryFilter)
+            .map(i => i.vehicle_model)
+            .filter(Boolean)
+    ))].sort();
+
+    const availableCountries = ['All', ...Array.from(new Set(
+        itemsMatchingText
+            .filter(i => modelFilter === 'All' || i.vehicle_model === modelFilter)
+            .map(i => i.source_brand)
+            .filter(Boolean)
+    ))].sort();
+
+    const filteredItems = itemsMatchingText.filter(i => {
         const matchesModel = modelFilter === 'All' || i.vehicle_model === modelFilter;
         const matchesCountry = countryFilter === 'All' || i.source_brand === countryFilter;
-
-        return matchesSearch && matchesModel && matchesCountry && i.status === 'active';
+        return matchesModel && matchesCountry && i.status === 'active';
     }).sort((a, b) => {
         if (sortOrder === 'A-Z') return a.item_display_name.localeCompare(b.item_display_name);
         if (sortOrder === 'Price-High') return b.unit_value - a.unit_value;
