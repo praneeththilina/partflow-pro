@@ -124,18 +124,22 @@ def ensure_headers(service, spreadsheet_id, sheet_name, headers):
             body = {'requests': [{'addSheet': {'properties': {'title': sheet_name}}}]}
             service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
 
+        # Check existing headers
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1:Z1").execute()
         
         existing_values = result.get('values', [[]])
-        if not existing_values or not existing_values[0]:
+        
+        # Migration Logic: If headers are missing or length doesn't match
+        if not existing_values or not existing_values[0] or len(existing_values[0]) < len(headers):
+            print(f"INFO: Updating headers for {sheet_name}")
             body = {'values': [headers]}
             service.spreadsheets().values().update(
                 spreadsheetId=spreadsheet_id, range=f"'{sheet_name}'!A1",
                 valueInputOption='RAW', body=body).execute()
     except Exception as err:
         print(f"Error in ensure_headers for {sheet_name}: {err}")
-        raise err
+        pass
 
 def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_index=0):
     range_name = f"'{sheet_name}'!A:Z"

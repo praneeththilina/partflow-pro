@@ -13,20 +13,19 @@ interface InvoicePreviewProps {
 export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer, settings, onClose }) => {
     
     // Pagination Logic
-    const ITEMS_PER_PAGE_1 = 20; // Maximum items on first page
-    const ITEMS_PER_PAGE_REST = 20; // Maximum items on subsequent pages
+    const ITEMS_PER_PAGE_1 = 20; 
+    const ITEMS_PER_PAGE_REST = 20;
 
     const paginateLines = (lines: OrderLine[]) => {
         const pages: OrderLine[][] = [];
+        if (!lines || lines.length === 0) return [[]];
+        
         if (lines.length <= 20) {
             pages.push(lines);
             return pages;
         }
 
-        // First page
         pages.push(lines.slice(0, ITEMS_PER_PAGE_1));
-        
-        // Remaining pages
         let remaining = lines.slice(ITEMS_PER_PAGE_1);
         while (remaining.length > 0) {
             pages.push(remaining.slice(0, ITEMS_PER_PAGE_REST));
@@ -35,14 +34,26 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
         return pages;
     };
 
-    const linePages = paginateLines(order.lines);
+    if (!order || !customer) {
+        return (
+            <div className="fixed inset-0 bg-white z-[200] flex items-center justify-center p-4">
+                <div className="text-center">
+                    <p className="text-slate-500 font-bold mb-4">Error: Order data missing.</p>
+                    <button onClick={onClose} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold">Go Back</button>
+                </div>
+            </div>
+        );
+    }
+
+    const linePages = paginateLines(order.lines || []);
+    const safeInvNo = (order.order_id || '').toUpperCase();
 
     const handleDownload = async () => {
         try {
             await pdfService.generateInvoice(order, customer, settings, '.invoice-page');
         } catch (error) {
             console.error(error);
-            alert("Failed to generate PDF. Check console for details.");
+            alert("Failed to generate PDF.");
         }
     };
 
@@ -56,34 +67,34 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-75 z-50 overflow-y-auto flex justify-center p-0 md:p-4">
-            <div className="w-full max-w-5xl bg-white shadow-2xl flex flex-col relative min-h-screen md:min-h-0 md:rounded-lg overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900/90 z-[100] overflow-y-auto flex justify-center p-0 md:p-4 backdrop-blur-sm">
+            <div className="w-full max-w-5xl bg-white shadow-2xl flex flex-col relative min-h-screen md:min-h-0 md:rounded-2xl overflow-hidden">
                 
                 {/* Controls Bar */}
-                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-slate-50 z-50 md:rounded-t-lg">
-                    <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800">
+                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md z-[110] md:rounded-t-2xl">
+                    <button onClick={onClose} className="p-2 text-slate-500 hover:text-slate-800 bg-slate-100 rounded-full active:scale-90 transition-transform">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                     <div className="flex gap-2">
                         <button 
                             onClick={handleShare} 
-                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm active:scale-95 text-sm"
+                            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-200 active:scale-95 transition-all text-sm"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                             Share
                         </button>
                         <button 
                             onClick={handleDownload} 
-                            className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 border border-slate-200 active:scale-95 text-sm"
+                            className="bg-white text-slate-700 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 border border-slate-200 shadow-sm active:scale-95 transition-all text-sm"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            Download
+                            Save
                         </button>
                     </div>
                 </div>
 
                 {/* Actual Invoice Content */}
-                <div className="flex-1 overflow-auto p-4 md:p-8 bg-slate-200 flex flex-col items-center gap-8 text-black">
+                <div className="flex-1 overflow-auto p-4 md:p-12 bg-slate-100 flex flex-col items-center gap-8">
                     {linePages.map((pageLines, pageIndex) => {
                         const isFirstPage = pageIndex === 0;
                         const isLastPage = pageIndex === linePages.length - 1;
@@ -97,90 +108,82 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                         return (
                             <div 
                                 key={pageIndex}
-                                className="invoice-page bg-white text-black p-[15mm] w-[210mm] min-h-[297mm] shadow-lg font-sans text-[12px] leading-tight relative flex flex-col shrink-0"
+                                className="invoice-page bg-white text-black p-[15mm] w-[210mm] min-h-[297mm] shadow-xl font-sans text-[12px] leading-tight relative flex flex-col shrink-0"
                             >
                                 {/* Header */}
                                 {isFirstPage ? (
                                     <div className="text-center border-b-2 border-black pb-2 mb-5">
-                                        <h1 className="text-[28px] font-black text-black m-0 leading-none uppercase">{settings.company_name}</h1>
+                                        <h1 className="text-[28px] font-black text-black m-0 leading-none uppercase tracking-tighter">{settings.company_name}</h1>
                                         <p className="mt-1 font-medium">{settings.address}</p>
-                                        <p className="m-0 font-medium">Tel: {settings.phone}</p>
-                                        <p className="m-0 font-medium">Email: vidushan.motors@gmail.com</p>
+                                        <p className="m-0 font-medium text-slate-700">Tel: {settings.phone} | Email: vidushan.motors@gmail.com</p>
                                         <div className="text-[22px] font-bold underline mt-4 uppercase">INVOICE</div>
                                     </div>
                                 ) : (
                                     <div className="flex justify-between border-b border-black pb-2 mb-5">
-                                        <span className="font-bold uppercase text-black">{settings.company_name} - Page {pageIndex + 1}</span>
-                                        <span className="font-bold">Inv: {settings.invoice_prefix}{order.order_id.substring(0, 6).toUpperCase()}</span>
+                                        <span className="font-bold uppercase">{settings.company_name} - Page {pageIndex + 1}</span>
+                                        <span className="font-bold">Inv: {settings.invoice_prefix}{safeInvNo}</span>
                                     </div>
                                 )}
 
-                                {/* Info Grid - Only on First Page */}
+                                {/* Info Grid */}
                                 {isFirstPage && (
-                                    <div className="flex justify-between mb-5">
-                                        <div className="w-1/2 text-black">
-                                            <p className="font-bold mb-1">Bill To:</p>
-                                            <div className="font-bold text-[14px] uppercase">{customer.shop_name}</div>
-                                            <p>{customer.address}</p>
-                                            <p>{customer.city_ref}</p>
-                                            <p className="mt-1">Tel: {customer.phone}</p>
+                                    <div className="flex justify-between mb-6">
+                                        <div className="w-1/2">
+                                            <p className="font-bold mb-1 uppercase text-[10px] text-slate-500">Bill To:</p>
+                                            <div className="font-black text-[16px] uppercase leading-tight mb-1">{customer.shop_name}</div>
+                                            <p className="font-medium text-slate-700">{customer.address}</p>
+                                            <p className="font-medium text-slate-700">{customer.city_ref}</p>
+                                            <p className="mt-1 font-bold">Tel: {customer.phone}</p>
                                         </div>
-                                        <div className="w-[40%] text-black">
-                                            <div className="flex mb-1">
-                                                <span className="w-24 font-bold">Date:</span>
-                                                <span>{order.order_date}</span>
+                                        <div className="w-[40%]">
+                                            <div className="flex mb-1 justify-between">
+                                                <span className="font-bold text-slate-500 uppercase text-[10px]">Date:</span>
+                                                <span className="font-bold">{order.order_date}</span>
                                             </div>
-                                            <div className="flex mb-1">
-                                                <span className="w-24 font-bold">Invoice No:</span>
-                                                <span>{settings.invoice_prefix}{order.order_id.substring(0, 6).toUpperCase()}</span>
+                                            <div className="flex mb-1 justify-between">
+                                                <span className="font-bold text-slate-500 uppercase text-[10px]">Invoice No:</span>
+                                                <span className="font-black text-indigo-600">{settings.invoice_prefix}{safeInvNo}</span>
                                             </div>
-                                            <div className="flex mb-1">
-                                                <span className="w-24 font-bold">Rep Name:</span>
-                                                <span>{settings.rep_name || 'A'}</span>
+                                            <div className="flex mb-1 justify-between">
+                                                <span className="font-bold text-slate-500 uppercase text-[10px]">Rep:</span>
+                                                <span className="font-bold">{settings.rep_name || 'Vidushan'}</span>
                                             </div>
-                                             <div className="flex mb-1">
-                                                 <span className="w-24 font-bold">Terms:</span>
-                                                 <span>CREDIT 90 DAYS</span>
+                                             <div className="flex mb-1 justify-between border-t pt-1 mt-1">
+                                                 <span className="font-bold text-slate-500 uppercase text-[10px]">Terms:</span>
+                                                 <span className="font-bold italic text-[10px]">CREDIT 90 DAYS</span>
                                              </div>
-                                             {order.delivery_status && order.delivery_status !== 'pending' && (
-                                                 <div className="flex mb-1">
-                                                     <span className="w-24 font-bold">Delivery:</span>
-                                                     <span className="uppercase font-bold text-indigo-600">{order.delivery_status.replace(/_/g, ' ')}</span>
-                                                 </div>
-                                             )}
-                                         </div>
-                                     </div>
-                                 )}
+                                          </div>
+                                      </div>
+                                  )}
 
                                 {/* Items Table */}
-                                <table className="w-full border-collapse mb-5 text-black border border-slate-300">
+                                <table className="w-full border-collapse mb-5 border border-black overflow-hidden rounded-lg">
                                     <thead>
                                         <tr className="bg-slate-100">
-                                            <th className="border border-slate-300 p-2 w-[5%] text-center">No</th>
-                                            <th className="border border-slate-300 p-2 w-[55%] text-center">Description</th>
-                                            <th className="border border-slate-300 p-2 w-[10%] text-center">Qty</th>
-                                            <th className="border border-slate-300 p-2 w-[15%] text-center">Price Each</th>
-                                            <th className="border border-slate-300 p-2 w-[15%] text-center">Amount</th>
+                                            <th className="border border-black p-2 w-[5%] text-center font-black uppercase text-[10px]">No</th>
+                                            <th className="border border-black p-2 w-[55%] text-left font-black uppercase text-[10px]">Description</th>
+                                            <th className="border border-black p-2 w-[10%] text-center font-black uppercase text-[10px]">Qty</th>
+                                            <th className="border border-black p-2 w-[15%] text-right font-black uppercase text-[10px]">Price</th>
+                                            <th className="border border-black p-2 w-[15%] text-right font-black uppercase text-[10px]">Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {pageLines.map((line, idx) => {
                                             const globalIdx = linePages.slice(0, pageIndex).flat().length + idx;
                                             return (
-                                                <tr key={line.line_id}>
-                                                    <td className="border border-slate-300 p-1.5 text-center">{globalIdx + 1}</td>
-                                                    <td className="border border-slate-300 p-1.5">{line.item_name}</td>
-                                                    <td className="border border-slate-300 p-1.5 text-center">{line.quantity}</td>
-                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.unit_value, false)}</td>
-                                                    <td className="border border-slate-300 p-1.5 text-right">{formatCurrency(line.line_total, false)}</td>
+                                                <tr key={line.line_id} className="even:bg-slate-50/50">
+                                                    <td className="border border-black p-2 text-center font-medium">{globalIdx + 1}</td>
+                                                    <td className="border border-black p-2 font-bold uppercase text-[11px]">{line.item_name}</td>
+                                                    <td className="border border-black p-2 text-center font-bold">{line.quantity}</td>
+                                                    <td className="border border-black p-2 text-right font-medium">{formatCurrency(line.unit_value, false)}</td>
+                                                    <td className="border border-black p-2 text-right font-black">{formatCurrency(line.line_total, false)}</td>
                                                 </tr>
                                             );
                                         })}
-                                        {/* Page Subtotal for split tables */}
                                         {isMultiPage && !isLastPage && (
-                                            <tr className="font-bold bg-slate-50">
-                                                <td colSpan={4} className="border border-slate-300 p-2 text-right uppercase italic text-[10px]">Sub Total (Carried Forward)</td>
-                                                <td className="border border-slate-300 p-2 text-right underline decoration-double">
+                                            <tr className="font-black bg-slate-100">
+                                                <td colSpan={4} className="border border-black p-2 text-right uppercase italic text-[10px]">Sub Total (C/F)</td>
+                                                <td className="border border-black p-2 text-right underline decoration-double">
                                                     {formatCurrency(cumulativeTotal, false)}
                                                 </td>
                                             </tr>
@@ -188,58 +191,56 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                     </tbody>
                                 </table>
 
-                                {/* Last Page Summary & Footer */}
+                                {/* Footer Summary */}
                                 {isLastPage && (
-                                    <div className="no-break text-black mt-auto">
+                                    <div className="mt-auto pt-4">
                                         <div className="flex justify-end">
                                             <table className="w-[45%] border-collapse border border-black">
                                                 <tbody>
                                                     <tr>
-                                                        <td className="border border-black px-2 py-2 text-left align-middle font-medium">Gross Total</td>
-                                                        <td className="border border-black px-2 py-2 text-right align-middle font-bold">
+                                                        <td className="border border-black px-3 py-2 text-left font-bold uppercase text-[10px]">Gross Total</td>
+                                                        <td className="border border-black px-3 py-2 text-right font-black">
                                                             {formatCurrency(order.gross_total, false)}
                                                         </td>
                                                     </tr>
-                                                    {order.discount_value > 0 && (
+                                                    {(order.discount_value || 0) > 0 && (
                                                         <tr>
-                                                            <td className="border border-black px-2 py-2 text-left align-middle text-rose-600 font-medium text-[10px]">
-                                                                Less Disc 1 ({(order.discount_rate * 100).toFixed(0)}%)
+                                                            <td className="border border-black px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
+                                                                Less Disc 1 ({((order.discount_rate || 0) * 100).toFixed(0)}%)
                                                             </td>
-                                                            <td className="border border-black px-2 py-2 text-right align-middle text-rose-600 font-bold">
-                                                                -{formatCurrency(order.discount_value, false)}
+                                                            <td className="border border-black px-3 py-2 text-right font-black text-rose-600">
+                                                                -{formatCurrency(order.discount_value || 0, false)}
                                                             </td>
                                                         </tr>
                                                     )}
                                                     {(order.secondary_discount_value || 0) > 0 && (
                                                         <tr>
-                                                            <td className="border border-black px-2 py-2 text-left align-middle text-rose-600 font-medium text-[10px]">
-                                                                Less Disc 2 ({( (order.secondary_discount_rate || 0) * 100).toFixed(0)}%)
+                                                            <td className="border border-black px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
+                                                                Less Disc 2 ({((order.secondary_discount_rate || 0) * 100).toFixed(0)}%)
                                                             </td>
-                                                            <td className="border border-black px-2 py-2 text-right align-middle text-rose-600 font-bold">
+                                                            <td className="border border-black px-3 py-2 text-right font-black text-rose-600">
                                                                 -{formatCurrency(order.secondary_discount_value || 0, false)}
                                                             </td>
                                                         </tr>
                                                     )}
-                                                    <tr className="bg-slate-50">
-                                                        <td className="border border-black px-2 py-2 text-left align-middle font-bold text-[14px]">Net Total</td>
-                                                        <td className="border border-black px-2 py-2 text-right align-middle font-bold text-[14px]">
+                                                    <tr className="bg-slate-100">
+                                                        <td className="border border-black px-3 py-3 text-left font-black text-[14px] uppercase tracking-tighter">Net Total</td>
+                                                        <td className="border border-black px-3 py-3 text-right font-black text-[16px]">
                                                             {formatCurrency(order.net_total)}
                                                         </td>
                                                     </tr>
-                                                    {order.paid_amount > 0 && (
+                                                    { (order.paid_amount || 0) > 0 && (
                                                         <tr>
-                                                            <td className="border border-black px-2 py-2 text-left align-middle font-medium text-emerald-700">
-                                                                Paid Amount
-                                                            </td>
-                                                            <td className="border border-black px-2 py-2 text-right align-middle font-bold text-emerald-700">
-                                                                - {formatCurrency(order.paid_amount)}
+                                                            <td className="border border-black px-3 py-2 text-left font-bold text-emerald-700 uppercase text-[10px]">Paid Amount</td>
+                                                            <td className="border border-black px-3 py-2 text-right font-black text-emerald-700">
+                                                                -{formatCurrency(order.paid_amount || 0, false)}
                                                             </td>
                                                         </tr>
                                                     )}
-                                                    {order.balance_due > 0.5 && (
+                                                    {(order.balance_due || 0) > 0.5 && (
                                                         <tr className="bg-rose-50">
-                                                            <td className="border border-black px-2 py-3 text-left align-middle font-black text-[16px] text-rose-700">Balance Due</td>
-                                                            <td className="border border-black px-2 py-3 text-right align-middle font-black text-[16px] text-rose-700">
+                                                            <td className="border border-black px-3 py-3 text-left font-black text-rose-700 uppercase text-[12px]">Balance Due</td>
+                                                            <td className="border border-black px-3 py-3 text-right font-black text-[18px] text-rose-700">
                                                                 {formatCurrency(order.balance_due)}
                                                             </td>
                                                         </tr>
@@ -248,23 +249,17 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                             </table>
                                         </div>
 
-                                        {order.balance_due <= 0.5 && (
-                                            <div className="absolute bottom-40 right-10 transform -rotate-12 border-4 border-emerald-600 text-emerald-600 font-black text-4xl px-4 py-2 rounded-lg opacity-50 pointer-events-none">
-                                                PAID IN FULL
-                                            </div>
-                                        )}
-
-                                        <div className="flex justify-between mt-12 mb-10">
-                                            <div className="w-[30%] border-t border-dashed border-slate-400 pt-1.5 text-center text-[11px] font-bold">Customer Signature</div>
-                                            <div className="w-[30%] border-t border-dashed border-slate-400 pt-1.5 text-center text-[11px] font-bold">Signature of Sales Rep</div>
-                                            <div className="w-[30%] border-t border-dashed border-slate-400 pt-1.5 text-center text-[11px] font-bold">Checked by</div>
+                                        <div className="flex justify-between mt-16 mb-8">
+                                            <div className="w-[30%] border-t border-black pt-2 text-center text-[10px] font-black uppercase">Customer Signature</div>
+                                            <div className="w-[30%] border-t border-black pt-2 text-center text-[10px] font-black uppercase">Authorized Signature</div>
+                                            <div className="w-[30%] border-t border-black pt-2 text-center text-[10px] font-black uppercase">Checked By</div>
                                         </div>
+                                        <p className="text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">{settings.footer_note}</p>
                                     </div>
                                 )}
 
-                                {/* Page Number Footer */}
-                                <div className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-slate-400">
-                                    Page {pageIndex + 1} of {linePages.length}
+                                <div className="absolute bottom-4 left-0 right-0 text-center text-[9px] text-slate-400 font-bold">
+                                    Page {pageIndex + 1} of {linePages.length} | System Generated Invoice
                                 </div>
                             </div>
                         );
