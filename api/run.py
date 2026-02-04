@@ -142,7 +142,25 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
     range_name = f"'{sheet_name}'!A:Z"
     result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
     rows = result.get('values', [])
-    if not rows: rows = [headers]
+    
+    if not rows: 
+        rows = [headers]
+    else:
+        # Robust Migration: Check if 'Out of Stock' exists in header
+        existing_headers = [str(h).strip() for h in rows[0]]
+        if sheet_name == 'Inventory' and 'Out of Stock' not in existing_headers:
+            rows[0] = headers # Update to 13-column headers
+            for i in range(1, len(rows)):
+                if len(rows[i]) >= 11:
+                    rows[i].insert(10, 'FALSE')
+                while len(rows[i]) < 13:
+                    rows[i].append('')
+        elif len(rows[0]) < len(headers):
+            rows[0] = headers
+            for i in range(1, len(rows)):
+                while len(rows[i]) < len(headers):
+                    rows[i].append('')
+
     id_map = {str(row[id_column_index]): i for i, row in enumerate(rows) if len(row) > id_column_index and i > 0}
     for new_row in data:
         new_id = str(new_row[id_column_index])
@@ -264,7 +282,7 @@ def sync():
     try:
         service = get_sheets_service()
         customer_headers = ['ID', 'Shop Name', 'Address', 'Phone', 'City', 'Discount', 'Balance', 'Status', 'Last Updated']
-        inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Status', 'Last Updated']
+        inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Out of Stock', 'Status', 'Last Updated']
         order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Net Total', 'Paid', 'Balance Due', 'Payment Status', 'Delivery Status', 'Status', 'Last Updated']
         line_headers = ['Line ID', 'Order ID', 'Item ID', 'Item Name', 'Qty', 'Unit Price', 'Line Total']
         ensure_headers(service, spreadsheet_id, 'Customers', customer_headers)
@@ -278,7 +296,7 @@ def sync():
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Customers'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
             else: upsert_rows(service, spreadsheet_id, 'Customers', customer_headers, values, 0)
         if items:
-            values = [[i['item_id'], i['item_display_name'], i['item_name'], i['item_number'], i['vehicle_model'], i['source_brand'], i.get('category', 'Uncategorized'), i['unit_value'], i['current_stock_qty'], i.get('low_stock_threshold', 10), i['status'], i['updated_at']] for i in items]
+            values = [[i['item_id'], i['item_display_name'], i['item_name'], i['item_number'], i['vehicle_model'], i['source_brand'], i.get('category', 'Uncategorized'), i['unit_value'], i['current_stock_qty'], i.get('low_stock_threshold', 10), i.get('is_out_of_stock', False), i['status'], i['updated_at']] for i in items]
             if mode == 'overwrite':
                 service.spreadsheets().values().clear(spreadsheetId=spreadsheet_id, range="'Inventory'!A2:Z").execute()
                 service.spreadsheets().values().append(spreadsheetId=spreadsheet_id, range="'Inventory'!A2", valueInputOption="USER_ENTERED", body={"values": values}).execute()
@@ -296,15 +314,17 @@ def sync():
         if len(rows) > 1:
             for row in rows[1:]:
                 if not row or not row[0]: continue
-                while len(row) < 12: row.append('')
+                while len(row) < 13: row.append('')
                 try: unit_val = float(row[7]) if row[7] else 0
                 except: unit_val = 0
                 pulled_items.append({
                     "item_id": str(row[0]), "item_display_name": str(row[1]), "item_name": str(row[2] or row[1]),
                     "item_number": str(row[3]), "vehicle_model": str(row[4]), "source_brand": str(row[5] or 'Unknown'),
                     "category": str(row[6] or 'Uncategorized'), "unit_value": unit_val, "current_stock_qty": int(row[8]) if row[8] else 0,
-                    "low_stock_threshold": int(row[9]) if row[9] else 10, "status": str(row[10] or 'active'),
-                    "updated_at": str(row[11] or ''), "sync_status": 'synced'
+                    "low_stock_threshold": int(row[9]) if row[9] else 10, 
+                    "is_out_of_stock": str(row[10]).lower() == 'true',
+                    "status": str(row[11] or 'active'),
+                    "updated_at": str(row[12] or ''), "sync_status": 'synced'
                 })
         return jsonify({"success": True, "pulledItems": pulled_items, "message": f"Sync completed successfully ({mode} mode)"})
     except Exception as e:
