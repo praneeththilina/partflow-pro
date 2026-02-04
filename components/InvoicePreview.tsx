@@ -111,7 +111,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                 ) : (
                                     <div className="flex justify-between border-b border-black pb-2 mb-5">
                                         <span className="font-bold uppercase text-black">{settings.company_name} - Page {pageIndex + 1}</span>
-                                        <span className="font-bold">Inv: {order.manual_invoice_number || (settings.invoice_prefix + order.order_id.substring(0, 6).toUpperCase())}</span>
+                                        <span className="font-bold">Inv: {settings.invoice_prefix}{order.order_id.substring(0, 6).toUpperCase()}</span>
                                     </div>
                                 )}
 
@@ -132,7 +132,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                             </div>
                                             <div className="flex mb-1">
                                                 <span className="w-24 font-bold">Invoice No:</span>
-                                                <span>{order.manual_invoice_number || (settings.invoice_prefix + order.order_id.substring(0, 6).toUpperCase())}</span>
+                                                <span>{settings.invoice_prefix}{order.order_id.substring(0, 6).toUpperCase()}</span>
                                             </div>
                                             <div className="flex mb-1">
                                                 <span className="w-24 font-bold">Rep Name:</span>

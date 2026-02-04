@@ -64,8 +64,7 @@ export const pdfService = {
         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, canvasHeightInPdfUnits, undefined, 'FAST');
       }
 
-      const invNo = order.manual_invoice_number || `${settings.invoice_prefix}${order.order_id.substring(0, 6).toUpperCase()}`;
-      const fileName = `${invNo}.pdf`;
+      const fileName = `${settings.invoice_prefix}${order.order_id}.pdf`;
       
       const blob = pdf.output('blob');
 

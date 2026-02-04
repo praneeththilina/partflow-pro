@@ -124,14 +124,6 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
                 # Pad to full 13 columns
                 while len(rows[i]) < 13:
                     rows[i].append('')
-        elif sheet_name == 'Orders' and 'Invoice No' not in existing_headers:
-            print(f"CRITICAL: Migrating Orders Sheet - Adding 'Invoice No' column")
-            rows[0] = headers 
-            for i in range(1, len(rows)):
-                if len(rows[i]) >= 4:
-                    rows[i].insert(4, '') 
-                while len(rows[i]) < 12:
-                    rows[i].append('')
         
         # General padding for any other sheet
         elif len(rows[0]) < len(headers):
@@ -211,7 +203,7 @@ def sync():
         # Define Header Schemas
         customer_headers = ['ID', 'Shop Name', 'Address', 'Phone', 'City', 'Discount', 'Status', 'Last Updated']
         inventory_headers = ['ID', 'Display Name', 'Internal Name', 'SKU', 'Vehicle', 'Brand/Origin', 'Category', 'Unit Value', 'Stock Qty', 'Low Stock Threshold', 'Out of Stock', 'Status', 'Last Updated']
-        order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Invoice No', 'Net Total', 'Paid', 'Balance Due', 'Payment Status', 'Delivery Status', 'Status', 'Last Updated']
+        order_headers = ['Order ID', 'Customer ID', 'Rep ID', 'Date', 'Net Total', 'Paid', 'Balance Due', 'Payment Status', 'Delivery Status', 'Status', 'Last Updated']
         line_headers = ['Line ID', 'Order ID', 'Item ID', 'Item Name', 'Qty', 'Unit Price', 'Line Total']
 
         # Ensure Sheets Exist
@@ -240,7 +232,7 @@ def sync():
 
         # --- Process Orders ---
         if orders:
-            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o.get('manual_invoice_number', ''), o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
+            order_values = [[o['order_id'], o['customer_id'], o.get('rep_id', ''), o['order_date'], o['net_total'], o.get('paid_amount', 0), o.get('balance_due', 0), o.get('payment_status', 'unpaid'), o.get('delivery_status', 'pending'), o['order_status'], o['updated_at']] for o in orders]
             upsert_rows(service, spreadsheet_id, 'Orders', order_headers, order_values, 0)
             
             line_values = []
