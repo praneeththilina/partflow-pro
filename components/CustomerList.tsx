@@ -41,6 +41,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
         city_ref: newCustomer.city_ref || editingCustomer.city_ref,
         discount_rate: (newCustomer.discount_rate ?? (editingCustomer.discount_rate * 100)) / 100,
         secondary_discount_rate: (newCustomer.secondary_discount_rate ?? ((editingCustomer.secondary_discount_rate || 0) * 100)) / 100,
+        credit_period: newCustomer.credit_period ?? editingCustomer.credit_period ?? 90,
         status: newCustomer.status || editingCustomer.status,
         updated_at: new Date().toISOString(),
         sync_status: 'pending'
@@ -52,6 +53,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       city_ref: newCustomer.city_ref || '',
         discount_rate: (newCustomer.discount_rate || 0) / 100,
         secondary_discount_rate: (newCustomer.secondary_discount_rate || 0) / 100,
+        credit_period: newCustomer.credit_period || 90,
         status: 'active',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -267,6 +269,10 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Secondary Discount (%) - Optional</label>
                         <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.secondary_discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, secondary_discount_rate: parseFloat(e.target.value)})} placeholder="Secondary (e.g. 5)" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Credit Period (Days)</label>
+                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.credit_period || ''} onChange={e => setNewCustomer({...newCustomer, credit_period: parseInt(e.target.value)})} placeholder="e.g. 90" />
                     </div>
                 </div>
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">

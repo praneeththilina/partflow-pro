@@ -45,6 +45,7 @@ export interface Customer extends BaseEntity {
   discount_rate: number; // Primary discount 0.0 to 1.0
   secondary_discount_rate?: number; // Secondary discount 0.0 to 1.0
   outstanding_balance: number; // Track credit
+  credit_period: number; // New: Credit period in days (e.g. 30, 60, 90)
   status: EntityStatus;
 }
 

@@ -150,7 +150,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                             </div>
                                              <div className="flex mb-1 justify-between border-t pt-1 mt-1">
                                                  <span className="font-bold text-slate-500 uppercase text-[10px]">Terms:</span>
-                                                 <span className="font-bold italic text-[10px]">CREDIT 90 DAYS</span>
+                                                 <span className="font-bold italic text-[10px]">CREDIT {customer.credit_period || 90} DAYS</span>
                                              </div>
                                           </div>
                                       </div>
