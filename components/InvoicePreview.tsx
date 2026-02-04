@@ -204,19 +204,31 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                         </td>
                                                     </tr>
                                                     {(order.discount_value || 0) > 0 && (
-                                                        <tr>
-                                                            <td className="px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
-                                                                Less Disc 1 ({((order.discount_rate || 0) * 100).toFixed(0)}%)
-                                                            </td>
-                                                            <td className="px-3 py-2 text-right font-black text-rose-600">
-                                                                -{formatCurrency(order.discount_value || 0, false)}
-                                                            </td>
-                                                        </tr>
+                                                        <>
+                                                            <tr>
+                                                                <td className="px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
+                                                                    Discount - {((order.discount_rate || 0) * 100).toFixed(0)}%
+                                                                </td>
+                                                                <td className="px-3 py-2 text-right font-black text-rose-600">
+                                                                    -{formatCurrency(order.discount_value || 0, false)}
+                                                                </td>
+                                                            </tr>
+                                                            {(order.secondary_discount_value || 0) > 0 && (
+                                                                <tr className="bg-slate-50 border-t border-slate-100">
+                                                                    <td className="px-3 py-1.5 text-left font-bold uppercase text-[9px] text-slate-500">
+                                                                        Sub Total
+                                                                    </td>
+                                                                    <td className="px-3 py-1.5 text-right font-black text-slate-700">
+                                                                        {formatCurrency(order.gross_total - (order.discount_value || 0), false)}
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </>
                                                     )}
                                                     {(order.secondary_discount_value || 0) > 0 && (
                                                         <tr>
                                                             <td className="px-3 py-2 text-left font-bold text-rose-600 uppercase text-[9px]">
-                                                                Less Disc 2 ({((order.secondary_discount_rate || 0) * 100).toFixed(0)}%)
+                                                                Discount - {((order.secondary_discount_rate || 0) * 100).toFixed(0)}%
                                                             </td>
                                                             <td className="px-3 py-2 text-right font-black text-rose-600">
                                                                 -{formatCurrency(order.secondary_discount_value || 0, false)}
@@ -234,14 +246,6 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                                             <td className="px-3 py-2 text-left font-bold text-emerald-700 uppercase text-[10px]">Paid Amount</td>
                                                             <td className="px-3 py-2 text-right font-black text-emerald-700">
                                                                 -{formatCurrency(order.paid_amount || 0, false)}
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                    {(order.balance_due || 0) > 0.5 && (
-                                                        <tr className="bg-rose-50 border-t border-rose-200">
-                                                            <td className="px-3 py-3 text-left font-black text-rose-700 uppercase text-[12px]">Balance Due</td>
-                                                            <td className="px-3 py-3 text-right font-black text-[18px] text-rose-700">
-                                                                {formatCurrency(order.balance_due)}
                                                             </td>
                                                         </tr>
                                                     )}
