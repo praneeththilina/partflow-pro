@@ -184,59 +184,13 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 def health():
     config, source = get_google_config()
     now = datetime.datetime.now(datetime.timezone.utc)
-    
-    # Validation info
-    expected_customer_cols = 11
-    expected_order_cols = 17
-    
     diag = {
         "status": "ok",
-        "version": "1.1.9-credit-period",
+        "version": "1.2.1-forced-header-v2",
         "server_time_utc": now.isoformat(),
-        "database_exists": os.path.exists(DB_PATH),
         "credentials_source": source,
-        "config_check": {
-            "customers": expected_customer_cols,
-            "orders": expected_order_cols
-        }
+        "config_check": {"customers": 11, "orders": 17}
     }
-    
-    if config:
-        diag["client_email"] = config.get("client_email")
-        key = config.get("private_key", "")
-        diag["key_info"] = {
-            "length": len(key),
-            "has_actual_newlines": "\n" in key,
-            "starts_with_header": key.startswith("-----BEGIN PRIVATE KEY-----"),
-            "ends_with_footer": "-----END PRIVATE KEY-----" in key
-        }
-        
-        # Test 1: RSA Signing (Local)
-        try:
-            from google.auth import crypt, jwt
-            signer = crypt.RSASigner.from_service_account_info(config)
-            jwt.encode(signer, {'test': 'data'})
-            diag["rsa_signing_test"] = "passed"
-        except Exception as sign_err:
-            diag["rsa_signing_test"] = "failed"
-            diag["rsa_signing_error"] = str(sign_err)
-            
-        # Test 2: Google Auth & Sheet Access
-        try:
-            creds_test = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
-            creds_test.refresh(Request())
-            diag["google_auth_test"] = "passed"
-            
-            # Specific Sheet Access Test
-            test_sheet_id = "148T7oXqEAjUcH3zyQy93x1H92LYSheEZh8ja7rpg_1o"
-            service = build('sheets', 'v4', credentials=creds_test)
-            service.spreadsheets().get(spreadsheetId=test_sheet_id).execute()
-            diag["sheet_access_test"] = "passed"
-        except Exception as auth_err:
-            diag["google_auth_test"] = "failed"
-            diag["google_auth_error"] = str(auth_err)
-            diag["sheet_access_test"] = "skipped (auth failed)"
-            
     return jsonify(diag)
 
 @app.route('/debug-env', methods=['GET'])

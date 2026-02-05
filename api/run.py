@@ -181,32 +181,13 @@ def upsert_rows(service, spreadsheet_id, sheet_name, headers, data, id_column_in
 def health():
     config, source = get_google_config()
     now = datetime.datetime.now(datetime.timezone.utc)
-    
-    # Validation info
-    expected_customer_cols = 11
-    expected_order_cols = 17
-    
     diag = {
         "status": "ok",
-        "version": "1.1.9-credit-period",
+        "version": "1.2.1-forced-header-v2",
         "server_time_utc": now.isoformat(),
-        "database_exists": os.path.exists(DB_PATH),
         "credentials_source": source,
-        "config_check": {
-            "customers": expected_customer_cols,
-            "orders": expected_order_cols
-        }
+        "config_check": {"customers": 11, "orders": 17}
     }
-    
-    if config:
-        diag["client_email"] = config.get("client_email")
-        try:
-            creds_test = service_account.Credentials.from_service_account_info(config, scopes=SCOPES)
-            diag["google_auth_test"] = "passed"
-        except Exception as auth_err:
-            diag["google_auth_test"] = "failed"
-            diag["google_auth_error"] = str(auth_err)
-            
     return jsonify(diag)
 
 @app.route('/register', methods=['POST'])
