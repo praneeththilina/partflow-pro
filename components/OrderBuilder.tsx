@@ -12,18 +12,20 @@ interface OrderBuilderProps {
   onOrderCreated: (order: Order) => void;
   existingCustomer?: Customer;
   editingOrder?: Order;
+  draftState?: Partial<Order> | null;
+  onUpdateDraft?: (draft: Partial<Order>) => void;
 }
 
-export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCreated, existingCustomer, editingOrder }) => {
+export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCreated, existingCustomer, editingOrder, draftState, onUpdateDraft }) => {
     const { showToast } = useToast();
     const { user } = useAuth();
     const settings = db.getSettings();
     const [customer] = useState<Customer | undefined>(existingCustomer || (editingOrder ? db.getCustomers().find(c => c.customer_id === editingOrder.customer_id) : undefined));
     const [items, setItems] = useState<Item[]>([]);
-    const [lines, setLines] = useState<OrderLine[]>(editingOrder?.lines || []);
-    const [orderDate, setOrderDate] = useState(editingOrder?.order_date || new Date().toISOString().split('T')[0]);
-    const [discountRate, setDiscountRate] = useState<number>((editingOrder ? editingOrder.discount_rate : (existingCustomer?.discount_rate || 0)) * 100);
-    const [secondaryDiscountRate, setSecondaryDiscountRate] = useState<number>((editingOrder ? (editingOrder.secondary_discount_rate || 0) : (existingCustomer?.secondary_discount_rate || 0)) * 100);
+    const [lines, setLines] = useState<OrderLine[]>(draftState?.lines || editingOrder?.lines || []);
+    const [orderDate, setOrderDate] = useState(draftState?.order_date || editingOrder?.order_date || new Date().toISOString().split('T')[0]);
+    const [discountRate, setDiscountRate] = useState<number>((draftState?.discount_rate !== undefined ? draftState.discount_rate : (editingOrder ? editingOrder.discount_rate : (existingCustomer?.discount_rate || 0))) * 100);
+    const [secondaryDiscountRate, setSecondaryDiscountRate] = useState<number>((draftState?.secondary_discount_rate !== undefined ? draftState.secondary_discount_rate : (editingOrder ? (editingOrder.secondary_discount_rate || 0) : (existingCustomer?.secondary_discount_rate || 0))) * 100);
     
     // UI State
     const [itemFilter, setItemFilter] = useState('');
@@ -72,6 +74,17 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             if (scanner) scanner.clear().catch(e => console.error("Scanner Cleanup Error", e));
         };
     }, [showScanner]);
+
+    useEffect(() => {
+        if (onUpdateDraft) {
+            onUpdateDraft({
+                lines,
+                order_date: orderDate,
+                discount_rate: discountRate / 100,
+                secondary_discount_rate: secondaryDiscountRate / 100
+            });
+        }
+    }, [lines, orderDate, discountRate, secondaryDiscountRate]);
 
     const grossTotal = lines.reduce((sum, line) => sum + line.line_total, 0);
     const primaryDiscountValue = grossTotal * (discountRate / 100);
