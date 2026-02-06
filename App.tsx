@@ -23,6 +23,7 @@ function AppContent() {
   const { isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
   const [historyStack, setHistoryStack] = useState<string[]>(['home']); // Navigation Stack
+  const [draftOrder, setDraftOrder] = useState<Partial<Order> | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [profileCustomer, setProfileCustomer] = useState<Customer | null>(null); 
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
@@ -105,6 +106,7 @@ function AppContent() {
   const handleOrderCreated = (order: Order) => {
     setActiveOrder(order);
     setEditingOrder(null);
+    setDraftOrder(null); // Clear draft after successful creation
   };
 
   const handleInvoiceClose = () => {
@@ -129,6 +131,7 @@ function AppContent() {
       if (customer) {
           setSelectedCustomer(customer);
           setEditingOrder(order);
+          setDraftOrder(null);
           setActiveOrder(null);
           navigateTo('orders');
       }
@@ -209,12 +212,15 @@ function AppContent() {
                 if(window.confirm(editingOrder ? "Discard changes?" : "Abandon current order?")) {
                     setSelectedCustomer(null);
                     setEditingOrder(null);
+                    setDraftOrder(null);
                     navigateTo(editingOrder ? 'history' : 'home');
                 }
             }} 
             onOrderCreated={handleOrderCreated}
             existingCustomer={selectedCustomer || undefined} 
             editingOrder={editingOrder || undefined}
+            draftState={draftOrder}
+            onUpdateDraft={(draft) => setDraftOrder(draft)}
         />;
       case 'history':
         return <OrderHistory onViewInvoice={handleViewInvoice} onEditOrder={handleEditOrder} />;
@@ -234,10 +240,7 @@ function AppContent() {
         <Layout 
             activeTab={activeTab} 
             onTabChange={(tab) => {
-                if (activeTab === 'orders' && selectedCustomer && tab !== 'orders') {
-                    if(!window.confirm("Abandon current order?")) return;
-                    setSelectedCustomer(null);
-                }
+                // Removed the abandon logic to persist state
                 navigateTo(tab);
             }}
             onSync={() => navigateTo('sync')}

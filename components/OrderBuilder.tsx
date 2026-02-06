@@ -571,9 +571,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                     <span>Discount 1 (%)</span>
                                     <div className="flex items-center gap-2">
                                         <input 
-                                            type="number" step="1" 
+                                            type="number" 
+                                            step="1" 
                                             className="w-16 p-1 text-right text-xs border rounded focus:ring-indigo-500 font-bold"
                                             value={discountRate}
+                                            onFocus={(e) => e.target.select()}
                                             onChange={(e) => setDiscountRate(parseFloat(e.target.value) || 0)}
                                         />
                                         <span className="text-rose-600">-{formatCurrency(primaryDiscountValue)}</span>
@@ -585,9 +587,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         <span>Discount 2 (%)</span>
                                         <div className="flex items-center gap-2">
                                             <input 
-                                                type="number" step="1" 
+                                                type="number" 
+                                                step="1" 
                                                 className="w-16 p-1 text-right text-xs border rounded focus:ring-indigo-500 font-bold"
                                                 value={secondaryDiscountRate}
+                                                onFocus={(e) => e.target.select()}
                                                 onChange={(e) => setSecondaryDiscountRate(parseFloat(e.target.value) || 0)}
                                             />
                                             <span className="text-rose-600">-{formatCurrency(secondaryDiscountValue)}</span>
