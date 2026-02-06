@@ -245,6 +245,7 @@ function AppContent() {
             }}
             onSync={() => navigateTo('sync')}
             isSyncing={isSyncing}
+            hasActiveDraft={!!(draftOrder?.lines?.length || editingOrder)}
         >
         {renderContent()}
         </Layout>
