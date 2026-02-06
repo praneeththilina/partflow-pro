@@ -417,7 +417,9 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             <div className={`${isSearchFocused ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
                                                 {isInCart(item.item_id) ? (
                                                     <svg className={`${isSearchFocused ? 'w-4 h-4' : 'w-5 h-5'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                                                ) : item.vehicle_model.substring(0, 2).toUpperCase()}
+                                                ) : (
+                                                    <svg className={`${isSearchFocused ? 'w-4 h-4' : 'w-5 h-5'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                                )}
                                             </div>
                                             <div className="min-w-0">
                                                 <div className={`font-bold ${isSearchFocused ? 'text-xs' : 'text-sm'} truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>
