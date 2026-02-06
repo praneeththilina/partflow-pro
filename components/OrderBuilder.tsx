@@ -394,7 +394,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                     )}
                     
                     {/* Item List */}
-                    <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-3">
+                    <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-1.5">
                         {filteredItems.map(item => {
                             const isOutOfStock = settings.stock_tracking_enabled 
                                 ? item.current_stock_qty <= 0 
@@ -430,6 +430,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                     {!isSearchFocused && (
                                                         <span className={`text-[10px] font-black uppercase tracking-tighter ${isOutOfStock ? 'text-rose-400' : 'text-indigo-600'}`}>{item.vehicle_model}</span>
+                                                    )}
+                                                    {!isSearchFocused && (
+                                                        <>
+                                                            <span className="text-[10px] text-slate-400 font-bold">•</span>
+                                                            <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
+                                                        </>
                                                     )}
                                                 </div>
                                             </div>
