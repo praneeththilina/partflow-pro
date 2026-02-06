@@ -412,8 +412,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             : 'border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer active:scale-[0.98]'
                                     } ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : ''}`}
                                 >
-                                    <div className={`${isSearchFocused ? 'p-2' : 'p-4'} flex justify-between items-center relative z-10`}>
-                                        <div className="flex items-center gap-3 min-w-0">
+                                    <div className={`${isSearchFocused ? 'p-2' : 'p-3'} flex justify-between items-center relative z-10`}>
+                                        <div className="flex items-center gap-2 min-w-0">
                                             <div className={`${isSearchFocused ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
                                                 {isInCart(item.item_id) ? (
                                                     <svg className={`${isSearchFocused ? 'w-4 h-4' : 'w-5 h-5'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -428,12 +428,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                     {isInCart(item.item_id) && !isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-indigo-600">In Cart</span>}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                                    <span className={`text-[10px] font-black uppercase tracking-tighter ${isOutOfStock ? 'text-rose-400' : 'text-indigo-600'}`}>{item.vehicle_model}</span>
                                                     {!isSearchFocused && (
-                                                        <>
-                                                            <span className="text-[10px] text-slate-400 font-bold">•</span>
-                                                            <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
-                                                        </>
+                                                        <span className={`text-[10px] font-black uppercase tracking-tighter ${isOutOfStock ? 'text-rose-400' : 'text-indigo-600'}`}>{item.vehicle_model}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -442,7 +438,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         <div className="text-right pl-2">
                                             <div className={`font-black ${isSearchFocused ? 'text-xs' : 'text-sm'} ${isOutOfStock ? 'text-rose-400' : 'text-slate-900'}`}>{formatCurrency(item.unit_value)}</div>
                                             {!isSearchFocused && settings.stock_tracking_enabled && (
-                                                <div className={`text-[10px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-100 text-rose-700'}`}>
+                                                <div className={`text-[9px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-100 text-rose-700'}`}>
                                                     {item.current_stock_qty} in stock
                                                 </div>
                                             )}
