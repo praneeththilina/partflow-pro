@@ -443,14 +443,14 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                     {isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-rose-600 underline decoration-double">Out of Stock</span>}
                                                     {isInCart(item.item_id) && !isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-indigo-600">In Cart</span>}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 mt-0.5">
-                                                    {!isSearchFocused && (
-                                                        <span className={`text-[10px] font-black uppercase tracking-tighter ${isOutOfStock ? 'text-rose-400' : 'text-indigo-600'}`}>{item.vehicle_model}</span>
-                                                    )}
+                                                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500">
                                                     {!isSearchFocused && (
                                                         <>
-                                                            <span className="text-[10px] text-slate-400 font-bold">•</span>
-                                                            <span className="text-[10px] text-slate-500 font-mono">{item.item_number}</span>
+                                                            <span className="font-bold text-slate-700 font-mono">{item.item_number}</span>
+                                                            <span className="text-slate-300">•</span>
+                                                            <span className="uppercase tracking-tight">{item.vehicle_model}</span>
+                                                            <span className="text-slate-300">•</span>
+                                                            <span>{item.source_brand}</span>
                                                         </>
                                                     )}
                                                 </div>
