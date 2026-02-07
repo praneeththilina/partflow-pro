@@ -228,7 +228,12 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                           </div>
                       )}
                   </div>
-                  <button onClick={() => { setActionCustomer(null); setShowAdminActions(false); }} className="w-full mt-6 py-3 text-slate-400 font-bold text-sm">Cancel</button>
+                  <button 
+                      onClick={() => { setActionCustomer(null); setShowAdminActions(false); }} 
+                      className="w-full mt-6 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl active:scale-95 transition-transform"
+                  >
+                      Cancel
+                  </button>
               </div>
           </div>
       )}
@@ -246,33 +251,33 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                 <div className="p-6 space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Shop Name *</label>
-                        <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.shop_name || ''} onChange={e => setNewCustomer({...newCustomer, shop_name: e.target.value})} placeholder="e.g. City Auto Parts" />
+                        <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.shop_name || ''} onChange={e => setNewCustomer({...newCustomer, shop_name: e.target.value})} placeholder="e.g. City Auto Parts" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">City *</label>
-                            <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.city_ref || ''} onChange={e => setNewCustomer({...newCustomer, city_ref: e.target.value})} />
+                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.city_ref || ''} onChange={e => setNewCustomer({...newCustomer, city_ref: e.target.value})} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-                            <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.phone || ''} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} type="tel" />
+                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.phone || ''} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} type="tel" />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
-                        <textarea className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" rows={2} value={newCustomer.address || ''} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} />
+                        <textarea className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" rows={2} value={newCustomer.address || ''} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Default Discount (%)</label>
-                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="Primary (e.g. 30)" />
+                        <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="Primary (e.g. 30)" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Secondary Discount (%) - Optional</label>
-                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.secondary_discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, secondary_discount_rate: parseFloat(e.target.value)})} placeholder="Secondary (e.g. 5)" />
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Secondary Discount (%)</label>
+                        <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.secondary_discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, secondary_discount_rate: parseFloat(e.target.value)})} placeholder="Secondary (e.g. 5)" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Credit Period (Days)</label>
-                        <input type="number" step="1" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newCustomer.credit_period || ''} onChange={e => setNewCustomer({...newCustomer, credit_period: parseInt(e.target.value)})} placeholder="e.g. 90" />
+                        <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.credit_period || ''} onChange={e => setNewCustomer({...newCustomer, credit_period: parseInt(e.target.value)})} placeholder="e.g. 90" />
                     </div>
                 </div>
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
