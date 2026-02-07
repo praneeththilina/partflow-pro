@@ -5,6 +5,7 @@ import { Preferences } from '@capacitor/preferences';
 import { formatCurrency } from '../utils/currency';
 import { cleanText } from '../utils/cleanText';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../context/ThemeContext';
 
 interface DashboardProps {
     onAction: (tab: string) => void;
@@ -12,6 +13,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) => {
+    const { themeClasses } = useTheme();
     const [stats, setStats] = useState(db.getDashboardStats());
     const [recentOrders, setRecentOrders] = useState(db.getOrders().slice(0, 5));
     const [trendData, setTrendData] = useState<{date: string, sales: number}[]>([]);
@@ -70,7 +72,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">{settings.rep_name || 'Vidushan'}</span>
+                        {greeting}, <span className={`text-transparent bg-clip-text bg-gradient-to-r ${themeClasses.gradient}`}>{settings.rep_name || 'Vidushan'}</span>
                     </h2>
                     <p className="text-slate-500 font-medium text-sm">Let's crush today's targets.</p>
                 </div>
@@ -87,12 +89,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                         onAction('reports');
                         showToast("Opening sales reports", "info");
                     }}
-                    className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-5 rounded-3xl shadow-lg shadow-indigo-200 text-white relative overflow-hidden group cursor-pointer active:scale-95 transition-transform"
+                    className={`bg-gradient-to-br ${themeClasses.gradient} p-5 rounded-3xl shadow-lg ${themeClasses.shadow} text-white relative overflow-hidden group cursor-pointer active:scale-95 transition-transform`}
                 >
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                          <svg className="w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
                     </div>
-                    <p className="text-xs uppercase font-bold text-indigo-200 tracking-wider mb-2">Today's Sales</p>
+                    <p className={`text-xs uppercase font-bold text-white/70 tracking-wider mb-2`}>Today's Sales</p>
                     <p className="text-3xl font-black tracking-tight">{formatCurrency(stats.dailySales)}</p>
                 </div>
 
@@ -122,54 +124,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all group" onClick={() => onAction('history')}>
                     <p className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">Total Orders</p>
                     <p className="text-3xl font-black text-slate-800 group-hover:scale-110 origin-left transition-transform">{stats.totalOrders}</p>
-                    <p className="text-[10px] text-indigo-600 font-bold mt-1 bg-indigo-50 inline-block px-1.5 rounded">All Time</p>
-                </div>
-            </div>
-
-            {/* Sales Trend Chart */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                    <div>
-                        <h3 className="font-black text-slate-800">Weekly Performance</h3>
-                        <p className="text-xs text-slate-400">Sales trend over the last 7 days</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-2xl font-black text-indigo-600">{formatCurrency(trendData.reduce((acc, curr) => acc + curr.sales, 0))}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">7 Day Total</p>
-                    </div>
-                </div>
-                <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={trendData}>
-                            <defs>
-                                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
-                                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <XAxis 
-                                dataKey="date" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} 
-                                dy={10}
-                            />
-                            <Tooltip 
-                                contentStyle={{backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
-                                itemStyle={{color: '#fff', fontWeight: 'bold', fontSize: '12px'}}
-                                labelStyle={{color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase'}}
-                                formatter={(value: number) => [formatCurrency(value), 'Sales']}
-                            />
-                            <Area 
-                                type="monotone" 
-                                dataKey="sales" 
-                                stroke="#4f46e5" 
-                                strokeWidth={3}
-                                fillOpacity={1} 
-                                fill="url(#colorSales)" 
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    <p className={`text-[10px] ${themeClasses.text} font-bold mt-1 ${themeClasses.bgSoft} inline-block px-1.5 rounded`}>All Time</p>
                 </div>
             </div>
 
@@ -179,12 +134,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <button 
                         onClick={() => onAction('customers')}
-                        className="flex flex-col items-center justify-center bg-indigo-50 hover:bg-indigo-100 p-6 rounded-3xl transition-all active:scale-95 group"
+                        className={`flex flex-col items-center justify-center ${themeClasses.bgSoft} ${themeClasses.bgSoftHover} p-6 rounded-3xl transition-all active:scale-95 group`}
                     >
-                        <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center mb-3 shadow-lg shadow-indigo-200 group-hover:rotate-12 transition-transform">
+                        <div className={`w-12 h-12 ${themeClasses.bg} text-white rounded-2xl flex items-center justify-center mb-3 shadow-lg ${themeClasses.shadow} group-hover:rotate-12 transition-transform`}>
                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
                         </div>
-                        <span className="font-bold text-indigo-900 text-sm">New Sale</span>
+                        <span className={`font-bold ${themeClasses.textDark} text-sm`}>New Sale</span>
                     </button>
 
                     <button 
@@ -225,6 +180,53 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                 </div>
             </div>
 
+            {/* Sales Trend Chart */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 className="font-black text-slate-800">Weekly Performance</h3>
+                        <p className="text-xs text-slate-400">Sales trend over the last 7 days</p>
+                    </div>
+                    <div className="text-right">
+                        <p className={`text-2xl font-black ${themeClasses.text}`}>{formatCurrency(trendData.reduce((acc, curr) => acc + curr.sales, 0))}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">7 Day Total</p>
+                    </div>
+                </div>
+                <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={trendData}>
+                            <defs>
+                                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <XAxis 
+                                dataKey="date" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} 
+                                dy={10}
+                            />
+                            <Tooltip 
+                                contentStyle={{backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
+                                itemStyle={{color: '#fff', fontWeight: 'bold', fontSize: '12px'}}
+                                labelStyle={{color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase'}}
+                                formatter={(value: number) => [formatCurrency(value), 'Sales']}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="sales" 
+                                stroke="#4f46e5" 
+                                strokeWidth={3}
+                                fillOpacity={1} 
+                                fill="url(#colorSales)" 
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
             {/* Conditional Lists Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {settings.stock_tracking_enabled && stats.criticalItems > 0 && (
@@ -241,7 +243,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                                         <div>
                                             <p className="text-sm font-bold text-slate-900 leading-tight">{cleanText(item.item_display_name)}</p>
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{cleanText(item.vehicle_model)}</span>
+                                <span className={`text-[10px] font-black ${themeClasses.text} uppercase ${themeClasses.bgSoft} px-1 rounded`}>{cleanText(item.vehicle_model)}</span>
                                                 <span className="text-[10px] text-slate-400 font-mono uppercase">{item.item_number}</span>
                                             </div>
                                         </div>
@@ -260,7 +262,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                         <h3 className="font-black text-slate-800 text-sm">Recent Transactions</h3>
-                        <button onClick={() => onAction('history')} className="text-[10px] text-indigo-600 font-black uppercase hover:underline">View All</button>
+                        <button onClick={() => onAction('history')} className={`text-[10px] ${themeClasses.text} font-black uppercase hover:underline`}>View All</button>
                     </div>
                     <div className="divide-y divide-slate-50">
                         {recentOrders.length === 0 && <p className="p-8 text-center text-slate-400 text-sm italic">No recent activity.</p>}

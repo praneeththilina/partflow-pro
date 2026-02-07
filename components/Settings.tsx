@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 
 import { API_CONFIG } from '../config';
 import { cleanText } from '../utils/cleanText';
+import { useTheme } from '../context/ThemeContext';
+import { themeColors, ThemeColor } from '../utils/theme';
 
 interface SettingsProps {
     onLogout: () => void;
@@ -12,6 +14,7 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
     const { user } = useAuth();
+    const { colorTheme, setColorTheme, themeClasses } = useTheme();
     const [settings, setSettings] = useState<CompanySettings>(db.getSettings());
     const [message, setMessage] = useState('');
     
@@ -79,7 +82,7 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
 
     const SectionHeader = ({ icon, title, subtitle }: { icon: React.ReactNode, title: string, subtitle: string }) => (
         <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+            <div className={`w-10 h-10 ${themeClasses.bgSoft} ${themeClasses.text} rounded-xl flex items-center justify-center shadow-sm`}>
                 {icon}
             </div>
             <div>
@@ -102,7 +105,7 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                     checked={checked}
                     onChange={e => onChange(e.target.checked)}
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <div className={`w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${themeClasses.bg}`}></div>
             </label>
         </div>
     );
@@ -113,7 +116,7 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
             {/* Header / Profile */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-100">
+                    <div className={`w-14 h-14 bg-gradient-to-br ${themeClasses.gradient} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg ${themeClasses.shadow}`}>
                         {user?.username[0].toUpperCase() || '?'}
                     </div>
                     <div>
@@ -122,7 +125,7 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                             <span className="text-[10px] font-bold text-white bg-slate-800 px-2 py-0.5 rounded-full uppercase tracking-tighter">{user?.role}</span>
                             <button 
                                 onClick={() => setShowPassModal(true)}
-                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline uppercase tracking-tighter"
+                                className={`text-[10px] font-bold ${themeClasses.text} hover:${themeClasses.textDark} underline uppercase tracking-tighter`}
                             >
                                 Change Password
                             </button>
@@ -139,6 +142,28 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                {/* Section: Personalization */}
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <SectionHeader 
+                        icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>}
+                        title="Personalization"
+                        subtitle="App appearance"
+                    />
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Accent Color</label>
+                        <div className="flex gap-3">
+                            {Object.entries(themeColors).filter(([key]) => key !== 'slate').map(([key, value]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setColorTheme(key as ThemeColor)}
+                                    className={`w-10 h-10 rounded-full ${value.bg} ${colorTheme === key ? 'ring-4 ring-offset-2 ring-slate-200 scale-110' : 'hover:scale-105'} transition-all shadow-sm`}
+                                    title={value.name}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
                 
                 {/* Section: Bill Head */}
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
@@ -271,12 +296,12 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
 
                     <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Google Sheet ID</label>
-                        <input 
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                            value={settings.google_sheet_id}
-                            onChange={e => setSettings({...settings, google_sheet_id: e.target.value})}
-                            placeholder="Enter Sheet ID from URL"
-                        />
+                            <input 
+                                className={`w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:bg-white focus:ring-2 ${themeClasses.ring} focus:border-transparent outline-none transition-all`}
+                                value={settings.google_sheet_id}
+                                onChange={e => setSettings({...settings, google_sheet_id: e.target.value})}
+                                placeholder="Enter Sheet ID from URL"
+                            />
                         <p className="text-[9px] text-slate-400 mt-2 px-1 leading-relaxed">
                             Sharing your data with Google Sheets requires a valid Sheet ID. You can find this in the URL of your Google Sheet.
                         </p>
@@ -289,7 +314,7 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
             <div className="pt-4 pb-8 flex flex-col items-center">
                 <button 
                     onClick={handleSave}
-                    className="w-full max-w-sm bg-slate-900 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-slate-200 hover:bg-indigo-600 transition-all active:scale-95 flex items-center justify-center gap-3"
+                    className={`w-full max-w-sm bg-slate-900 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-slate-200 ${themeClasses.bgHover} transition-all active:scale-95 flex items-center justify-center gap-3`}
                 >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     Save Configuration
@@ -297,10 +322,10 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                 {message && <p className="mt-4 text-emerald-600 font-bold text-sm animate-bounce">{message}</p>}
             </div>
 
-            <div className="bg-indigo-50/50 border border-indigo-100 p-5 rounded-3xl">
+            <div className={`${themeClasses.bgSoft} border ${themeClasses.border} p-5 rounded-3xl`}>
                 <div className="flex gap-3">
-                    <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <p className="text-xs text-indigo-900 font-medium leading-relaxed">
+                    <svg className={`w-5 h-5 ${themeClasses.text} shrink-0`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <p className={`text-xs ${themeClasses.textDark} font-medium leading-relaxed`}>
                         These settings are stored locally on this device. They control how your invoices are generated and how your inventory is tracked. Changes take effect immediately.
                     </p>
                 </div>
