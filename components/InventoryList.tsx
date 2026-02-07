@@ -15,6 +15,7 @@ export const InventoryList: React.FC = () => {
   const { showToast } = useToast();
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false); // Mobile filter toggle
   const [modelFilter, setModelFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [sortOrder, setSortOrder] = useState<'A-Z' | 'High-Low' | 'Low-High'>('A-Z');
@@ -52,6 +53,13 @@ export const InventoryList: React.FC = () => {
   }, []);
 
   const categories = ['All', settings.stock_tracking_enabled ? 'Low Stock' : 'Out of Stock', ...Array.from(new Set(items.map(i => i.category || 'Uncategorized')))].filter(Boolean) as string[];
+
+  // Helper for Stock Visuals
+  const getStockStatus = (qty: number, threshold: number) => {
+      if (qty <= 0) return { color: 'bg-rose-500', text: 'text-rose-600', label: 'Out of Stock', bg: 'bg-rose-50' };
+      if (qty <= threshold) return { color: 'bg-amber-500', text: 'text-amber-600', label: 'Low Stock', bg: 'bg-amber-50' };
+      return { color: 'bg-emerald-500', text: 'text-emerald-600', label: 'In Stock', bg: 'bg-emerald-50' };
+  };
 
   const showAlert = (title: string, message: string, type: 'info' | 'danger' | 'success' = 'info') => {
       setAlertConfig({ isOpen: true, title, message, type });
@@ -240,8 +248,8 @@ export const InventoryList: React.FC = () => {
     <div className="space-y-4 pb-20 md:pb-0">
       
       {/* Header & Search */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-10 space-y-3">
-         <div className="flex flex-col md:flex-row gap-3">
+      <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 sticky top-0 z-10 space-y-4">
+         <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
@@ -250,54 +258,74 @@ export const InventoryList: React.FC = () => {
                 </div>
                 <input 
                     type="text"
-                    placeholder="Search by Name or SKU..."
-                    className={`block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 ${themeClasses.ring} transition-colors`}
+                    placeholder="Search inventory..."
+                    className={`block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 ${themeClasses.ring} transition-all shadow-sm`}
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                 />
             </div>
             
-            <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
-                <input 
-                    placeholder="Model (e.g. Corolla)" 
-                    className={`w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
-                    value={modelFilter}
-                    onChange={e => setModelFilter(e.target.value)}
-                />
-                <input 
-                    placeholder="Country (e.g. China)" 
-                    className={`w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
-                    value={countryFilter}
-                    onChange={e => setCountryFilter(e.target.value)}
-                />
+            <div className="flex items-center gap-2 md:hidden">
+                <button 
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-colors ${showFilters ? `${themeClasses.bgSoft} ${themeClasses.text} ${themeClasses.border}` : 'bg-white border-slate-300 text-slate-600'}`}
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                    Filters
+                </button>
+                <button 
+                    onClick={() => setShowAddForm(true)}
+                    className={`${themeClasses.bg} text-white p-3 rounded-xl ${themeClasses.bgHover} shadow-md transition-all active:scale-95`}
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                </button>
+            </div>
+
+            <div className={`flex-col md:flex-row gap-3 ${showFilters ? 'flex' : 'hidden md:flex'} animate-in slide-in-from-top-2 md:animate-none`}>
+                <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <input 
+                        placeholder="Model" 
+                        className="w-full md:w-32 px-3 py-2 bg-transparent text-sm font-medium focus:outline-none"
+                        value={modelFilter}
+                        onChange={e => setModelFilter(e.target.value)}
+                    />
+                    <div className="w-px h-6 bg-slate-300"></div>
+                    <input 
+                        placeholder="Origin" 
+                        className="w-full md:w-32 px-3 py-2 bg-transparent text-sm font-medium focus:outline-none"
+                        value={countryFilter}
+                        onChange={e => setCountryFilter(e.target.value)}
+                    />
+                </div>
                 <select 
-                    className={`w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
+                    className={`w-full md:w-auto px-4 py-2 border border-slate-300 rounded-xl text-sm bg-white font-bold text-slate-600 focus:ring-2 ${themeClasses.ring} outline-none`}
                     value={sortOrder}
                     onChange={e => setSortOrder(e.target.value as any)}
                 >
-                    <option value="A-Z">A-Z</option>
-                    <option value="High-Low">High Stock</option>
-                    <option value="Low-High">Low Stock</option>
+                    <option value="A-Z">Name (A-Z)</option>
+                    <option value="High-Low">Stock (High to Low)</option>
+                    <option value="Low-High">Stock (Low to High)</option>
                 </select>
+                
+                <button 
+                    onClick={() => setShowAddForm(true)}
+                    className={`hidden md:flex ${themeClasses.bg} text-white px-6 py-2 rounded-xl ${themeClasses.bgHover} shadow-md transition-all active:scale-95 items-center gap-2 font-bold text-sm shrink-0`}
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                    Add Item
+                </button>
             </div>
-
-            <button 
-                onClick={() => setShowAddForm(true)}
-                className={`${themeClasses.bg} text-white p-2 rounded-lg ${themeClasses.bgHover} shadow-sm transition-colors shrink-0`}
-                title="Add New Item"
-            >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
-            </button>
          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
             {settings.category_enabled && categories.map(cat => (
                 <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
                         categoryFilter === cat 
                         ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-md ${themeClasses.shadow}` 
-                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200 hover:text-indigo-600'
                     }`}
                 >
                     {cat}
@@ -306,19 +334,20 @@ export const InventoryList: React.FC = () => {
             {!settings.category_enabled && (
                 <button
                     onClick={() => setCategoryFilter(categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'Low Stock' : 'Out of Stock') : 'All')}
-                    className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
                         categoryFilter !== 'All' 
                         ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-md ${themeClasses.shadow}` 
-                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
                     }`}
                 >
-                    {categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'View Low Stock' : 'View Out Stock') : 'View All Items'}
+                    {categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'Filter: Low Stock' : 'Filter: Out of Stock') : 'Show All'}
                 </button>
             )}
           </div>
-         <div className="flex justify-between items-center text-xs text-slate-500 px-1">
-            <span>Showing {filteredItems.length} products</span>
-            <span>Live Stock</span>
+          
+          <div className="flex justify-between items-center text-xs text-slate-400 px-1 font-medium uppercase tracking-wider">
+            <span>{filteredItems.length} Products</span>
+            <span>Live Inventory</span>
         </div>
       </div>
 
@@ -430,141 +459,167 @@ export const InventoryList: React.FC = () => {
       )}
       
       {/* Mobile Card View (default on small) / Desktop Table (default on large) */}
-      <div className="hidden md:block bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200">
+      <div className="hidden md:block bg-white shadow-sm rounded-3xl overflow-hidden border border-slate-200">
         <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
+            <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50">
                     <tr>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Item Details</th>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Origin</th>
-                        <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Price</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Details</th>
+                        <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Origin</th>
+                        <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
                         {settings.stock_tracking_enabled && (
-                            <th className="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Stock</th>
+                            <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest w-48">Stock Health</th>
                         )}
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
-                    {filteredItems.map(item => (
-                        <tr key={item.item_id} className={`hover:bg-slate-50 transition-colors cursor-pointer ${item.is_out_of_stock ? 'bg-rose-50/50' : ''}`} onClick={() => startEdit(item)}>
+                <tbody className="bg-white divide-y divide-slate-50">
+                    {filteredItems.map(item => {
+                        const status = getStockStatus(item.current_stock_qty, item.low_stock_threshold);
+                        return (
+                        <tr key={item.item_id} className={`hover:bg-slate-50 transition-colors cursor-pointer group`} onClick={() => startEdit(item)}>
                             <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center gap-3">
-                                    {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" title="Pending Sync"></span>}
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${status.bg} ${status.text}`}>
+                                        {item.item_display_name.charAt(0).toUpperCase()}
+                                    </div>
                                     <div>
-                                        <div className={`text-sm font-bold leading-tight ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{cleanText(item.item_display_name)}</div>
-                                        <div className="flex items-center gap-2 mt-0.5">
+                                        <div className={`text-sm font-bold leading-tight ${item.is_out_of_stock ? 'text-rose-600 line-through decoration-2' : 'text-slate-900 group-hover:text-indigo-600 transition-colors'}`}>{cleanText(item.item_display_name)}</div>
+                                        <div className="flex items-center gap-2 mt-1">
                                             <span className={`text-[10px] font-black ${themeClasses.text} ${themeClasses.bgSoft} px-1.5 py-0.5 rounded uppercase tracking-tighter`}>{cleanText(item.vehicle_model)}</span>
-                                            <span className="text-[10px] text-slate-400 font-mono">{cleanText(item.item_number)}</span>
+                                            <span className="text-[10px] text-slate-400 font-mono tracking-wider">{cleanText(item.item_number)}</span>
                                         </div>
                                     </div>
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                <div className="text-xs text-slate-500 flex items-center gap-1">
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    {cleanText(item.source_brand)}
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                    <span className="font-bold text-slate-700 text-xs uppercase tracking-wide">{cleanText(item.source_brand)}</span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-slate-900">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-black text-slate-900">
                                 {formatCurrency(item.unit_value)}
                             </td>
                              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                                <div className="flex items-center justify-end gap-2">
+                                <div className="flex flex-col items-end gap-1.5">
                                     {!settings.stock_tracking_enabled && (
                                         <button 
                                             onClick={(e) => toggleStockFlag(e, item)}
-                                            className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border transition-all ${
+                                            className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg border transition-all ${
                                                 item.is_out_of_stock 
-                                                ? 'bg-rose-100 text-rose-700 border-rose-200' 
-                                                : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100' 
+                                                : 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
                                             }`}
                                         >
                                             {item.is_out_of_stock ? 'Out of Stock' : 'In Stock'}
                                         </button>
                                     )}
                                     {settings.stock_tracking_enabled && (
-                                        <>
-                                            <button 
-                                                onClick={(e) => openAdjustModal(e, item)}
-                                                className="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors"
-                                            >
-                                                Adjust
-                                            </button>
-                                            {item.current_stock_qty <= item.low_stock_threshold && (
-                                                <span className="text-[10px] font-black text-rose-500 uppercase">Low</span>
-                                            )}
-                                            <span className={`px-3 py-1 inline-flex text-sm leading-5 font-black rounded-lg border ${
-                                                item.current_stock_qty > item.low_stock_threshold ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                                                item.current_stock_qty > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'
-                                            }`}>
-                                                {item.current_stock_qty}
-                                            </span>
-                                        </>
+                                        <div className="w-full">
+                                            <div className="flex justify-end items-center gap-2 mb-1.5">
+                                                <span className={`text-[10px] font-black uppercase ${status.text}`}>{status.label}</span>
+                                                <span className="text-xs font-bold text-slate-900">{item.current_stock_qty}</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                <div 
+                                                    className={`h-full ${status.color} rounded-full transition-all duration-500`} 
+                                                    style={{ width: `${Math.min((item.current_stock_qty / (item.low_stock_threshold * 3)) * 100, 100)}%` }}
+                                                ></div>
+                                            </div>
+                                            <div className="flex justify-end mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={(e) => openAdjustModal(e, item)}
+                                                    className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 underline"
+                                                >
+                                                    Adjust Stock
+                                                </button>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </td>
                         </tr>
-                    ))}
+                    )})}
                 </tbody>
             </table>
         </div>
       </div>
 
-      {/* Mobile Stacked List */}
+      {/* Mobile Stacked List (Improved UI) */}
       <div className="md:hidden space-y-3">
-        {filteredItems.map(item => (
-            <div key={item.item_id} onClick={() => startEdit(item)} className={`bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center active:bg-slate-50 transition-colors relative overflow-hidden group`}>
-                {item.is_out_of_stock && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-rose-500"></div>}
-                <div className="flex-1 min-w-0 pr-4 pl-2">
-                    <div className="flex items-center gap-2">
-                        {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>}
-                        <h4 className={`text-sm font-bold truncate ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{cleanText(item.item_display_name)}</h4>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-[10px] font-black ${themeClasses.text} uppercase ${themeClasses.bgSoft} px-1 rounded`}>{cleanText(item.vehicle_model)}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{cleanText(item.item_number)}</span>
-                    </div>
-                    <div className="mt-1 flex items-center text-[10px] text-slate-500">
-                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">{cleanText(item.source_brand)}</span>
-                    </div>
-                </div>
-                <div className="text-right flex flex-col items-end space-y-1">
-                    <span className={`text-sm font-black ${themeClasses.textDark} block`}>{formatCurrency(item.unit_value)}</span>
-                    {!settings.stock_tracking_enabled && (
-                        <button 
-                            onClick={(e) => toggleStockFlag(e, item)}
-                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                                item.is_out_of_stock 
-                                ? 'bg-rose-100 text-rose-600 border-rose-200' 
-                                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                            }`}
-                        >
-                            {item.is_out_of_stock ? 'Out of Stock' : 'In Stock'}
-                        </button>
-                    )}
-                    {settings.stock_tracking_enabled && (
-                        <div className="flex items-center gap-1">
-                            <button 
-                                onClick={(e) => openAdjustModal(e, item)}
-                                className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded mr-1"
-                            >
-                                Adj
-                            </button>
-                            {item.current_stock_qty <= item.low_stock_threshold && (
-                                <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-                            )}
-                            <span className={`text-xs font-black px-2 py-0.5 rounded-md border ${
-                                item.current_stock_qty > item.low_stock_threshold ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                                item.current_stock_qty > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'
-                            }`}>
-                                {item.current_stock_qty}
-                            </span>
+        {filteredItems.map(item => {
+            const status = getStockStatus(item.current_stock_qty, item.low_stock_threshold);
+            return (
+            <div key={item.item_id} onClick={() => startEdit(item)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 active:scale-[0.98] transition-transform relative overflow-hidden">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1 pr-3">
+                        <h4 className={`text-sm font-bold leading-tight mb-1 ${item.is_out_of_stock ? 'text-rose-600 line-through decoration-2 opacity-70' : 'text-slate-900'}`}>
+                            {cleanText(item.item_display_name)}
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                            <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{cleanText(item.item_number)}</span>
+                            <span className={`text-[10px] font-bold uppercase ${themeClasses.text} ${themeClasses.bgSoft} px-1.5 py-0.5 rounded`}>{cleanText(item.vehicle_model)}</span>
                         </div>
-                    )}
+                    </div>
+                    <div className="text-right shrink-0">
+                        <span className="block text-sm font-black text-slate-900">{formatCurrency(item.unit_value)}</span>
+                        <span className="text-[10px] font-bold text-slate-400">{cleanText(item.source_brand)}</span>
+                    </div>
                 </div>
 
+                {settings.stock_tracking_enabled ? (
+                    <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${status.color.replace('bg-', 'bg-')}`}></div>
+                            <span className={`text-xs font-bold ${status.text}`}>{status.label}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-black text-slate-800">{item.current_stock_qty} <span className="text-[10px] text-slate-400 font-medium">Units</span></span>
+                            <button 
+                                onClick={(e) => openAdjustModal(e, item)}
+                                className="w-8 h-8 flex items-center justify-center bg-white rounded-lg border border-slate-200 text-slate-400 shadow-sm active:bg-slate-50"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mt-3 pt-3 border-t border-slate-50 flex justify-between items-center">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${item.is_out_of_stock ? 'text-rose-500' : 'text-emerald-500'}`}>
+                            {item.is_out_of_stock ? 'Currently Unavailable' : 'Available for Sale'}
+                        </span>
+                        <button 
+                            onClick={(e) => toggleStockFlag(e, item)}
+                            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm transition-colors ${
+                                item.is_out_of_stock 
+                                ? 'bg-white border-rose-200 text-rose-600' 
+                                : 'bg-white border-emerald-200 text-emerald-600'
+                            }`}
+                        >
+                            Change Status
+                        </button>
+                    </div>
+                )}
             </div>
-        ))}
+        )})}
+        
+        {filteredItems.length === 0 && (
+            <div className="py-12 text-center">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">No items found</h3>
+                <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">Try adjusting your filters or search for something else.</p>
+                <button onClick={() => setShowAddForm(true)} className={`mt-4 ${themeClasses.text} font-bold text-sm underline`}>
+                    Add a new item instead?
+                </button>
+            </div>
+        )}
       </div>
+
+
+
+
       {/* Adjustment Modal */}
       {showAdjustModal && adjustItem && (
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
