@@ -253,14 +253,14 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
       {/* Add Form Modal/Card */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                     <h3 className="text-xl font-bold text-slate-800">{editingCustomer ? 'Edit Customer' : 'New Customer'}</h3>
                     <button onClick={() => { setShowAddForm(false); setEditingCustomer(null); }} className="text-slate-400 hover:text-slate-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <div className="p-4 md:p-6 space-y-3 md:space-y-4">
+                <div className="p-4 md:p-6 space-y-3 md:space-y-4 overflow-y-auto custom-scrollbar">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Shop Name *</label>
                         <input className={`w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`} value={newCustomer.shop_name || ''} onChange={e => setNewCustomer({...newCustomer, shop_name: e.target.value})} placeholder="e.g. City Auto Parts" />
@@ -294,7 +294,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                         </div>
                     </div>
                 </div>
-                <div className="p-4 md:p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+                <div className="p-4 md:p-6 border-t border-slate-100 bg-slate-50 flex gap-3 shrink-0 pb-safe">
                     <button onClick={handleSaveCustomer} className={`flex-1 ${themeClasses.bg} text-white py-3.5 rounded-xl font-bold ${themeClasses.bgHover} shadow-lg active:scale-95 transition-transform`}>{editingCustomer ? 'Update Shop' : 'Save Shop'}</button>
                     <button onClick={() => { setShowAddForm(false); setEditingCustomer(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3.5 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform">Cancel</button>
                 </div>
