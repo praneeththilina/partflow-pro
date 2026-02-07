@@ -545,73 +545,52 @@ export const InventoryList: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Stacked List (Improved UI) */}
-      <div className="md:hidden space-y-3">
+      {/* Mobile Stacked List (Compact for Keyboard Visibility) */}
+      <div className="md:hidden bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
         {filteredItems.map(item => {
             const status = getStockStatus(item.current_stock_qty, item.low_stock_threshold);
             return (
-            <div key={item.item_id} onClick={() => startEdit(item)} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 active:scale-[0.98] transition-transform relative overflow-hidden">
-                <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 pr-3">
-                        <h4 className={`text-sm font-bold leading-tight mb-1 ${item.is_out_of_stock ? 'text-rose-600 line-through decoration-2 opacity-70' : 'text-slate-900'}`}>
-                            {cleanText(item.item_display_name)}
-                        </h4>
-                        <div className="flex flex-wrap gap-1.5">
-                            <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{cleanText(item.item_number)}</span>
-                            <span className={`text-[10px] font-bold uppercase ${themeClasses.text} ${themeClasses.bgSoft} px-1.5 py-0.5 rounded`}>{cleanText(item.vehicle_model)}</span>
+            <div key={item.item_id} onClick={() => startEdit(item)} className="p-2.5 active:bg-slate-50 transition-colors relative group">
+                <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                            <h4 className={`text-xs font-bold truncate ${item.is_out_of_stock ? 'text-rose-600 line-through decoration-1 opacity-70' : 'text-slate-900'}`}>
+                                {cleanText(item.item_display_name)}
+                            </h4>
+                            {item.is_out_of_stock && <span className="text-[9px] font-black text-rose-500 uppercase">OOS</span>}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                            <span className="font-mono bg-slate-50 px-1 rounded border border-slate-100">{cleanText(item.item_number)}</span>
+                            <span>•</span>
+                            <span className={`font-bold uppercase ${themeClasses.text}`}>{cleanText(item.vehicle_model)}</span>
                         </div>
                     </div>
+                    
                     <div className="text-right shrink-0">
-                        <span className="block text-sm font-black text-slate-900">{formatCurrency(item.unit_value)}</span>
-                        <span className="text-[10px] font-bold text-slate-400">{cleanText(item.source_brand)}</span>
+                        <span className="block text-xs font-black text-slate-900">{formatCurrency(item.unit_value, false)}</span>
+                        {settings.stock_tracking_enabled ? (
+                            <div className="flex items-center justify-end gap-1 mt-1">
+                                <div className={`w-1.5 h-1.5 rounded-full ${status.color.replace('bg-', 'bg-')}`}></div>
+                                <span className={`text-[10px] font-bold ${status.text}`}>{item.current_stock_qty}</span>
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={(e) => toggleStockFlag(e, item)}
+                                className={`mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${item.is_out_of_stock ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}
+                            >
+                                {item.is_out_of_stock ? 'Hidden' : 'Active'}
+                            </button>
+                        )}
                     </div>
                 </div>
-
-                {settings.stock_tracking_enabled ? (
-                    <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${status.color.replace('bg-', 'bg-')}`}></div>
-                            <span className={`text-xs font-bold ${status.text}`}>{status.label}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-black text-slate-800">{item.current_stock_qty} <span className="text-[10px] text-slate-400 font-medium">Units</span></span>
-                            <button 
-                                onClick={(e) => openAdjustModal(e, item)}
-                                className="w-8 h-8 flex items-center justify-center bg-white rounded-lg border border-slate-200 text-slate-400 shadow-sm active:bg-slate-50"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="mt-3 pt-3 border-t border-slate-50 flex justify-between items-center">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${item.is_out_of_stock ? 'text-rose-500' : 'text-emerald-500'}`}>
-                            {item.is_out_of_stock ? 'Currently Unavailable' : 'Available for Sale'}
-                        </span>
-                        <button 
-                            onClick={(e) => toggleStockFlag(e, item)}
-                            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm transition-colors ${
-                                item.is_out_of_stock 
-                                ? 'bg-white border-rose-200 text-rose-600' 
-                                : 'bg-white border-emerald-200 text-emerald-600'
-                            }`}
-                        >
-                            Change Status
-                        </button>
-                    </div>
-                )}
             </div>
         )})}
         
         {filteredItems.length === 0 && (
-            <div className="py-12 text-center">
-                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">No items found</h3>
-                <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">Try adjusting your filters or search for something else.</p>
-                <button onClick={() => setShowAddForm(true)} className={`mt-4 ${themeClasses.text} font-bold text-sm underline`}>
-                    Add a new item instead?
+            <div className="py-8 text-center">
+                <p className="text-xs text-slate-400">No items found</p>
+                <button onClick={() => setShowAddForm(true)} className={`mt-2 ${themeClasses.text} font-bold text-xs underline`}>
+                    Add New?
                 </button>
             </div>
         )}
