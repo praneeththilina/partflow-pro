@@ -716,12 +716,16 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
             {/* Quantity Modal */}
             {selectedItem && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 pb-safe">
+                <div className="fixed inset-0 z-[100] flex items-start md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 pt-24 md:p-4 pb-safe">
                     <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="text-center mb-6">
-                            <h3 className="text-lg font-bold text-slate-900">{cleanText(selectedItem.item_display_name)}</h3>
+                            <h3 className="text-lg font-bold text-slate-900 leading-tight">{cleanText(selectedItem.item_display_name)}</h3>
+                            <div className="flex justify-center flex-wrap gap-1.5 text-xs text-slate-500 font-bold uppercase mt-2">
+                                <span className={`${themeClasses.bgSoft} ${themeClasses.text} px-1.5 py-0.5 rounded`}>{cleanText(selectedItem.vehicle_model)}</span>
+                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{cleanText(selectedItem.source_brand)}</span>
+                            </div>
                             {settings.stock_tracking_enabled && (
-                                <p className="text-sm text-slate-500">Available: {selectedItem.current_stock_qty}</p>
+                                <p className="text-xs text-slate-400 mt-2 font-medium">Available: {selectedItem.current_stock_qty}</p>
                             )}
                         </div>
                         
