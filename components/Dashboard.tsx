@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { Preferences } from '@capacitor/preferences';
 import { formatCurrency } from '../utils/currency';
 import { cleanText } from '../utils/cleanText';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardProps {
     onAction: (tab: string) => void;
@@ -13,6 +14,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) => {
     const [stats, setStats] = useState(db.getDashboardStats());
     const [recentOrders, setRecentOrders] = useState(db.getOrders().slice(0, 5));
+    const [trendData, setTrendData] = useState<{date: string, sales: number}[]>([]);
     const [greeting, setGreeting] = useState('');
     const settings = db.getSettings();
 
@@ -22,7 +24,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
         const updateWidget = async () => {
             const currentStats = db.getDashboardStats();
             setStats(currentStats);
-            setRecentOrders(db.getOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5));
+            const allOrders = db.getOrders();
+            setRecentOrders(allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5));
+
+            // Calculate Weekly Trend
+            const last7Days = Array.from({length: 7}, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i)); // Past 6 days + today
+                return d.toISOString().split('T')[0];
+            });
+
+            const trend = last7Days.map(date => ({
+                date: new Date(date).toLocaleDateString('en-US', {weekday: 'short'}),
+                fullDate: date,
+                sales: allOrders.filter(o => o.order_date === date).reduce((sum, o) => sum + o.net_total, 0)
+            }));
+            setTrendData(trend);
 
             // Greeting Logic
             const hour = new Date().getHours();
@@ -106,6 +123,53 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                     <p className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">Total Orders</p>
                     <p className="text-3xl font-black text-slate-800 group-hover:scale-110 origin-left transition-transform">{stats.totalOrders}</p>
                     <p className="text-[10px] text-indigo-600 font-bold mt-1 bg-indigo-50 inline-block px-1.5 rounded">All Time</p>
+                </div>
+            </div>
+
+            {/* Sales Trend Chart */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 className="font-black text-slate-800">Weekly Performance</h3>
+                        <p className="text-xs text-slate-400">Sales trend over the last 7 days</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-2xl font-black text-indigo-600">{formatCurrency(trendData.reduce((acc, curr) => acc + curr.sales, 0))}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">7 Day Total</p>
+                    </div>
+                </div>
+                <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={trendData}>
+                            <defs>
+                                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <XAxis 
+                                dataKey="date" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 'bold'}} 
+                                dy={10}
+                            />
+                            <Tooltip 
+                                contentStyle={{backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
+                                itemStyle={{color: '#fff', fontWeight: 'bold', fontSize: '12px'}}
+                                labelStyle={{color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase'}}
+                                formatter={(value: number) => [formatCurrency(value), 'Sales']}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="sales" 
+                                stroke="#4f46e5" 
+                                strokeWidth={3}
+                                fillOpacity={1} 
+                                fill="url(#colorSales)" 
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
                 </div>
             </div>
 
@@ -214,8 +278,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm font-black text-slate-800">{formatCurrency(order.net_total)}</p>
-                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${order.sync_status === 'synced' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                                        {order.sync_status}
+                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${order.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                        {order.payment_status || 'unpaid'}
                                     </span>
                                 </div>
                             </div>
