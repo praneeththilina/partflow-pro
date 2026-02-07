@@ -9,6 +9,9 @@
   - **Layout**: Navigation bar, Logo, Bottom Tab Bar, Mobile Menu.
   - **Dashboard**: Stats cards, Charts, Action buttons, Lists.
   - **Order Builder**: Search inputs, Add buttons, Cart highlights, Modals.
+  - **Customer List (Shops)**: Action buttons, Add Form, Search Bar focus.
+  - **Inventory List (Stock)**: Search inputs, Filter tags, Add Item modal, Action buttons.
+  - **Sync Dashboard**: Status cards, Action buttons, Configuration panel.
   - **Settings**: Section headers, Toggles, Input focus states.
 
 ## 📱 Dashboard UX Update

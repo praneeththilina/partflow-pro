@@ -6,10 +6,12 @@ import { formatCurrency } from '../utils/currency';
 import { generateSKU } from '../utils/skuGenerator';
 import { useToast } from '../context/ToastContext';
 import { cleanText } from '../utils/cleanText';
+import { useTheme } from '../context/ThemeContext';
 
 import { Modal } from './ui/Modal';
 
 export const InventoryList: React.FC = () => {
+  const { themeClasses } = useTheme();
   const { showToast } = useToast();
   const [items, setItems] = useState<Item[]>([]);
   const [filter, setFilter] = useState('');
@@ -249,7 +251,7 @@ export const InventoryList: React.FC = () => {
                 <input 
                     type="text"
                     placeholder="Search by Name or SKU..."
-                    className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    className={`block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 ${themeClasses.ring} transition-colors`}
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                 />
@@ -258,18 +260,18 @@ export const InventoryList: React.FC = () => {
             <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
                 <input 
                     placeholder="Model (e.g. Corolla)" 
-                    className="w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className={`w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
                     value={modelFilter}
                     onChange={e => setModelFilter(e.target.value)}
                 />
                 <input 
                     placeholder="Country (e.g. China)" 
-                    className="w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className={`w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
                     value={countryFilter}
                     onChange={e => setCountryFilter(e.target.value)}
                 />
                 <select 
-                    className="w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className={`w-32 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
                     value={sortOrder}
                     onChange={e => setSortOrder(e.target.value as any)}
                 >
@@ -281,7 +283,7 @@ export const InventoryList: React.FC = () => {
 
             <button 
                 onClick={() => setShowAddForm(true)}
-                className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 shadow-sm transition-colors shrink-0"
+                className={`${themeClasses.bg} text-white p-2 rounded-lg ${themeClasses.bgHover} shadow-sm transition-colors shrink-0`}
                 title="Add New Item"
             >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
@@ -294,7 +296,7 @@ export const InventoryList: React.FC = () => {
                     onClick={() => setCategoryFilter(cat)}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${
                         categoryFilter === cat 
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' 
+                        ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-md ${themeClasses.shadow}` 
                         : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
                     }`}
                 >
@@ -306,7 +308,7 @@ export const InventoryList: React.FC = () => {
                     onClick={() => setCategoryFilter(categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'Low Stock' : 'Out of Stock') : 'All')}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${
                         categoryFilter !== 'All' 
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' 
+                        ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-md ${themeClasses.shadow}` 
                         : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
                     }`}
                 >
@@ -334,7 +336,7 @@ export const InventoryList: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Display Name *</label>
                         <input 
-                            className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" 
+                            className={`w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 ${themeClasses.ring} outline-none text-sm`}
                             value={newItem.item_display_name || ''} 
                             onChange={e => setNewItem({...newItem, item_display_name: e.target.value})} 
                             onBlur={handleDescriptionBlur}
@@ -346,7 +348,7 @@ export const InventoryList: React.FC = () => {
                             <label className="block text-sm font-medium text-slate-700 mb-1">SKU / Item Number *</label>
                             <div className="relative">
                                 <input 
-                                    className={`w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none pr-10 text-sm ${skuLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'}`} 
+                                    className={`w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 ${themeClasses.ring} outline-none pr-10 text-sm ${skuLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'}`} 
                                     value={newItem.item_number || ''} 
                                     onChange={e => setNewItem({...newItem, item_number: e.target.value})} 
                                     placeholder="e.g. BP-102"
@@ -355,7 +357,7 @@ export const InventoryList: React.FC = () => {
                                 <button 
                                     type="button"
                                     onClick={() => setSkuLocked(!skuLocked)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-indigo-600"
+                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:${themeClasses.text}`}
                                 >
                                     {skuLocked ? (
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -419,7 +421,7 @@ export const InventoryList: React.FC = () => {
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     )}
-                    <button onClick={handleSaveItem} className="flex-1 bg-indigo-600 text-white py-3.5 rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 transition-transform">{editingItem ? 'Update Item' : 'Add to Inventory'}</button>
+                    <button onClick={handleSaveItem} className={`flex-1 ${themeClasses.bg} text-white py-3.5 rounded-xl font-bold ${themeClasses.bgHover} shadow-lg active:scale-95 transition-transform`}>{editingItem ? 'Update Item' : 'Add to Inventory'}</button>
                     <button onClick={() => { setShowAddForm(false); setEditingItem(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3.5 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform">Cancel</button>
                 </div>
 
@@ -450,7 +452,7 @@ export const InventoryList: React.FC = () => {
                                     <div>
                                         <div className={`text-sm font-bold leading-tight ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{cleanText(item.item_display_name)}</div>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded uppercase tracking-tighter">{cleanText(item.vehicle_model)}</span>
+                                            <span className={`text-[10px] font-black ${themeClasses.text} ${themeClasses.bgSoft} px-1.5 py-0.5 rounded uppercase tracking-tighter`}>{cleanText(item.vehicle_model)}</span>
                                             <span className="text-[10px] text-slate-400 font-mono">{cleanText(item.item_number)}</span>
                                         </div>
                                     </div>
@@ -518,7 +520,7 @@ export const InventoryList: React.FC = () => {
                         <h4 className={`text-sm font-bold truncate ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{cleanText(item.item_display_name)}</h4>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{cleanText(item.vehicle_model)}</span>
+                        <span className={`text-[10px] font-black ${themeClasses.text} uppercase ${themeClasses.bgSoft} px-1 rounded`}>{cleanText(item.vehicle_model)}</span>
                         <span className="text-[10px] text-slate-400 font-mono">{cleanText(item.item_number)}</span>
                     </div>
                     <div className="mt-1 flex items-center text-[10px] text-slate-500">
@@ -526,7 +528,7 @@ export const InventoryList: React.FC = () => {
                     </div>
                 </div>
                 <div className="text-right flex flex-col items-end space-y-1">
-                    <span className="text-sm font-black text-indigo-700 block">{formatCurrency(item.unit_value)}</span>
+                    <span className={`text-sm font-black ${themeClasses.textDark} block`}>{formatCurrency(item.unit_value)}</span>
                     {!settings.stock_tracking_enabled && (
                         <button 
                             onClick={(e) => toggleStockFlag(e, item)}
@@ -591,7 +593,7 @@ export const InventoryList: React.FC = () => {
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Quantity</label>
                           <input 
                               type="number" 
-                              className="w-full p-3 border-2 border-slate-200 rounded-xl text-2xl font-bold focus:border-indigo-500 focus:outline-none"
+                              className={`w-full p-3 border-2 border-slate-200 rounded-xl text-2xl font-bold focus:${themeClasses.border.replace('200', '500')} focus:outline-none`}
                               value={adjustQty}
                               onChange={e => setAdjustQty(e.target.value)}
                               autoFocus
@@ -601,7 +603,7 @@ export const InventoryList: React.FC = () => {
                       <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reason (Optional)</label>
                           <input 
-                              className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:border-indigo-500 focus:outline-none"
+                              className={`w-full p-3 border border-slate-200 rounded-xl text-sm focus:${themeClasses.border.replace('200', '500')} focus:outline-none`}
                               value={adjustReason}
                               onChange={e => setAdjustReason(e.target.value)}
                               placeholder="e.g. New shipment arrived"
@@ -609,7 +611,7 @@ export const InventoryList: React.FC = () => {
                       </div>
                   </div>
                   <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
-                      <button onClick={handleSaveAdjustment} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">
+                      <button onClick={handleSaveAdjustment} className={`flex-1 ${themeClasses.bg} text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform`}>
                           Confirm Adjustment
                       </button>
                       <button onClick={() => setShowAdjustModal(false)} className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">

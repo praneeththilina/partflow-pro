@@ -3,12 +3,14 @@ import { db } from '../services/db';
 import { SyncStats } from '../types';
 import { API_CONFIG } from '../config';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface SyncDashboardProps {
     onSyncComplete: () => void;
 }
 
 export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) => {
+    const { themeClasses } = useTheme();
     const { showToast } = useToast();
     const [stats, setStats] = useState<SyncStats>(db.getSyncStats());
     const [status, setStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
@@ -103,16 +105,16 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
             
             {/* Status Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-6 md:p-8 text-center bg-gradient-to-b from-indigo-50 to-white">
+                <div className={`p-6 md:p-8 text-center bg-gradient-to-b ${themeClasses.bgSoft} to-white`}>
                      <div className="mb-6">
                         {status === 'syncing' ? (
-                            <div className="w-20 h-20 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
+                            <div className={`w-20 h-20 border-4 border-slate-200 border-t-${themeClasses.bg.split('-')[1]}-600 rounded-full animate-spin mx-auto`}></div>
                         ) : status === 'success' ? (
                             <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600">
                                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                             </div>
                         ) : (
-                            <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto text-indigo-600">
+                            <div className={`w-20 h-20 ${themeClasses.bgSoft} rounded-full flex items-center justify-center mx-auto ${themeClasses.text}`}>
                                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                             </div>
                         )}
@@ -137,7 +139,7 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
                             disabled={isConfiguring || status === 'syncing'}
                             className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all active:scale-95 ${
                                 status === 'syncing' ? 'bg-slate-200 text-slate-400 cursor-not-allowed' :
-                                'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200'
+                                `${themeClasses.bg} text-white ${themeClasses.bgHover} ${themeClasses.shadow}`
                             }`}
                         >
                             {status === 'syncing' ? 'Processing...' : totalPending > 0 ? 'Sync & Push' : 'Incremental Sync'}
@@ -159,7 +161,7 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
                       {status !== 'syncing' && (
                           <button 
                              onClick={handleRefreshOnly}
-                             className="mt-4 text-indigo-600 font-bold text-sm hover:underline flex items-center justify-center gap-1 mx-auto"
+                             className={`mt-4 ${themeClasses.text} font-bold text-sm hover:underline flex items-center justify-center gap-1 mx-auto`}
                           >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                               Download Latest Master Record (Pull)
@@ -189,20 +191,20 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
                  {isConfiguring ? (
                     <div className="animate-in fade-in slide-in-from-top-2">
-                        <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
+                        <h3 className={`font-bold ${themeClasses.textDark} mb-2 flex items-center gap-2`}>
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             Connection Setup
                         </h3>
                         <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                             <span className="font-bold text-rose-600">Action Required:</span> <br/>
                             Share your Google Sheet with this email as an <strong>Editor</strong>: <br/>
-                            <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 select-all font-bold block mt-1">{serviceEmail}</code>
+                            <code className={`bg-slate-100 px-1 py-0.5 rounded ${themeClasses.text} select-all font-bold block mt-1`}>{serviceEmail}</code>
                         </p>
                         <div className="flex gap-2">
                             <input 
                                 type="text" 
                                 placeholder="Paste Google Sheet ID here" 
-                                className="flex-1 border border-slate-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className={`flex-1 border border-slate-300 p-2 rounded-lg text-sm focus:ring-2 ${themeClasses.ring} outline-none`}
                                 value={sheetId}
                                 onChange={(e) => setSheetId(e.target.value)}
                             />
@@ -215,7 +217,7 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                             <span>Connected to: <span className="font-mono text-slate-700">{sheetId.substring(0, 6)}...</span></span>
                         </div>
-                        <button onClick={() => setIsConfiguring(true)} className="text-indigo-600 font-bold text-xs hover:underline">Configure</button>
+                        <button onClick={() => setIsConfiguring(true)} className={`${themeClasses.text} font-bold text-xs hover:underline`}>Configure</button>
                     </div>
                 )}
             </div>
@@ -229,7 +231,7 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({ onSyncComplete }) 
                             <div key={i} className={log.includes('Error') ? 'text-rose-400' : log.includes('Success') ? 'text-emerald-400' : 'text-slate-300'}>
                                 {log}
                                 {log.includes('Error') && (
-                                    <div className="mt-1 text-[10px] text-indigo-400">
+                                    <div className={`mt-1 text-[10px] ${themeClasses.text}`}>
                                         Check diagnostics: <a href={`${API_CONFIG.BACKEND_URL}/health`} target="_blank" className="underline">Backend Health</a>
                                     </div>
                                 )}
