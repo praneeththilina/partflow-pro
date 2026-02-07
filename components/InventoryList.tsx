@@ -248,40 +248,37 @@ export const InventoryList: React.FC = () => {
     <div className="space-y-4 pb-20 md:pb-0">
       
       {/* Header & Search */}
-      <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 sticky top-0 z-10 space-y-4">
-         <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-white p-2 md:p-4 rounded-xl md:rounded-3xl shadow-sm border border-slate-200 sticky top-0 z-10 space-y-2 md:space-y-4">
+         <div className="flex gap-2 items-center">
             <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                     </svg>
                 </div>
                 <input 
                     type="text"
-                    placeholder="Search inventory..."
-                    className={`block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 ${themeClasses.ring} transition-all shadow-sm`}
+                    placeholder="Search..."
+                    className={`block w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 ${themeClasses.ring} transition-all shadow-sm text-sm`}
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                 />
             </div>
             
-            <div className="flex items-center gap-2 md:hidden">
-                <button 
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-colors ${showFilters ? `${themeClasses.bgSoft} ${themeClasses.text} ${themeClasses.border}` : 'bg-white border-slate-300 text-slate-600'}`}
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                    Filters
-                </button>
-                <button 
-                    onClick={() => setShowAddForm(true)}
-                    className={`${themeClasses.bg} text-white p-3 rounded-xl ${themeClasses.bgHover} shadow-md transition-all active:scale-95`}
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
-                </button>
-            </div>
+            <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`md:hidden p-2 rounded-lg border transition-colors ${showFilters ? `${themeClasses.bgSoft} ${themeClasses.text} ${themeClasses.border}` : 'bg-white border-slate-300 text-slate-500'}`}
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+            </button>
+            <button 
+                onClick={() => setShowAddForm(true)}
+                className={`md:hidden ${themeClasses.bg} text-white p-2 rounded-lg ${themeClasses.bgHover} shadow-sm transition-all active:scale-95`}
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+            </button>
 
-            <div className={`flex-col md:flex-row gap-3 ${showFilters ? 'flex' : 'hidden md:flex'} animate-in slide-in-from-top-2 md:animate-none`}>
+            <div className={`hidden md:flex gap-3 animate-in slide-in-from-top-2 md:animate-none`}>
                 <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
                     <input 
                         placeholder="Model" 
@@ -317,15 +314,42 @@ export const InventoryList: React.FC = () => {
             </div>
          </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+         {/* Mobile Filters (Collapsible) */}
+         {showFilters && (
+            <div className="md:hidden grid grid-cols-2 gap-2 animate-in slide-in-from-top-1">
+                <input 
+                    placeholder="Model" 
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none"
+                    value={modelFilter}
+                    onChange={e => setModelFilter(e.target.value)}
+                />
+                <input 
+                    placeholder="Origin" 
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none"
+                    value={countryFilter}
+                    onChange={e => setCountryFilter(e.target.value)}
+                />
+                <select 
+                    className="w-full col-span-2 px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white text-slate-600 focus:outline-none"
+                    value={sortOrder}
+                    onChange={e => setSortOrder(e.target.value as any)}
+                >
+                    <option value="A-Z">Sort by Name (A-Z)</option>
+                    <option value="High-Low">Stock: High to Low</option>
+                    <option value="Low-High">Stock: Low to High</option>
+                </select>
+            </div>
+         )}
+
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {settings.category_enabled && categories.map(cat => (
                 <button
                     key={cat}
                     onClick={() => setCategoryFilter(cat)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
+                    className={`px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all ${
                         categoryFilter === cat 
-                        ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-md ${themeClasses.shadow}` 
-                        : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200 hover:text-indigo-600'
+                        ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-sm` 
+                        : 'bg-white text-slate-500 border-slate-200'
                     }`}
                 >
                     {cat}
@@ -334,10 +358,10 @@ export const InventoryList: React.FC = () => {
             {!settings.category_enabled && (
                 <button
                     onClick={() => setCategoryFilter(categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'Low Stock' : 'Out of Stock') : 'All')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
+                    className={`px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap border transition-all ${
                         categoryFilter !== 'All' 
-                        ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-md ${themeClasses.shadow}` 
-                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                        ? `${themeClasses.bg} text-white ${themeClasses.border.replace('200', '600')} shadow-sm` 
+                        : 'bg-white text-slate-500 border-slate-200'
                     }`}
                 >
                     {categoryFilter === 'All' ? (settings.stock_tracking_enabled ? 'Filter: Low Stock' : 'Filter: Out of Stock') : 'Show All'}
@@ -345,7 +369,7 @@ export const InventoryList: React.FC = () => {
             )}
           </div>
           
-          <div className="flex justify-between items-center text-xs text-slate-400 px-1 font-medium uppercase tracking-wider">
+          <div className="flex justify-between items-center text-[10px] text-slate-400 px-1 font-medium uppercase tracking-wider">
             <span>{filteredItems.length} Products</span>
             <span>Live Inventory</span>
         </div>

@@ -20,6 +20,9 @@ We redesigned the mobile inventory list to be **ultra-compact**:
 - **Capacity**: Can now display 5+ items in the visible area above the keyboard.
 - **Experience**: "Type-and-see" filtering is much smoother.
 
-## Technical Details
-- **File**: `components/InventoryList.tsx`
-- **Structure**: `div.divide-y` container replacing `div.space-y-3`.
+## Update: Compact Header for Small Screens
+**Problem**: The search bar and action buttons took up nearly 25% of the screen on mobile, pushing content down.
+**Solution**:
+- **Single Row Layout**: Combined Search, Filter Toggle, and Add Button into one row.
+- **Collapsible Filters**: Advanced filters (Model, Origin) are now hidden by default on mobile, expandable via the Filter icon.
+- **Micro-Styling**: Reduced padding and font sizes for header elements to maximize data visibility.
