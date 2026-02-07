@@ -31,7 +31,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
     const [secondaryDiscountRate, setSecondaryDiscountRate] = useState<number>((draftState?.secondary_discount_rate !== undefined ? draftState.secondary_discount_rate : (editingOrder ? (editingOrder.secondary_discount_rate || 0) : (existingCustomer?.secondary_discount_rate || 0))) * 100);
     
     // UI State
-    const [itemFilter, setItemFilter] = useState('');
+    const [catalogSearch, setCatalogSearch] = useState('');
+    const [cartSearch, setCartSearch] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [modelFilter, setModelFilter] = useState('All');
     const [countryFilter, setCountryFilter] = useState('All');
@@ -54,11 +55,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
     // Click outside handler for search dropdown
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (mobileTab === 'cart' && searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-                setItemFilter('');
-            }
-        };
+    const handleClickOutside = (event: MouseEvent) => {
+        if (mobileTab === 'cart' && searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+            setCartSearch('');
+        }
+    };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
@@ -85,7 +86,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
         if (showScanner) {
             scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
             scanner.render((decodedText) => {
-                setItemFilter(decodedText);
+                if (mobileTab === 'catalog') setCatalogSearch(decodedText);
+                else setCartSearch(decodedText);
                 setShowScanner(false);
                 if (scanner) scanner.clear();
             }, () => {});
@@ -266,8 +268,10 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
     // Faceted Filter Logic
     const itemsMatchingText = items.filter(i => 
-        i.item_display_name.toLowerCase().includes(itemFilter.toLowerCase()) ||
-        i.item_number.toLowerCase().includes(itemFilter.toLowerCase())
+        catalogSearch.trim() === '' || 
+        i.item_display_name.toLowerCase().includes(catalogSearch.toLowerCase()) || 
+        i.item_number.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+        i.vehicle_model.toLowerCase().includes(catalogSearch.toLowerCase())
     );
 
     const availableModels = ['All', ...Array.from(new Set(
@@ -361,22 +365,20 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 <input 
                                     placeholder="Search parts or SKU..." 
                                     className={`block w-full pl-9 pr-10 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 ${themeClasses.ring}`}
-                                    value={itemFilter}
-                                    onFocus={() => setIsSearchFocused(true)}
-                                    onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                                    onChange={e => setItemFilter(e.target.value)}
+                                    value={catalogSearch}
+                                    onChange={e => setCatalogSearch(e.target.value)}
                                 />
-                                {itemFilter && (
+                                {catalogSearch && (
                                     <button 
-                                        onClick={() => setItemFilter('')}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                                        onClick={() => setCatalogSearch('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                                     >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                     </button>
                                 )}
                                 
                                 {/* Catalog Search Dropdown */}
-                                {isSearchFocused && itemFilter.trim().length > 0 && (
+                                {isSearchFocused && catalogSearch.trim().length > 0 && (
                                     <div className="hidden md:block absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-96 overflow-y-auto divide-y divide-slate-50">
                                         {filteredItems.length > 0 ? (
                                             filteredItems.slice(0, 20).map(item => {
@@ -391,7 +393,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                         key={item.item_id}
                                                         onClick={() => {
                                                             setSelectedItem(item);
-                                                            setItemFilter('');
+                                                            setCatalogSearch('');
                                                             setIsSearchFocused(false);
                                                         }}
                                                         className={`p-3 flex justify-between items-center transition-colors cursor-pointer active:bg-slate-100 ${isInCart(item.item_id) ? `${themeClasses.bgSoft}/50` : 'hover:bg-slate-50'}`}
@@ -412,7 +414,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             })
                                         ) : (
                                             <div className="p-4 text-center text-slate-500 text-sm">
-                                                No items found for "{itemFilter}"
+                                                No items found for "{catalogSearch}"
                                             </div>
                                         )}
                                     </div>
@@ -477,7 +479,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                     )}
                     
                     {/* Item List */}
-                    <div className={`flex-1 overflow-y-auto p-2 md:p-4 space-y-1.5 ${(isSearchFocused && itemFilter.trim().length > 0) ? 'md:hidden' : ''}`}>
+                    <div className={`flex-1 overflow-y-auto p-2 md:p-4 space-y-1.5 ${(isSearchFocused && catalogSearch.trim().length > 0) ? 'md:hidden' : ''}`}>
                             {filteredItems.map(item => {
                             const isOutOfStock = settings.stock_tracking_enabled 
                                 ? item.current_stock_qty <= 0 
@@ -563,18 +565,18 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 type="text" 
                                 placeholder="Quick add item..."
                                 className={`block w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
-                                value={itemFilter}
-                                onFocus={() => setItemFilter(' ')}
-                                onBlur={() => setTimeout(() => setItemFilter(''), 200)}
-                                onChange={(e) => setItemFilter(e.target.value)}
+                                value={cartSearch}
+                                onFocus={() => setCartSearch(' ')}
+                                onBlur={() => setTimeout(() => setCartSearch(''), 200)}
+                                onChange={(e) => setCartSearch(e.target.value)}
                             />
-                            {itemFilter.length > 0 && (
+                            {cartSearch.length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-96 overflow-y-auto divide-y divide-slate-50">
                                     {items
                                         .filter(item => {
                                             const isOutOfStock = settings.stock_tracking_enabled ? item.current_stock_qty <= 0 : item.is_out_of_stock;
                                             if (isOutOfStock) return false;
-                                            const search = itemFilter.trim().toLowerCase();
+                                            const search = cartSearch.trim().toLowerCase();
                                             if (search === "") return true;
                                             return item.item_display_name.toLowerCase().includes(search) ||
                                                    item.item_number.toLowerCase().includes(search) ||
@@ -586,7 +588,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                 key={item.item_id}
                                                 onClick={() => {
                                                     setSelectedItem(item);
-                                                    setItemFilter('');
+                                                    setCartSearch('');
                                                 }}
                                                 className={`p-3 flex justify-between items-center transition-colors cursor-pointer active:bg-slate-100 ${isInCart(item.item_id) ? `${themeClasses.bgSoft}/50` : 'hover:bg-slate-50'}`}
                                             >
@@ -626,6 +628,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         <li key={line.line_id} className="p-3 flex justify-between items-start hover:bg-white transition-colors group bg-white border-b border-slate-100 last:border-0">
                                             <div className="flex-1 min-w-0 pr-2">
                                                 <div className={`text-xs font-bold ${themeClasses.textDark} break-words leading-snug`}>{cleanText(line.item_name)}</div>
+                                                <div className="text-[10px] text-slate-500 font-medium flex gap-1 mt-0.5">
+                                                    <span>{items.find(i => i.item_id === line.item_id)?.vehicle_model || ''}</span>
+                                                    <span>•</span>
+                                                    <span>{items.find(i => i.item_id === line.item_id)?.source_brand || ''}</span>
+                                                </div>
                                                 <div className="flex items-center gap-2 mt-1.5">
                                                     <div className="flex items-center bg-slate-50 rounded-lg overflow-hidden border border-slate-200">
                                                         <button 
