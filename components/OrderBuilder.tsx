@@ -428,13 +428,13 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             : 'border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer active:scale-[0.98]'
                                     } ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : ''}`}
                                 >
-                                    <div className={`${isSearchFocused ? 'p-2' : 'p-3'} flex justify-between items-center relative z-10`}>
+                                    <div className={`p-2 flex justify-between items-center relative z-10`}>
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <div className={`${isSearchFocused ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            <div className={`${isSearchFocused ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
                                                 {isInCart(item.item_id) ? (
-                                                    <svg className={`${isSearchFocused ? 'w-4 h-4' : 'w-5 h-5'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                                 ) : (
-                                                    <svg className={`${isSearchFocused ? 'w-4 h-4' : 'w-5 h-5'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                                                 )}
                                             </div>
                                             <div className="min-w-0">
@@ -443,12 +443,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                     {isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-rose-600 underline decoration-double">Out of Stock</span>}
                                                     {isInCart(item.item_id) && !isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-indigo-600">In Cart</span>}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500">
+                                                <div className="flex items-center gap-1 mt-0.5 text-[10px] leading-none text-slate-500">
                                                     {!isSearchFocused && (
                                                         <>
-                                                            <span className="font-bold text-slate-700 font-mono">{item.item_number}</span>
+                                                            <span className="font-black text-indigo-700 font-mono text-xs">{item.item_number}</span>
                                                             <span className="text-slate-300">•</span>
-                                                            <span className="uppercase tracking-tight">{item.vehicle_model}</span>
+                                                            <span className="uppercase font-bold text-slate-600">{item.vehicle_model}</span>
                                                             <span className="text-slate-300">•</span>
                                                             <span>{item.source_brand}</span>
                                                         </>
