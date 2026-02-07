@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils/currency';
 import { useToast } from '../context/ToastContext';
 import { cleanText } from '../utils/cleanText';
+import { useTheme } from '../context/ThemeContext';
 
 interface OrderBuilderProps {
   onCancel: () => void;
@@ -18,6 +19,7 @@ interface OrderBuilderProps {
 }
 
 export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCreated, existingCustomer, editingOrder, draftState, onUpdateDraft }) => {
+    const { themeClasses } = useTheme();
     const { showToast } = useToast();
     const { user } = useAuth();
     const settings = db.getSettings();
@@ -317,7 +319,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             type="date" 
                             value={orderDate} 
                             onChange={e => setOrderDate(e.target.value)} 
-                            className="bg-slate-50 border-none p-0 text-xs focus:ring-0 text-indigo-600 font-medium" 
+                            className={`bg-slate-50 border-none p-0 text-xs focus:ring-0 ${themeClasses.text} font-medium`} 
                         />
                     </div>
                 </div>
@@ -330,13 +332,13 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             <div className={`md:hidden flex border-b border-slate-200 bg-white transition-all ${isSearchFocused ? 'hidden' : 'flex'}`}>
                 <button 
                     onClick={() => setMobileTab('catalog')} 
-                    className={`flex-1 py-3 text-sm font-semibold text-center border-b-2 transition-colors ${mobileTab === 'catalog' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'}`}
+                    className={`flex-1 py-3 text-sm font-semibold text-center border-b-2 transition-colors ${mobileTab === 'catalog' ? `border-${themeClasses.text.split('-')[1]}-600 ${themeClasses.text}` : 'border-transparent text-slate-500'}`}
                 >
                     Catalog
                 </button>
                 <button 
                     onClick={() => setMobileTab('cart')} 
-                    className={`flex-1 py-3 text-sm font-semibold text-center border-b-2 transition-colors ${mobileTab === 'cart' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'}`}
+                    className={`flex-1 py-3 text-sm font-semibold text-center border-b-2 transition-colors ${mobileTab === 'cart' ? `border-${themeClasses.text.split('-')[1]}-600 ${themeClasses.text}` : 'border-transparent text-slate-500'}`}
                 >
                     Cart ({lines.length})
                 </button>
@@ -358,7 +360,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 </div>
                                 <input 
                                     placeholder="Search parts or SKU..." 
-                                    className="block w-full pl-9 pr-10 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                    className={`block w-full pl-9 pr-10 p-2.5 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 ${themeClasses.ring}`}
                                     value={itemFilter}
                                     onFocus={() => setIsSearchFocused(true)}
                                     onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
@@ -392,18 +394,18 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                             setItemFilter('');
                                                             setIsSearchFocused(false);
                                                         }}
-                                                        className={`p-3 flex justify-between items-center transition-colors cursor-pointer active:bg-slate-100 ${isInCart(item.item_id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}
+                                                        className={`p-3 flex justify-between items-center transition-colors cursor-pointer active:bg-slate-100 ${isInCart(item.item_id) ? `${themeClasses.bgSoft}/50` : 'hover:bg-slate-50'}`}
                                                     >
                                                         <div className="min-w-0 flex items-center gap-2">
-                                                            {isInCart(item.item_id) && <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>}
+                                                            {isInCart(item.item_id) && <span className={`w-1.5 h-1.5 ${themeClasses.bg} rounded-full`}></span>}
                                                             <div className="min-w-0">
-                                                                <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>{cleanText(item.item_display_name)}</p>
+                                                                <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? themeClasses.textDark : 'text-slate-800'}`}>{cleanText(item.item_display_name)}</p>
                                                         <p className="text-[10px] text-slate-400 font-mono truncate">{cleanText(item.item_number)} • {cleanText(item.vehicle_model)} • {cleanText(item.source_brand)}</p>
                                                             </div>
                                                         </div>
                                                         <div className="text-right shrink-0 ml-2">
-                                                            <p className={`text-xs font-black ${isInCart(item.item_id) ? 'text-indigo-700' : 'text-indigo-600'}`}>{formatCurrency(item.unit_value)}</p>
-                                                            {isInCart(item.item_id) && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-tighter">Added</span>}
+                                                            <p className={`text-xs font-black ${isInCart(item.item_id) ? themeClasses.text : themeClasses.text}`}>{formatCurrency(item.unit_value)}</p>
+                                                            {isInCart(item.item_id) && <span className={`text-[8px] font-black ${themeClasses.text} uppercase tracking-tighter`}>Added</span>}
                                                         </div>
                                                     </div>
                                                 );
@@ -468,7 +470,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
                     {showScanner && (
                         <div className="px-3 pb-3 bg-white border-b">
-                            <div className="rounded-xl overflow-hidden border-2 border-indigo-500">
+                            <div className={`rounded-xl overflow-hidden border-2 ${themeClasses.border.replace('200', '500')}`}>
                                 <div id="reader"></div>
                             </div>
                         </div>
@@ -489,13 +491,13 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         isOutOfStock 
                                         ? 'border-rose-200 bg-rose-50/30 cursor-not-allowed opacity-75' 
                                         : isInCart(item.item_id)
-                                            ? 'border-indigo-200 bg-indigo-50/30 cursor-pointer active:scale-[0.98]'
-                                            : 'border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer active:scale-[0.98]'
-                                    } ${selectedItem?.item_id === item.item_id ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2' : ''}`}
+                                            ? `${themeClasses.border} ${themeClasses.bgSoft}/30 cursor-pointer active:scale-[0.98]`
+                                            : `border-slate-200 hover:${themeClasses.border.replace('200', '300')} hover:shadow-md cursor-pointer active:scale-[0.98]`
+                                    } ${selectedItem?.item_id === item.item_id ? `${themeClasses.border.replace('200', '500')} ring-2 ${themeClasses.ring.replace('focus:', '')} ring-offset-2` : ''}`}
                                 >
                                     <div className={`p-2 flex justify-between items-center relative z-10`}>
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? `${themeClasses.bg} text-white` : `${themeClasses.bgSoft} ${themeClasses.text}`}`}>
                                                 {isInCart(item.item_id) ? (
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                                 ) : (
@@ -503,14 +505,14 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                 )}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className={`font-bold text-sm truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>
+                                                <div className={`font-bold text-sm truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? themeClasses.textDark : 'text-slate-800'}`}>
                                                     {cleanText(item.item_display_name)}
                                                     {isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-rose-600 underline decoration-double">Out of Stock</span>}
-                                                    {isInCart(item.item_id) && !isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-indigo-600">In Cart</span>}
+                                                    {isInCart(item.item_id) && !isOutOfStock && <span className={`ml-2 text-[10px] font-black uppercase ${themeClasses.text}`}>In Cart</span>}
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-0.5 text-[10px] leading-none text-slate-500">
                                                         <>
-                                                            <span className="font-black text-indigo-700 font-mono text-xs">{cleanText(item.item_number)}</span>
+                                                            <span className={`font-black ${themeClasses.text} font-mono text-xs`}>{cleanText(item.item_number)}</span>
                                                             <span className="text-slate-300">•</span>
                                                             <span className="uppercase font-bold text-slate-600">{cleanText(item.vehicle_model)}</span>
                                                             <span className="text-slate-300">•</span>
@@ -529,7 +531,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             )}
                                         </div>
                                     </div>
-                                    {!isOutOfStock && <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/0 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />}
+                                    {!isOutOfStock && <div className={`absolute inset-0 bg-gradient-to-r ${themeClasses.gradient.split(' ')[0]}/0 to-${themeClasses.gradient.split(' ')[0].replace('from-', '')}/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`} />}
                                 </div>
                             );
                         })}
@@ -543,7 +545,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             <h3 className="text-xs font-black text-slate-700 uppercase tracking-wide">Order Summary</h3>
                             <button 
                                 onClick={() => setMobileTab('catalog')}
-                                className="md:hidden text-indigo-600 text-[10px] font-black uppercase flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded-md"
+                                className={`md:hidden ${themeClasses.text} text-[10px] font-black uppercase flex items-center gap-1 ${themeClasses.bgSoft} px-2 py-1 rounded-md`}
                             >
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                 Add Items
@@ -560,7 +562,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             <input 
                                 type="text" 
                                 placeholder="Quick add item..."
-                                className="block w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className={`block w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-2 ${themeClasses.ring} outline-none`}
                                 value={itemFilter}
                                 onFocus={() => setItemFilter(' ')}
                                 onBlur={() => setTimeout(() => setItemFilter(''), 200)}
@@ -586,19 +588,19 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                     setSelectedItem(item);
                                                     setItemFilter('');
                                                 }}
-                                                className={`p-3 flex justify-between items-center transition-colors cursor-pointer active:bg-slate-100 ${isInCart(item.item_id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}
+                                                className={`p-3 flex justify-between items-center transition-colors cursor-pointer active:bg-slate-100 ${isInCart(item.item_id) ? `${themeClasses.bgSoft}/50` : 'hover:bg-slate-50'}`}
                                             >
                                                 <div className="min-w-0 flex items-center gap-2">
-                                                    {isInCart(item.item_id) && <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>}
+                                                    {isInCart(item.item_id) && <span className={`w-1.5 h-1.5 ${themeClasses.bg} rounded-full`}></span>}
                                                     <div className="min-w-0">
-                                                        <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>{cleanText(item.item_display_name)}</p>
+                                                        <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? themeClasses.textDark : 'text-slate-800'}`}>{cleanText(item.item_display_name)}</p>
                                                         <p className="text-[10px] text-slate-400 font-mono truncate">{cleanText(item.item_number)} • {cleanText(item.vehicle_model)} • {cleanText(item.source_brand)}</p>
                                                     </div>
 
                                                 </div>
                                                 <div className="text-right shrink-0 ml-2">
-                                                    <p className={`text-xs font-black ${isInCart(item.item_id) ? 'text-indigo-700' : 'text-indigo-600'}`}>{formatCurrency(item.unit_value)}</p>
-                                                    {isInCart(item.item_id) && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-tighter">Added</span>}
+                                                    <p className={`text-xs font-black ${isInCart(item.item_id) ? themeClasses.text : themeClasses.text}`}>{formatCurrency(item.unit_value)}</p>
+                                                    {isInCart(item.item_id) && <span className={`text-[8px] font-black ${themeClasses.text} uppercase tracking-tighter`}>Added</span>}
                                                 </div>
                                             </div>
                                         ))
@@ -623,7 +625,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                     {lines.map(line => (
                                         <li key={line.line_id} className="p-3 flex justify-between items-start hover:bg-white transition-colors group bg-white border-b border-slate-100 last:border-0">
                                             <div className="flex-1 min-w-0 pr-2">
-                                                <div className="text-xs font-bold text-slate-900 break-words leading-snug">{cleanText(line.item_name)}</div>
+                                                <div className={`text-xs font-bold ${themeClasses.textDark} break-words leading-snug`}>{cleanText(line.item_name)}</div>
                                                 <div className="flex items-center gap-2 mt-1.5">
                                                     <div className="flex items-center bg-slate-50 rounded-lg overflow-hidden border border-slate-200">
                                                         <button 
@@ -670,7 +672,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         <input 
                                             type="number" 
                                             step="1" 
-                                            className="w-16 p-1 text-right text-xs border rounded focus:ring-indigo-500 font-bold"
+                                                className={`w-16 p-1 text-right text-xs border rounded focus:ring-2 ${themeClasses.ring} outline-none font-bold`}
                                             value={discountRate}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => setDiscountRate(parseFloat(e.target.value) || 0)}
@@ -686,7 +688,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             <input 
                                                 type="number" 
                                                 step="1" 
-                                                className="w-16 p-1 text-right text-xs border rounded focus:ring-indigo-500 font-bold"
+                                            className={`w-16 p-1 text-right text-xs border rounded focus:ring-2 ${themeClasses.ring} outline-none font-bold`}
                                                 value={secondaryDiscountRate}
                                                 onFocus={(e) => e.target.select()}
                                                 onChange={(e) => setSecondaryDiscountRate(parseFloat(e.target.value) || 0)}
@@ -701,11 +703,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 </div>
                             </div>
                             <button 
-                                onClick={initiateCheckout}
                                 disabled={lines.length === 0}
-                                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg active:scale-[0.98] transition-all text-sm"
+                                onClick={() => setShowPaymentModal(true)}
+                                className={`w-full ${themeClasses.bg} text-white py-3 rounded-xl font-bold ${themeClasses.bgHover} disabled:opacity-50 disabled:cursor-not-allowed shadow-lg active:scale-[0.98] transition-all text-sm`}
                             >
-                                Proceed to Checkout
+                                Checkout ({lines.length} Items)
                             </button>
                         </div>
                      </div>
@@ -725,20 +727,20 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                         
                         <div className="flex items-center justify-center gap-4 mb-8">
                              <button onClick={() => setQtyInput(Math.max(1, parseInt(qtyInput)-1).toString())} className="w-12 h-12 rounded-full bg-slate-100 text-2xl font-bold text-slate-600 hover:bg-slate-200">-</button>
-                             <input 
+                            <input 
                                 type="number" 
-                                className="w-24 text-center text-3xl font-bold border-b-2 border-indigo-500 focus:outline-none" 
+                                className={`w-24 text-center text-3xl font-bold border-b-2 ${themeClasses.border.replace('200', '500')} focus:outline-none`} 
                                 value={qtyInput}
+                                onChange={e => setQtyInput(e.target.value)}
                                 onFocus={(e) => e.target.select()}
                                 autoFocus
-                                onChange={e => setQtyInput(e.target.value)}
-                             />
+                            />
                              <button onClick={() => setQtyInput((parseInt(qtyInput)+1).toString())} className="w-12 h-12 rounded-full bg-slate-100 text-2xl font-bold text-slate-600 hover:bg-slate-200">+</button>
                         </div>
 
                         <div className="flex gap-3">
                             <button onClick={() => setSelectedItem(null)} className="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl">Cancel</button>
-                            <button onClick={addItem} className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg">Add Item</button>
+                            <button onClick={addItem} className={`flex-1 py-3 ${themeClasses.bg} text-white font-bold rounded-xl shadow-lg`}>Add Item</button>
                         </div>
                     </div>
                 </div>
@@ -765,14 +767,14 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Payment Amount</label>
                                 <input 
                                     type="number" 
-                                    className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl text-lg font-bold focus:border-indigo-500 focus:outline-none"
+                                    className={`w-full p-3 bg-white border-2 border-slate-200 rounded-xl text-lg font-bold focus:${themeClasses.border.replace('200', '500')} focus:outline-none`}
                                     value={paymentAmount}
                                     onFocus={(e) => e.target.select()}
                                     onChange={e => setPaymentAmount(e.target.value)}
                                     placeholder="Enter amount"
                                 />
                                 <div className="flex justify-between mt-1 px-1">
-                                    <button onClick={() => setPaymentAmount(netTotal.toFixed(2))} className="text-xs font-bold text-indigo-600">Full Payment</button>
+                                    <button onClick={() => setPaymentAmount(netTotal.toFixed(2))} className={`text-xs font-bold ${themeClasses.text}`}>Full Payment</button>
                                     <span className={`text-xs font-bold ${netTotal - (parseFloat(paymentAmount) || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                                         Balance Due: {formatCurrency(Math.max(0, netTotal - (parseFloat(paymentAmount) || 0)))}
                                     </span>
@@ -783,7 +785,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Method</label>
                                     <select 
-                                        className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-medium focus:border-indigo-500 focus:outline-none"
+                                        className={`w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-medium focus:${themeClasses.border.replace('200', '500')} focus:outline-none`}
                                         value={paymentType}
                                         onChange={e => setPaymentType(e.target.value as PaymentType)}
                                     >
@@ -798,7 +800,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Reference No.</label>
                                         <input 
                                             type="text" 
-                                            className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-medium focus:border-indigo-500 focus:outline-none"
+                                            className={`w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-medium focus:${themeClasses.border.replace('200', '500')} focus:outline-none`}
                                             value={paymentRef}
                                             onChange={e => setPaymentRef(e.target.value)}
                                             placeholder="Last 4 digits"
@@ -810,7 +812,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
 
                         <button 
                             onClick={handleFinalizeOrder}
-                            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black text-lg shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+                            className={`w-full ${themeClasses.bg} text-white py-4 rounded-xl font-black text-lg shadow-lg ${themeClasses.shadow} active:scale-95 transition-transform`}
                         >
                             Confirm Sale
                         </button>

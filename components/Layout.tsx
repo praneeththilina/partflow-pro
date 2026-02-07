@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SyncStats } from '../types';
 import { db } from '../services/db';
+import { useTheme } from '../context/ThemeContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onSync, isSyncing, hasActiveDraft }) => {
+  const { themeClasses } = useTheme();
   const [stats, setStats] = useState<SyncStats>({ pendingCustomers: 0, pendingItems: 0, pendingOrders: 0 });
 
   const refreshStats = () => {
@@ -85,8 +87,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
       <header className="hidden md:block bg-white border-b border-slate-200 sticky top-0 z-50 no-print">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-indigo-200">PF</div>
-            <h1 className="text-xl font-black tracking-tight text-slate-800">PartFlow <span className="text-indigo-600">Pro</span></h1>
+            <div className={`w-8 h-8 ${themeClasses.bg} rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg ${themeClasses.shadow}`}>PF</div>
+            <h1 className="text-xl font-black tracking-tight text-slate-800">PartFlow <span className={themeClasses.text}>Pro</span></h1>
           </div>
           
           <nav className="flex space-x-1">
@@ -96,7 +98,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
                 onClick={() => onTabChange(tab.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-indigo-50 text-indigo-700'
+                    ? `${themeClasses.bgSoft} ${themeClasses.text}`
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
@@ -114,7 +116,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
       <header className="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-100 p-3 sticky top-0 z-40 no-print">
          <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-indigo-200 shadow-lg">PF</div>
+                <div className={`w-8 h-8 ${themeClasses.bg} rounded-lg flex items-center justify-center text-white font-bold text-xs ${themeClasses.shadow} shadow-lg`}>PF</div>
                 <h1 className="text-sm font-black tracking-wider text-slate-800">
                     PARTFLOW
                 </h1>
@@ -129,7 +131,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
                 )}
                 <button 
                     onClick={() => onTabChange('sync')}
-                    className={`p-2 rounded-full relative transition-colors ${activeTab === 'sync' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400'}`}
+                    className={`p-2 rounded-full relative transition-colors ${activeTab === 'sync' ? `${themeClasses.bgSoft} ${themeClasses.text}` : 'text-slate-400'}`}
                 >
                     {tabs.find(t => t.id === 'sync')?.icon}
                 </button>
@@ -178,9 +180,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
                     <button
                         key="menu"
                         onClick={() => handleMobileNavClick('menu')}
-                        className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all active:scale-90 ${showMobileMenu ? 'text-indigo-600' : 'text-slate-400'}`}
+                        className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all active:scale-90 ${showMobileMenu ? themeClasses.text : 'text-slate-400'}`}
                     >
-                         <div className={`p-2 rounded-xl transition-colors ${showMobileMenu ? 'bg-indigo-50' : ''}`}>
+                         <div className={`p-2 rounded-xl transition-colors ${showMobileMenu ? themeClasses.bgSoft : ''}`}>
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
                          </div>
                         <span className="text-[9px] font-black uppercase tracking-tighter">More</span>
@@ -199,14 +201,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
                     <div key={id} className="relative px-2">
                         <button
                             onClick={() => handleMobileNavClick(id)}
-                            className="w-16 h-16 rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-200 flex flex-col items-center justify-center transform -translate-y-4 border-4 border-white active:scale-95 transition-all relative"
+                            className={`w-16 h-16 rounded-2xl ${themeClasses.bg} text-white shadow-xl ${themeClasses.shadow} flex flex-col items-center justify-center transform -translate-y-4 border-4 border-white active:scale-95 transition-all relative`}
                         >
                             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
                             <span className="text-[8px] font-black uppercase mt-0.5">Sale</span>
                             {hasActiveDraft && (
                                 <span className="absolute top-3 right-3 flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border-2 border-indigo-600"></span>
+                                    <span className={`relative inline-flex rounded-full h-3 w-3 bg-rose-500 border-2 ${themeClasses.border}`}></span>
                                 </span>
                             )}
                         </button>
@@ -219,13 +221,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
                 key={id}
                 onClick={() => handleMobileNavClick(id)}
                 className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all active:scale-90 ${
-                  isActive ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
+                  isActive ? themeClasses.text : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
-                <div className={`p-2 rounded-xl transition-colors ${isActive ? 'bg-indigo-50' : ''}`}>
+                <div className={`p-2 rounded-xl transition-colors ${isActive ? themeClasses.bgSoft : ''}`}>
                   {tab.icon}
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-tighter ${isActive ? 'text-indigo-900' : 'text-slate-500'}`}>{tab.label}</span>
+                <span className={`text-[9px] font-black uppercase tracking-tighter ${isActive ? themeClasses.textDark : 'text-slate-500'}`}>{tab.label}</span>
               </button>
             );
           })}
