@@ -240,49 +240,51 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
 
       {/* Add Form Modal/Card */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                     <h3 className="text-xl font-bold text-slate-800">{editingCustomer ? 'Edit Customer' : 'New Customer'}</h3>
                     <button onClick={() => { setShowAddForm(false); setEditingCustomer(null); }} className="text-slate-400 hover:text-slate-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-4 md:p-6 space-y-3 md:space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Shop Name *</label>
-                        <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.shop_name || ''} onChange={e => setNewCustomer({...newCustomer, shop_name: e.target.value})} placeholder="e.g. City Auto Parts" />
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Shop Name *</label>
+                        <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium" value={newCustomer.shop_name || ''} onChange={e => setNewCustomer({...newCustomer, shop_name: e.target.value})} placeholder="e.g. City Auto Parts" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">City *</label>
-                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.city_ref || ''} onChange={e => setNewCustomer({...newCustomer, city_ref: e.target.value})} />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">City *</label>
+                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium" value={newCustomer.city_ref || ''} onChange={e => setNewCustomer({...newCustomer, city_ref: e.target.value})} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.phone || ''} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} type="tel" />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Phone</label>
+                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium" value={newCustomer.phone || ''} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} type="tel" />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
-                        <textarea className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" rows={2} value={newCustomer.address || ''} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} />
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Address</label>
+                        <textarea className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium" rows={2} value={newCustomer.address || ''} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Default Discount (%)</label>
-                        <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="Primary (e.g. 30)" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Secondary Discount (%)</label>
-                        <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.secondary_discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, secondary_discount_rate: parseFloat(e.target.value)})} placeholder="Secondary (e.g. 5)" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Credit Period (Days)</label>
-                        <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newCustomer.credit_period || ''} onChange={e => setNewCustomer({...newCustomer, credit_period: parseInt(e.target.value)})} placeholder="e.g. 90" />
+                    <div className="grid grid-cols-3 gap-3">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Disc 1 (%)</label>
+                            <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-indigo-600" value={newCustomer.discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, discount_rate: parseFloat(e.target.value)})} placeholder="0" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Disc 2 (%)</label>
+                            <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-indigo-600" value={newCustomer.secondary_discount_rate || ''} onChange={e => setNewCustomer({...newCustomer, secondary_discount_rate: parseFloat(e.target.value)})} placeholder="0" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Credit (Days)</label>
+                            <input type="number" step="1" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-indigo-600" value={newCustomer.credit_period || ''} onChange={e => setNewCustomer({...newCustomer, credit_period: parseInt(e.target.value)})} placeholder="90" />
+                        </div>
                     </div>
                 </div>
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
-                    <button onClick={handleSaveCustomer} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 shadow-sm">{editingCustomer ? 'Update' : 'Save Customer'}</button>
-                    <button onClick={() => { setShowAddForm(false); setEditingCustomer(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3 rounded-xl font-semibold hover:bg-slate-50">Cancel</button>
+                <div className="p-4 md:p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+                    <button onClick={handleSaveCustomer} className="flex-1 bg-indigo-600 text-white py-3.5 rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 transition-transform">{editingCustomer ? 'Update Shop' : 'Save Shop'}</button>
+                    <button onClick={() => { setShowAddForm(false); setEditingCustomer(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3.5 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform">Cancel</button>
                 </div>
             </div>
         </div>
