@@ -95,7 +95,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                 </div>
 
                 {/* Actual Invoice Content */}
-                <div className="flex-1 overflow-auto p-4 md:p-12 bg-slate-100 flex flex-col items-center gap-8">
+                <div className="flex-1 overflow-auto p-4 md:p-12 bg-slate-100 flex flex-col gap-8">
                     {linePages.map((pageLines, pageIndex) => {
                         const isFirstPage = pageIndex === 0;
                         const isLastPage = pageIndex === linePages.length - 1;
@@ -109,7 +109,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                         return (
                             <div 
                                 key={pageIndex}
-                                className="invoice-page bg-white text-black p-[15mm] w-[210mm] min-h-[297mm] shadow-xl font-sans text-[12px] leading-tight relative flex flex-col shrink-0"
+                                className="invoice-page bg-white text-black p-[15mm] w-[210mm] min-h-[297mm] shadow-xl font-sans text-[12px] leading-tight relative flex flex-col shrink-0 mx-auto"
                             >
                                 {/* Header */}
                                 {isFirstPage ? (
