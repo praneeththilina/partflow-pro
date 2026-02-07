@@ -531,6 +531,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                         <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>{item.item_display_name}</p>
                                                         <p className="text-[10px] text-slate-400 font-mono truncate">{item.item_number} • {item.vehicle_model} • {item.source_brand}</p>
                                                     </div>
+
                                                 </div>
                                                 <div className="text-right shrink-0 ml-2">
                                                     <p className={`text-xs font-black ${isInCart(item.item_id) ? 'text-indigo-700' : 'text-indigo-600'}`}>{formatCurrency(item.unit_value)}</p>
