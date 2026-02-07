@@ -367,7 +367,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 
                                 {/* Catalog Search Dropdown */}
                                 {isSearchFocused && itemFilter.trim().length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-96 overflow-y-auto divide-y divide-slate-50">
+                                    <div className="hidden md:block absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-96 overflow-y-auto divide-y divide-slate-50">
                                         {filteredItems.length > 0 ? (
                                             filteredItems.slice(0, 20).map(item => {
                                                 const isOutOfStock = settings.stock_tracking_enabled 
@@ -453,9 +453,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                         </div>
                     )}
                     
-                    {/* Item List - Hide when search dropdown is active */}
-                    {!(isSearchFocused && itemFilter.trim().length > 0) && (
-                        <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-1.5">
+                    {/* Item List */}
+                    <div className={`flex-1 overflow-y-auto p-2 md:p-4 space-y-1.5 ${(isSearchFocused && itemFilter.trim().length > 0) ? 'md:hidden' : ''}`}>
                             {filteredItems.map(item => {
                             const isOutOfStock = settings.stock_tracking_enabled 
                                 ? item.current_stock_qty <= 0 
@@ -516,7 +515,6 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             );
                         })}
                     </div>
-                    )}
                 </div>
 
                 {/* Cart Pane (Right on Desktop, Tab 2 on Mobile) */}
