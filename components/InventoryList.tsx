@@ -380,7 +380,7 @@ export const InventoryList: React.FC = () => {
 
       {/* Add Item Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-end md:items-center justify-center p-0 md:p-4">
             <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-lg h-[90vh] md:h-auto md:max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in duration-200">
                 <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                     <h3 className="text-lg font-black text-slate-800 tracking-tight">{editingItem ? 'Edit Item' : 'New Spare Part'}</h3>
@@ -628,7 +628,7 @@ export const InventoryList: React.FC = () => {
 
       {/* Adjustment Modal */}
       {showAdjustModal && adjustItem && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200">
                   <div className="p-6 border-b border-slate-100">
                       <h3 className="text-lg font-bold text-slate-800">Adjust Stock</h3>

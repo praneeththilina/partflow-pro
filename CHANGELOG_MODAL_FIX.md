@@ -9,6 +9,7 @@
 **Solution**:
 - **Bottom Sheet Layout**: On mobile, the modal now slides up from the bottom and occupies 90% of the screen height.
 - **Fixed Header/Footer**: The title and action buttons (Save/Cancel) are now pinned to the top and bottom of the sheet, ensuring they are always accessible even when the form content scrolls.
+- **Z-Index Fix**: Modal layering increased to `z-[60]` to ensure it covers the bottom navigation bar on all mobile screens.
 - **Improved Padding**: Optimized input spacing for touch targets.
 
 ## Technical Details
