@@ -65,6 +65,13 @@ export const InventoryList: React.FC = () => {
       setAlertConfig({ isOpen: true, title, message, type });
   };
 
+  const closeAddForm = () => {
+      setShowAddForm(false);
+      setEditingItem(null);
+      setNewItem({});
+      setSkuLocked(true);
+  };
+
   const handleSaveItem = async () => {
     if (!newItem.item_display_name || !newItem.item_number || !newItem.unit_value) {
         showAlert("Missing Info", "Name, SKU, and Price are required", "danger");
@@ -119,9 +126,7 @@ export const InventoryList: React.FC = () => {
     await db.saveItem(item);
     setItems([...db.getItems()]); // Spread to force new array reference for React
     showToast(editingItem ? "Item updated" : "Item added to stock", "success");
-    setShowAddForm(false);
-    setEditingItem(null);
-    setNewItem({});
+    closeAddForm();
   };
 
   const handleDescriptionBlur = () => {
@@ -213,9 +218,7 @@ export const InventoryList: React.FC = () => {
     if (window.confirm("Are you sure you want to delete this item? It will be marked as inactive.")) {
         await db.deleteItem(editingItem.item_id);
         setItems([...db.getItems()]);
-        setShowAddForm(false);
-        setEditingItem(null);
-        setNewItem({});
+        closeAddForm();
     }
   };
 
@@ -377,31 +380,31 @@ export const InventoryList: React.FC = () => {
 
       {/* Add Item Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <h3 className="text-xl font-bold text-slate-800">{editingItem ? 'Edit Item' : 'New Spare Part'}</h3>
-                    <button onClick={() => { setShowAddForm(false); setEditingItem(null); }} className="text-slate-400 hover:text-slate-600">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+            <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full max-w-lg h-[90vh] md:h-auto md:max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in duration-200">
+                <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                    <h3 className="text-lg font-black text-slate-800 tracking-tight">{editingItem ? 'Edit Item' : 'New Spare Part'}</h3>
+                    <button onClick={closeAddForm} className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-slate-400 hover:text-rose-500 shadow-sm border border-slate-200 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="p-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Display Name *</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Display Name *</label>
                         <input 
-                            className={`w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 ${themeClasses.ring} outline-none text-sm`}
+                            className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`}
                             value={newItem.item_display_name || ''} 
                             onChange={e => setNewItem({...newItem, item_display_name: e.target.value})} 
                             onBlur={handleDescriptionBlur}
                             placeholder="e.g. Brake Pad (Toyota Corolla)" 
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">SKU / Item Number *</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">SKU / Item No *</label>
                             <div className="relative">
                                 <input 
-                                    className={`w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 ${themeClasses.ring} outline-none pr-10 text-sm ${skuLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'}`} 
+                                    className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none pr-10 text-sm font-mono font-bold ${skuLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'}`} 
                                     value={newItem.item_number || ''} 
                                     onChange={e => setNewItem({...newItem, item_number: e.target.value})} 
                                     placeholder="e.g. BP-102"
@@ -410,72 +413,72 @@ export const InventoryList: React.FC = () => {
                                 <button 
                                     type="button"
                                     onClick={() => setSkuLocked(!skuLocked)}
-                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:${themeClasses.text}`}
+                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:${themeClasses.text} hover:bg-slate-100 transition-colors`}
                                 >
                                     {skuLocked ? (
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                                     ) : (
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
                                     )}
                                 </button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Internal Name</label>
-                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.item_name || ''} onChange={e => setNewItem({...newItem, item_name: e.target.value})} placeholder="e.g. Brake Pad" />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Internal Name</label>
+                            <input className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`} value={newItem.item_name || ''} onChange={e => setNewItem({...newItem, item_name: e.target.value})} placeholder="e.g. Brake Pad" />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Vehicle Model</label>
-                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.vehicle_model || ''} onChange={e => setNewItem({...newItem, vehicle_model: e.target.value})} placeholder="e.g. Corolla 2018" />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Vehicle Model</label>
+                            <input className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`} value={newItem.vehicle_model || ''} onChange={e => setNewItem({...newItem, vehicle_model: e.target.value})} placeholder="e.g. Corolla 2018" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Source Brand / Country</label>
-                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.source_brand || ''} onChange={e => setNewItem({...newItem, source_brand: e.target.value})} placeholder="e.g. China" />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Origin / Brand</label>
+                            <input className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`} value={newItem.source_brand || ''} onChange={e => setNewItem({...newItem, source_brand: e.target.value})} placeholder="e.g. Toyota / China" />
                         </div>
                     </div>
                     {settings.category_enabled && (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                                <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.category || ''} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="e.g. Engine" />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Category</label>
+                                <input className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`} value={newItem.category || ''} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="e.g. Engine" />
                             </div>
                             {settings.stock_tracking_enabled && (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
-                                    <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Low Limit</label>
+                                    <input type="number" className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`} value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
                                 </div>
                             )}
                         </div>
                     )}
                     {!settings.category_enabled && settings.stock_tracking_enabled && (
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
-                            <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Low Stock Limit</label>
+                            <input type="number" className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-medium`} value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
                         </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Unit Value (Price) *</label>
-                            <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.unit_value || ''} onChange={e => setNewItem({...newItem, unit_value: parseFloat(e.target.value)})} placeholder="0.00" />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Unit Price *</label>
+                            <input type="number" className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-bold ${themeClasses.text}`} value={newItem.unit_value || ''} onChange={e => setNewItem({...newItem, unit_value: parseFloat(e.target.value)})} placeholder="0.00" />
                         </div>
                         {settings.stock_tracking_enabled && (
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Opening Stock</label>
-                                <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.current_stock_qty || ''} onChange={e => setNewItem({...newItem, current_stock_qty: parseInt(e.target.value)})} placeholder="0" />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Opening Stock</label>
+                                <input type="number" className={`w-full p-3 border border-slate-300 rounded-xl focus:ring-2 ${themeClasses.ring} outline-none text-sm font-bold`} value={newItem.current_stock_qty || ''} onChange={e => setNewItem({...newItem, current_stock_qty: parseInt(e.target.value)})} placeholder="0" />
                             </div>
                         )}
                     </div>
                 </div>
-                <div className="p-4 md:p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+                <div className="p-4 md:p-5 border-t border-slate-100 bg-slate-50 flex gap-3 shrink-0 pb-safe">
                     {editingItem && (
-                        <button onClick={handleDeleteItem} className="bg-rose-100 text-rose-600 px-4 py-3.5 rounded-xl font-bold hover:bg-rose-200">
+                        <button onClick={handleDeleteItem} className="bg-rose-100 text-rose-600 px-4 py-3.5 rounded-xl font-bold hover:bg-rose-200 transition-colors">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     )}
-                    <button onClick={handleSaveItem} className={`flex-1 ${themeClasses.bg} text-white py-3.5 rounded-xl font-bold ${themeClasses.bgHover} shadow-lg active:scale-95 transition-transform`}>{editingItem ? 'Update Item' : 'Add to Inventory'}</button>
-                    <button onClick={() => { setShowAddForm(false); setEditingItem(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3.5 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform">Cancel</button>
+                    <button onClick={handleSaveItem} className={`flex-1 ${themeClasses.bg} text-white py-3.5 rounded-xl font-bold ${themeClasses.bgHover} shadow-lg active:scale-95 transition-transform`}>{editingItem ? 'Update Item' : 'Add to Stock'}</button>
+                    <button onClick={closeAddForm} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3.5 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform">Cancel</button>
                 </div>
 
             </div>
