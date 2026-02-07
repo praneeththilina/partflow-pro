@@ -25,3 +25,11 @@ We optimized the search behavior based on screen size:
 ## Verification
 - Build passed.
 - Logic ensures list is visible on mobile even when `isSearchFocused` is true.
+
+## Update: Consistent Item Detail View
+**Problem**: The item list was "compacting" itself (hiding SKU, Model, Origin) when the search box was focused. This prevented users from verifying they were selecting the correct part during a search.
+
+**Solution**:
+- Removed conditional rendering that hid details when `isSearchFocused` was true.
+- Standardized font sizes and icon sizes to be consistent regardless of search state.
+- Users now see full item details (SKU, Model, Origin) at all times, making selection safer.

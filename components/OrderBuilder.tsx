@@ -474,7 +474,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 >
                                     <div className={`p-2 flex justify-between items-center relative z-10`}>
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <div className={`${isSearchFocused ? 'w-8 h-8' : 'w-9 h-9'} rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${isOutOfStock ? 'bg-rose-100 text-rose-600' : isInCart(item.item_id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
                                                 {isInCart(item.item_id) ? (
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                                 ) : (
@@ -482,13 +482,12 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                 )}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className={`font-bold ${isSearchFocused ? 'text-xs' : 'text-sm'} truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>
+                                                <div className={`font-bold text-sm truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>
                                                     {cleanText(item.item_display_name)}
                                                     {isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-rose-600 underline decoration-double">Out of Stock</span>}
                                                     {isInCart(item.item_id) && !isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-indigo-600">In Cart</span>}
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-0.5 text-[10px] leading-none text-slate-500">
-                                                    {!isSearchFocused && (
                                                         <>
                                                             <span className="font-black text-indigo-700 font-mono text-xs">{cleanText(item.item_number)}</span>
                                                             <span className="text-slate-300">•</span>
@@ -496,14 +495,13 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                             <span className="text-slate-300">•</span>
                                                             <span>{cleanText(item.source_brand)}</span>
                                                         </>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <div className="text-right pl-2">
-                                            <div className={`font-black ${isSearchFocused ? 'text-xs' : 'text-sm'} ${isOutOfStock ? 'text-rose-400' : 'text-slate-900'}`}>{formatCurrency(item.unit_value)}</div>
-                                            {!isSearchFocused && settings.stock_tracking_enabled && (
+                                            <div className={`font-black text-sm ${isOutOfStock ? 'text-rose-400' : 'text-slate-900'}`}>{formatCurrency(item.unit_value)}</div>
+                                            {settings.stock_tracking_enabled && (
                                                 <div className={`text-[9px] font-bold mt-0.5 px-1.5 py-0.5 rounded-full inline-block ${item.current_stock_qty > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-100 text-rose-700'}`}>
                                                     {item.current_stock_qty} in stock
                                                 </div>
