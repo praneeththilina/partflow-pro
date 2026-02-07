@@ -4,6 +4,7 @@ import { Order, Item, Customer } from '../types';
 import { pdfService } from '../services/pdf';
 import { formatCurrency } from '../utils/currency';
 import { InvoicePreview } from './InvoicePreview';
+import { cleanText } from '../utils/cleanText';
 
 type ReportView = 'overview' | 'revenue' | 'category' | 'customer' | 'stock' | 'invoice' | 'performance';
 
@@ -113,7 +114,7 @@ export const Reports: React.FC = () => {
                         <tbody className="divide-y divide-slate-50">
                             {topCustomers.slice(0, 5).map((c, i) => (
                                 <tr key={i} className="cursor-pointer hover:bg-slate-50" onClick={() => handleDrillDown('customer', c.id)}>
-                                    <td className="py-3 px-2 font-bold text-slate-700">{c.name}</td>
+                                    <td className="py-3 px-2 font-bold text-slate-700">{cleanText(c.name)}</td>
                                     <td className="py-3 px-2 text-right text-slate-400 font-mono text-xs">{formatCurrency(c.totalGross, false)}</td>
                                     <td className="py-3 px-2 text-right font-black text-slate-900">{formatCurrency(c.total, false)}</td>
                                 </tr>
@@ -150,7 +151,7 @@ export const Reports: React.FC = () => {
                     <tbody className="divide-y divide-slate-100">
                         {topCustomers.map((c, i) => (
                             <tr key={i} className="hover:bg-slate-50 cursor-pointer" onClick={() => handleDrillDown('customer', c.id)}>
-                                <td className="px-2 py-4 font-bold text-slate-800">{c.name}</td>
+                                <td className="px-2 py-4 font-bold text-slate-800">{cleanText(c.name)}</td>
                                 <td className="px-2 py-4 text-right font-medium text-slate-500">{c.invoiceCount}</td>
                                 <td className="px-2 py-4 text-right font-mono text-xs">{formatCurrency(c.totalGross, false)}</td>
                                 <td className="px-2 py-4 text-right font-mono text-xs text-rose-500">-{formatCurrency(c.totalDisc1 + c.totalDisc2, false)}</td>
@@ -192,8 +193,8 @@ export const Reports: React.FC = () => {
                     </button>
                 </div>
                 <div className="mb-8 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                    <h3 className="font-black text-slate-800 text-xl uppercase">{customer?.shop_name}</h3>
-                    <p className="text-xs text-slate-500 font-bold">{customer?.city_ref} • {customer?.phone}</p>
+                    <h3 className="font-black text-slate-800 text-xl uppercase">{cleanText(customer?.shop_name || '')}</h3>
+                    <p className="text-xs text-slate-500 font-bold">{cleanText(customer?.city_ref || '')} • {customer?.phone}</p>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -256,8 +257,8 @@ export const Reports: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                     {items.filter(i => stockFilter === 'all' || (stockFilter === 'out' ? i.is_out_of_stock : !i.is_out_of_stock)).map(i => (
                         <tr key={i.item_id}>
-                            <td className="px-4 py-4 font-bold text-slate-800">{i.item_display_name} <span className="block text-[10px] text-slate-400 font-mono">{i.item_number}</span></td>
-                            <td className="px-4 py-4 text-slate-500">{i.source_brand}</td>
+                            <td className="px-4 py-4 font-bold text-slate-800">{cleanText(i.item_display_name)} <span className="block text-[10px] text-slate-400 font-mono">{cleanText(i.item_number)}</span></td>
+                            <td className="px-4 py-4 text-slate-500">{cleanText(i.source_brand)}</td>
                             <td className="px-4 py-4 text-right font-mono font-bold">{formatCurrency(i.unit_value, false)}</td>
                             <td className="px-4 py-4 text-center uppercase text-[9px] font-black">{i.is_out_of_stock ? 'Out Stock' : 'In Stock'}</td>
                         </tr>
@@ -281,7 +282,7 @@ export const Reports: React.FC = () => {
             <div id="report-content" className="bg-white p-6 md:p-10 rounded-3xl border border-slate-100 shadow-sm text-slate-900">
                 <div id="pdf-header" className="hidden text-center border-b-2 border-slate-900 pb-6 mb-10">
                     <h1 className="text-[32px] font-black uppercase text-black m-0 tracking-tighter">{settings.company_name}</h1>
-                    <p className="text-[12px] font-bold text-slate-600 mt-1">{settings.address}</p>
+                    <p className="text-[12px] font-bold text-slate-600 mt-1">{cleanText(settings.address)}</p>
                     <div className="mt-6 inline-block bg-slate-900 text-white px-6 py-2 rounded-lg font-black text-sm tracking-widest uppercase">
                         {view === 'overview' ? 'Performance Summary' : view === 'performance' ? 'Sales Performance Report' : 'Account Ledger'}
                     </div>

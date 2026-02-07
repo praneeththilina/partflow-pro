@@ -2,6 +2,7 @@ import React from 'react';
 import { Order, Customer, CompanySettings, OrderLine } from '../types';
 import { pdfService } from '../services/pdf';
 import { formatCurrency } from '../utils/currency';
+import { cleanText } from '../utils/cleanText';
 
 interface InvoicePreviewProps {
     order: Order;
@@ -114,7 +115,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                 {isFirstPage ? (
                                     <div className="text-center border-b-2 border-black pb-2 mb-5">
                                         <h1 className="text-[28px] font-black text-black m-0 leading-none uppercase tracking-tighter">{settings.company_name}</h1>
-                                        <p className="mt-1 font-medium">{settings.address}</p>
+                                        <p className="mt-1 font-medium">{cleanText(settings.address)}</p>
                                         <p className="m-0 font-medium text-slate-700">Tel: {settings.phone} | Email: vidushan.motors@gmail.com</p>
                                         <div className="text-[22px] font-bold underline mt-4 uppercase">INVOICE</div>
                                     </div>
@@ -130,9 +131,9 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                     <div className="flex justify-between mb-6">
                                         <div className="w-1/2">
                                             <p className="font-bold mb-1 uppercase text-[10px] text-slate-500">Bill To:</p>
-                                            <div className="font-black text-[16px] uppercase leading-tight mb-1">{customer.shop_name}</div>
-                                            <p className="font-medium text-slate-700">{customer.address}</p>
-                                            <p className="font-medium text-slate-700">{customer.city_ref}</p>
+                                            <div className="font-black text-[16px] uppercase leading-tight mb-1">{cleanText(customer.shop_name)}</div>
+                                            <p className="font-medium text-slate-700">{cleanText(customer.address)}</p>
+                                            <p className="font-medium text-slate-700">{cleanText(customer.city_ref)}</p>
                                             <p className="mt-1 font-bold">Tel: {customer.phone}</p>
                                         </div>
                                         <div className="w-[40%]">
@@ -173,7 +174,7 @@ export const InvoicePreview: React.FC<InvoicePreviewProps> = ({ order, customer,
                                             return (
                                                 <tr key={line.line_id} className="even:bg-slate-50/50">
                                                     <td className="p-2 text-center font-medium">{globalIdx + 1}</td>
-                                                    <td className="p-2 font-bold uppercase text-[11px]">{line.item_name}</td>
+                                                    <td className="p-2 font-bold uppercase text-[11px]">{cleanText(line.item_name)}</td>
                                                     <td className="p-2 text-center font-bold">{line.quantity}</td>
                                                     <td className="p-2 text-right font-medium">{formatCurrency(line.unit_value, false)}</td>
                                                     <td className="p-2 text-right font-black">{formatCurrency(line.line_total, false)}</td>

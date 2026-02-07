@@ -4,6 +4,7 @@ import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 import { formatCurrency } from '../utils/currency';
 import { useToast } from '../context/ToastContext';
+import { cleanText } from '../utils/cleanText';
 
 interface CustomerListProps {
   onSelectCustomer: (customer: Customer) => void;
@@ -89,7 +90,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
   };
 
   const handleDeleteCustomer = async (customer: Customer) => {
-      if (!window.confirm(`Are you sure you want to delete ${customer.shop_name}?`)) return;
+      if (!window.confirm(`Are you sure you want to delete ${cleanText(customer.shop_name)}?`)) return;
       
       try {
           await db.deleteCustomer(customer.customer_id);
@@ -164,7 +165,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                       <div className={`w-16 h-16 ${actionCustomer.status === 'inactive' ? 'bg-slate-200 text-slate-400' : 'bg-indigo-100 text-indigo-600'} rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-3`}>
                           {getInitials(actionCustomer.shop_name)}
                       </div>
-                      <h3 className="text-xl font-black text-slate-900">{actionCustomer.shop_name}</h3>
+                      <h3 className="text-xl font-black text-slate-900">{cleanText(actionCustomer.shop_name)}</h3>
                       <p className="text-slate-500 text-sm">{actionCustomer.city_ref}</p>
                       {actionCustomer.status === 'inactive' && (
                           <span className="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase rounded-full border border-slate-200">Disabled</span>
@@ -303,14 +304,17 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                        <h3 className={`text-base font-bold truncate pr-2 ${customer.status === 'inactive' ? 'text-slate-400' : 'text-slate-900'}`}>{customer.shop_name}</h3>
+                        <h3 className={`text-base font-bold truncate pr-2 ${customer.status === 'inactive' ? 'text-slate-400' : 'text-slate-900'}`}>{cleanText(customer.shop_name)}</h3>
                         <div className="flex items-center gap-2">
-                            <button 
+                            <div 
                                 onClick={(e) => startEdit(e, customer)}
-                                className="text-slate-400 hover:text-indigo-600 p-1"
+                                className="text-slate-400 hover:text-indigo-600 p-1 cursor-pointer"
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => e.key === 'Enter' && startEdit(e, customer)}
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                            </button>
+                            </div>
                             {customer.sync_status === 'pending' && (
                                 <span className="flex-shrink-0 w-2 h-2 bg-amber-500 rounded-full" title="Pending Sync"></span>
                             )}

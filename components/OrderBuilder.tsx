@@ -6,6 +6,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils/currency';
 import { useToast } from '../context/ToastContext';
+import { cleanText } from '../utils/cleanText';
 
 interface OrderBuilderProps {
   onCancel: () => void;
@@ -131,11 +132,11 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
              newLines[existingLineIndex].line_total = newQty * selectedItem.unit_value;
              setLines(newLines);
         } else {
-            const newLine: OrderLine = {
+             const newLine: OrderLine = {
                 line_id: generateUUID(),
                 order_id: '',
                 item_id: selectedItem.item_id,
-                item_name: `${selectedItem.item_name} - ${selectedItem.vehicle_model} - ${selectedItem.source_brand}`, // Format for invoice
+                item_name: cleanText(`${selectedItem.item_name} - ${selectedItem.vehicle_model} - ${selectedItem.source_brand}`), // Format for invoice
                 quantity: qty,
                 unit_value: selectedItem.unit_value,
                 line_total: qty * selectedItem.unit_value
@@ -301,7 +302,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
             {/* Header */}
             <div className={`bg-white p-4 border-b border-slate-200 flex justify-between items-center rounded-t-xl shadow-sm shrink-0 transition-all ${isSearchFocused ? 'md:flex hidden' : 'flex'}`}>
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800">{customer.shop_name}</h2>
+                    <h2 className="text-lg font-bold text-slate-800">{cleanText(customer.shop_name)}</h2>
                     <div className="text-xs text-slate-500 flex items-center gap-2">
                         <span>Invoice Date:</span>
                         <input 
@@ -363,6 +364,49 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
                                     </button>
                                 )}
+                                
+                                {/* Catalog Search Dropdown */}
+                                {isSearchFocused && itemFilter.trim().length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-96 overflow-y-auto divide-y divide-slate-50">
+                                        {filteredItems.length > 0 ? (
+                                            filteredItems.slice(0, 20).map(item => {
+                                                const isOutOfStock = settings.stock_tracking_enabled 
+                                                    ? item.current_stock_qty <= 0 
+                                                    : item.is_out_of_stock;
+                                                
+                                                if (isOutOfStock) return null;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={item.item_id}
+                                                        onClick={() => {
+                                                            setSelectedItem(item);
+                                                            setItemFilter('');
+                                                            setIsSearchFocused(false);
+                                                        }}
+                                                        className={`p-3 flex justify-between items-center transition-colors cursor-pointer active:bg-slate-100 ${isInCart(item.item_id) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}
+                                                    >
+                                                        <div className="min-w-0 flex items-center gap-2">
+                                                            {isInCart(item.item_id) && <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>}
+                                                            <div className="min-w-0">
+                                                                <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>{cleanText(item.item_display_name)}</p>
+                                                        <p className="text-[10px] text-slate-400 font-mono truncate">{cleanText(item.item_number)} • {cleanText(item.vehicle_model)} • {cleanText(item.source_brand)}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right shrink-0 ml-2">
+                                                            <p className={`text-xs font-black ${isInCart(item.item_id) ? 'text-indigo-700' : 'text-indigo-600'}`}>{formatCurrency(item.unit_value)}</p>
+                                                            {isInCart(item.item_id) && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-tighter">Added</span>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="p-4 text-center text-slate-500 text-sm">
+                                                No items found for "{itemFilter}"
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <button 
                                 onClick={() => setShowScanner(!showScanner)}
@@ -379,7 +423,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 onChange={e => setModelFilter(e.target.value)}
                             >
                                 <option value="All">All Models</option>
-                                {availableModels.filter(m => m !== 'All').map(m => <option key={m} value={m}>{m}</option>)}
+                                {availableModels.filter(m => m !== 'All').map(m => <option key={String(m)} value={String(m)}>{cleanText(String(m))}</option>)}
                             </select>
                             <select 
                                 className="w-32 md:flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shrink-0"
@@ -387,7 +431,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 onChange={e => setCountryFilter(e.target.value)}
                             >
                                 <option value="All">All Origins</option>
-                                {availableCountries.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                                {availableCountries.filter(c => c !== 'All').map(c => <option key={String(c)} value={String(c)}>{cleanText(String(c))}</option>)}
                             </select>
                             <select 
                                 className="w-32 md:flex-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none shrink-0"
@@ -409,9 +453,10 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                         </div>
                     )}
                     
-                    {/* Item List */}
-                    <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-1.5">
-                        {filteredItems.map(item => {
+                    {/* Item List - Hide when search dropdown is active */}
+                    {!(isSearchFocused && itemFilter.trim().length > 0) && (
+                        <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-1.5">
+                            {filteredItems.map(item => {
                             const isOutOfStock = settings.stock_tracking_enabled 
                                 ? item.current_stock_qty <= 0 
                                 : item.is_out_of_stock;
@@ -439,18 +484,18 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                             </div>
                                             <div className="min-w-0">
                                                 <div className={`font-bold ${isSearchFocused ? 'text-xs' : 'text-sm'} truncate leading-tight ${isOutOfStock ? 'text-rose-700' : isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>
-                                                    {item.item_display_name}
+                                                    {cleanText(item.item_display_name)}
                                                     {isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-rose-600 underline decoration-double">Out of Stock</span>}
                                                     {isInCart(item.item_id) && !isOutOfStock && <span className="ml-2 text-[10px] font-black uppercase text-indigo-600">In Cart</span>}
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-0.5 text-[10px] leading-none text-slate-500">
                                                     {!isSearchFocused && (
                                                         <>
-                                                            <span className="font-black text-indigo-700 font-mono text-xs">{item.item_number}</span>
+                                                            <span className="font-black text-indigo-700 font-mono text-xs">{cleanText(item.item_number)}</span>
                                                             <span className="text-slate-300">•</span>
-                                                            <span className="uppercase font-bold text-slate-600">{item.vehicle_model}</span>
+                                                            <span className="uppercase font-bold text-slate-600">{cleanText(item.vehicle_model)}</span>
                                                             <span className="text-slate-300">•</span>
-                                                            <span>{item.source_brand}</span>
+                                                            <span>{cleanText(item.source_brand)}</span>
                                                         </>
                                                     )}
                                                 </div>
@@ -471,6 +516,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                             );
                         })}
                     </div>
+                    )}
                 </div>
 
                 {/* Cart Pane (Right on Desktop, Tab 2 on Mobile) */}
@@ -504,7 +550,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                 onChange={(e) => setItemFilter(e.target.value)}
                             />
                             {itemFilter.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-60 overflow-y-auto divide-y divide-slate-50">
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-xl z-[70] max-h-96 overflow-y-auto divide-y divide-slate-50">
                                     {items
                                         .filter(item => {
                                             const isOutOfStock = settings.stock_tracking_enabled ? item.current_stock_qty <= 0 : item.is_out_of_stock;
@@ -528,8 +574,8 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                                 <div className="min-w-0 flex items-center gap-2">
                                                     {isInCart(item.item_id) && <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>}
                                                     <div className="min-w-0">
-                                                        <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>{item.item_display_name}</p>
-                                                        <p className="text-[10px] text-slate-400 font-mono truncate">{item.item_number} • {item.vehicle_model} • {item.source_brand}</p>
+                                                        <p className={`text-xs font-bold truncate ${isInCart(item.item_id) ? 'text-indigo-900' : 'text-slate-800'}`}>{cleanText(item.item_display_name)}</p>
+                                                        <p className="text-[10px] text-slate-400 font-mono truncate">{cleanText(item.item_number)} • {cleanText(item.vehicle_model)} • {cleanText(item.source_brand)}</p>
                                                     </div>
 
                                                 </div>
@@ -560,7 +606,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                                     {lines.map(line => (
                                         <li key={line.line_id} className="p-3 flex justify-between items-start hover:bg-white transition-colors group bg-white border-b border-slate-100 last:border-0">
                                             <div className="flex-1 min-w-0 pr-2">
-                                                <div className="text-xs font-bold text-slate-900 break-words leading-snug">{line.item_name}</div>
+                                                <div className="text-xs font-bold text-slate-900 break-words leading-snug">{cleanText(line.item_name)}</div>
                                                 <div className="flex items-center gap-2 mt-1.5">
                                                     <div className="flex items-center bg-slate-50 rounded-lg overflow-hidden border border-slate-200">
                                                         <button 
@@ -654,7 +700,7 @@ export const OrderBuilder: React.FC<OrderBuilderProps> = ({ onCancel, onOrderCre
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 pb-safe">
                     <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="text-center mb-6">
-                            <h3 className="text-lg font-bold text-slate-900">{selectedItem.item_display_name}</h3>
+                            <h3 className="text-lg font-bold text-slate-900">{cleanText(selectedItem.item_display_name)}</h3>
                             {settings.stock_tracking_enabled && (
                                 <p className="text-sm text-slate-500">Available: {selectedItem.current_stock_qty}</p>
                             )}

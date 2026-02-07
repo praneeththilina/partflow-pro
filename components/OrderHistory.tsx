@@ -3,6 +3,7 @@ import { Order, Customer, DeliveryStatus } from '../types';
 import { db } from '../services/db';
 import { pdfService } from '../services/pdf';
 import { formatCurrency } from '../utils/currency';
+import { cleanText } from '../utils/cleanText';
 
 interface OrderHistoryProps {
     onViewInvoice: (order: Order) => void;
@@ -21,7 +22,10 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
         setCustomers([...db.getCustomers()]);
     }, []);
 
-    const getCustomerName = (id: string) => customers.find(c => c.customer_id === id)?.shop_name || 'Unknown';
+    const getCustomerName = (id: string) => {
+        const name = customers.find(c => c.customer_id === id)?.shop_name || 'Unknown';
+        return cleanText(name);
+    };
     const getCustomer = (id: string) => customers.find(c => c.customer_id === id);
 
     const filteredOrders = orders.filter(o => 

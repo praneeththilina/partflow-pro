@@ -5,6 +5,7 @@ import { generateUUID } from '../utils/uuid';
 import { formatCurrency } from '../utils/currency';
 import { generateSKU } from '../utils/skuGenerator';
 import { useToast } from '../context/ToastContext';
+import { cleanText } from '../utils/cleanText';
 
 import { Modal } from './ui/Modal';
 
@@ -138,7 +139,7 @@ export const InventoryList: React.FC = () => {
       setAlertConfig({
           isOpen: true,
           title: `Mark as ${action}?`,
-          message: `Are you sure you want to mark "${item.item_display_name}" as ${action}?`,
+          message: `Are you sure you want to mark "${cleanText(item.item_display_name)}" as ${action}?`,
           type: item.is_out_of_stock ? 'success' : 'danger',
           onConfirm: async () => {
               const updatedItem = { 
@@ -447,10 +448,10 @@ export const InventoryList: React.FC = () => {
                                 <div className="flex items-center gap-3">
                                     {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" title="Pending Sync"></span>}
                                     <div>
-                                        <div className={`text-sm font-bold leading-tight ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{item.item_display_name}</div>
+                                        <div className={`text-sm font-bold leading-tight ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{cleanText(item.item_display_name)}</div>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded uppercase tracking-tighter">{item.vehicle_model}</span>
-                                            <span className="text-[10px] text-slate-400 font-mono">{item.item_number}</span>
+                                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded uppercase tracking-tighter">{cleanText(item.vehicle_model)}</span>
+                                            <span className="text-[10px] text-slate-400 font-mono">{cleanText(item.item_number)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -458,7 +459,7 @@ export const InventoryList: React.FC = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                                 <div className="text-xs text-slate-500 flex items-center gap-1">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    {item.source_brand}
+                                    {cleanText(item.source_brand)}
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-slate-900">
@@ -514,14 +515,14 @@ export const InventoryList: React.FC = () => {
                 <div className="flex-1 min-w-0 pr-4 pl-2">
                     <div className="flex items-center gap-2">
                         {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>}
-                        <h4 className={`text-sm font-bold truncate ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{item.item_display_name}</h4>
+                        <h4 className={`text-sm font-bold truncate ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{cleanText(item.item_display_name)}</h4>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{item.vehicle_model}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{item.item_number}</span>
+                        <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{cleanText(item.vehicle_model)}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{cleanText(item.item_number)}</span>
                     </div>
                     <div className="mt-1 flex items-center text-[10px] text-slate-500">
-                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">{item.source_brand}</span>
+                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">{cleanText(item.source_brand)}</span>
                     </div>
                 </div>
                 <div className="text-right flex flex-col items-end space-y-1">
@@ -568,7 +569,7 @@ export const InventoryList: React.FC = () => {
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in duration-200">
                   <div className="p-6 border-b border-slate-100">
                       <h3 className="text-lg font-bold text-slate-800">Adjust Stock</h3>
-                      <p className="text-sm text-slate-500">{adjustItem.item_display_name}</p>
+                      <p className="text-sm text-slate-500">{cleanText(adjustItem.item_display_name)}</p>
                   </div>
                   <div className="p-6 space-y-4">
                       <div className="flex bg-slate-100 p-1 rounded-lg">

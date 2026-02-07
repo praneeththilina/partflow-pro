@@ -3,6 +3,7 @@ import { db } from '../services/db';
 import { useToast } from '../context/ToastContext';
 import { Preferences } from '@capacitor/preferences';
 import { formatCurrency } from '../utils/currency';
+import { cleanText } from '../utils/cleanText';
 
 interface DashboardProps {
     onAction: (tab: string) => void;
@@ -174,9 +175,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                                 .map(item => (
                                     <div className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                         <div>
-                                            <p className="text-sm font-bold text-slate-900 leading-tight">{item.item_display_name}</p>
+                                            <p className="text-sm font-bold text-slate-900 leading-tight">{cleanText(item.item_display_name)}</p>
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{item.vehicle_model}</span>
+                                                <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-1 rounded">{cleanText(item.vehicle_model)}</span>
                                                 <span className="text-[10px] text-slate-400 font-mono uppercase">{item.item_number}</span>
                                             </div>
                                         </div>
@@ -207,7 +208,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                             >
                                 <div>
                                     <p className="text-sm font-bold text-slate-900 truncate max-w-[150px]">
-                                        {db.getCustomers().find(c => c.customer_id === order.customer_id)?.shop_name || 'Unknown Shop'}
+                                        {cleanText(db.getCustomers().find(c => c.customer_id === order.customer_id)?.shop_name || 'Unknown Shop')}
                                     </p>
                                     <p className="text-[10px] text-slate-400">{order.order_date}</p>
                                 </div>

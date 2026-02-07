@@ -4,6 +4,7 @@ import { db } from '../services/db';
 import { useAuth } from '../context/AuthContext';
 
 import { API_CONFIG } from '../config';
+import { cleanText } from '../utils/cleanText';
 
 interface SettingsProps {
     onLogout: () => void;
@@ -162,7 +163,7 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout }) => {
                             <textarea 
                                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                                 rows={3}
-                                value={settings.address}
+                                value={cleanText(settings.address)}
                                 onChange={e => setSettings({...settings, address: e.target.value})}
                             />
                         </div>

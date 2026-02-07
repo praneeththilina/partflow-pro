@@ -3,6 +3,7 @@ import { Customer, Order, Payment, PaymentType } from '../types';
 import { db } from '../services/db';
 import { generateUUID } from '../utils/uuid';
 import { formatCurrency } from '../utils/currency';
+import { cleanText } from '../utils/cleanText';
 
 interface ShopProfileProps {
     customer: Customer;
@@ -82,7 +83,7 @@ export const ShopProfile: React.FC<ShopProfileProps> = ({ customer, onBack, onVi
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 </button>
                 <div className="flex-1">
-                    <h2 className="text-lg font-black text-slate-900">{customer.shop_name}</h2>
+                    <h2 className="text-lg font-black text-slate-900">{cleanText(customer.shop_name)}</h2>
                     <p className="text-xs text-slate-500">{customer.city_ref}</p>
                 </div>
                 {customer.outstanding_balance > 0 && (
