@@ -333,7 +333,7 @@ export const InventoryList: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Display Name *</label>
                         <input 
-                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
+                            className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" 
                             value={newItem.item_display_name || ''} 
                             onChange={e => setNewItem({...newItem, item_display_name: e.target.value})} 
                             onBlur={handleDescriptionBlur}
@@ -345,7 +345,7 @@ export const InventoryList: React.FC = () => {
                             <label className="block text-sm font-medium text-slate-700 mb-1">SKU / Item Number *</label>
                             <div className="relative">
                                 <input 
-                                    className={`w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none pr-10 ${skuLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'}`} 
+                                    className={`w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none pr-10 text-sm ${skuLocked ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white'}`} 
                                     value={newItem.item_number || ''} 
                                     onChange={e => setNewItem({...newItem, item_number: e.target.value})} 
                                     placeholder="e.g. BP-102"
@@ -366,29 +366,29 @@ export const InventoryList: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Internal Name</label>
-                            <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.item_name || ''} onChange={e => setNewItem({...newItem, item_name: e.target.value})} placeholder="e.g. Brake Pad" />
+                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.item_name || ''} onChange={e => setNewItem({...newItem, item_name: e.target.value})} placeholder="e.g. Brake Pad" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Vehicle Model</label>
-                            <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.vehicle_model || ''} onChange={e => setNewItem({...newItem, vehicle_model: e.target.value})} placeholder="e.g. Corolla 2018" />
+                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.vehicle_model || ''} onChange={e => setNewItem({...newItem, vehicle_model: e.target.value})} placeholder="e.g. Corolla 2018" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Source Brand / Country</label>
-                            <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.source_brand || ''} onChange={e => setNewItem({...newItem, source_brand: e.target.value})} placeholder="e.g. China" />
+                            <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.source_brand || ''} onChange={e => setNewItem({...newItem, source_brand: e.target.value})} placeholder="e.g. China" />
                         </div>
                     </div>
                     {settings.category_enabled && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                                <input className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.category || ''} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="e.g. Engine" />
+                                <input className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.category || ''} onChange={e => setNewItem({...newItem, category: e.target.value})} placeholder="e.g. Engine" />
                             </div>
                             {settings.stock_tracking_enabled && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
-                                    <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                                    <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
                                 </div>
                             )}
                         </div>
@@ -396,31 +396,32 @@ export const InventoryList: React.FC = () => {
                     {!settings.category_enabled && settings.stock_tracking_enabled && (
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Threshold</label>
-                            <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
+                            <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.low_stock_threshold || ''} onChange={e => setNewItem({...newItem, low_stock_threshold: parseInt(e.target.value)})} placeholder="10" />
                         </div>
                     )}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Unit Value (Price) *</label>
-                            <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.unit_value || ''} onChange={e => setNewItem({...newItem, unit_value: parseFloat(e.target.value)})} placeholder="0.00" />
+                            <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.unit_value || ''} onChange={e => setNewItem({...newItem, unit_value: parseFloat(e.target.value)})} placeholder="0.00" />
                         </div>
                         {settings.stock_tracking_enabled && (
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Opening Stock</label>
-                                <input type="number" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={newItem.current_stock_qty || ''} onChange={e => setNewItem({...newItem, current_stock_qty: parseInt(e.target.value)})} placeholder="0" />
+                                <input type="number" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" value={newItem.current_stock_qty || ''} onChange={e => setNewItem({...newItem, current_stock_qty: parseInt(e.target.value)})} placeholder="0" />
                             </div>
                         )}
                     </div>
                 </div>
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
+                <div className="p-4 md:p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
                     {editingItem && (
-                        <button onClick={handleDeleteItem} className="bg-rose-100 text-rose-600 px-4 py-3 rounded-xl font-bold hover:bg-rose-200">
+                        <button onClick={handleDeleteItem} className="bg-rose-100 text-rose-600 px-4 py-3.5 rounded-xl font-bold hover:bg-rose-200">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     )}
-                    <button onClick={handleSaveItem} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 shadow-sm">{editingItem ? 'Update Item' : 'Add to Inventory'}</button>
-                    <button onClick={() => { setShowAddForm(false); setEditingItem(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3 rounded-xl font-semibold hover:bg-slate-50">Cancel</button>
+                    <button onClick={handleSaveItem} className="flex-1 bg-indigo-600 text-white py-3.5 rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 transition-transform">{editingItem ? 'Update Item' : 'Add to Inventory'}</button>
+                    <button onClick={() => { setShowAddForm(false); setEditingItem(null); }} className="flex-1 bg-white text-slate-700 border border-slate-300 py-3.5 rounded-xl font-bold hover:bg-slate-50 active:scale-95 transition-transform">Cancel</button>
                 </div>
+
             </div>
         </div>
       )}
