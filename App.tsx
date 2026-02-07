@@ -34,6 +34,7 @@ function AppContent() {
   const [dbInitialized, setDbInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void} | null>(null);
 
   // Handle Tab Change with History
   const navigateTo = (tab: string) => {
@@ -210,12 +211,18 @@ function AppContent() {
         }
         return <OrderBuilder 
             onCancel={() => {
-                if(window.confirm(editingOrder ? "Discard changes?" : "Abandon current order?")) {
-                    setSelectedCustomer(null);
-                    setEditingOrder(null);
-                    setDraftOrder(null);
-                    navigateTo(editingOrder ? 'history' : 'home');
-                }
+                setConfirmConfig({
+                    isOpen: true,
+                    title: editingOrder ? "Discard Changes?" : "Abandon Order?",
+                    message: "Are you sure? Any unsaved changes will be lost.",
+                    onConfirm: () => {
+                        setSelectedCustomer(null);
+                        setEditingOrder(null);
+                        setDraftOrder(null);
+                        navigateTo(editingOrder ? 'history' : 'home');
+                        setConfirmConfig(null);
+                    }
+                });
             }} 
             onOrderCreated={handleOrderCreated}
             existingCustomer={selectedCustomer || undefined} 
@@ -260,6 +267,18 @@ function AppContent() {
             onConfirm={handleExitApp}
             onCancel={() => setShowExitModal(false)}
         />
+
+        {confirmConfig && (
+            <Modal
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                onConfirm={confirmConfig.onConfirm}
+                onCancel={() => setConfirmConfig(null)}
+                confirmText="Confirm"
+                type="danger"
+            />
+        )}
     </>
   );
 }

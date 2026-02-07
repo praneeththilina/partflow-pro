@@ -13,7 +13,7 @@ We redesigned the mobile inventory list to be **ultra-compact**:
 
 ### 2. Simplified Information
 - **Prioritized**: Item Name and Price are primary.
-- **Secondary**: SKU and Model are small tags.
+- **Secondary**: SKU, Model, and **Origin (Country)** are now displayed on the second line for complete context.
 - **Stock Actions**: Replaced large buttons with small status indicators (dots/text) to save height.
 
 ### 3. Result

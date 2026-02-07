@@ -6,6 +6,8 @@ import { formatCurrency } from '../utils/currency';
 import { cleanText } from '../utils/cleanText';
 import { useTheme } from '../context/ThemeContext';
 
+import { Modal } from './ui/Modal';
+
 interface OrderHistoryProps {
     onViewInvoice: (order: Order) => void;
     onEditOrder?: (order: Order) => void;
@@ -18,11 +20,17 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
     const [filter, setFilter] = useState('');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(20);
+    const [confirmConfig, setConfirmConfig] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void} | null>(null);
 
     useEffect(() => {
         setOrders([...db.getOrders()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
         setCustomers([...db.getCustomers()]);
     }, []);
+
+    useEffect(() => {
+        setVisibleCount(20);
+    }, [filter]);
 
     const getCustomerName = (id: string) => {
         const name = customers.find(c => c.customer_id === id)?.shop_name || 'Unknown';
@@ -35,7 +43,7 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
         o.order_id.toLowerCase().includes(filter.toLowerCase())
     );
 
-    const groupedOrders = filteredOrders.reduce((groups, order) => {
+    const groupedOrders = filteredOrders.slice(0, visibleCount).reduce((groups, order) => {
         const date = order.order_date;
         if (!groups[date]) groups[date] = [];
         groups[date].push(order);
@@ -53,13 +61,25 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
 
     const handleDelete = async (order: Order) => {
         if (order.sync_status === 'synced') {
-            alert("Cannot delete orders that have already been synced to the server.");
+            setConfirmConfig({
+                isOpen: true,
+                title: "Cannot Delete",
+                message: "This order has already been synced to the server.",
+                onConfirm: () => setConfirmConfig(null)
+            });
             return;
         }
-        if (window.confirm("Are you sure you want to delete this order? Stock will be restored.")) {
-            await db.deleteOrder(order.order_id);
-            setOrders([...db.getOrders()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-        }
+        
+        setConfirmConfig({
+            isOpen: true,
+            title: "Delete Order?",
+            message: "Are you sure you want to delete this order? Stock will be restored.",
+            onConfirm: async () => {
+                await db.deleteOrder(order.order_id);
+                setOrders([...db.getOrders()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+                setConfirmConfig(null);
+            }
+        });
     };
 
     const handleUpdateDelivery = async (status: DeliveryStatus) => {
@@ -172,6 +192,17 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
                         <p className="text-xs">Try searching for a different shop.</p>
                     </div>
                 )}
+
+                {visibleCount < filteredOrders.length && (
+                    <div className="text-center py-4">
+                        <button 
+                            onClick={() => setVisibleCount(prev => prev + 20)}
+                            className={`px-6 py-2 rounded-full font-bold text-sm bg-white border border-slate-200 shadow-sm hover:bg-slate-50 ${themeClasses.text} transition-all active:scale-95`}
+                        >
+                            Load More ({filteredOrders.length - visibleCount} remaining)
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Delivery Status Modal */}
@@ -208,6 +239,18 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Confirmation Modal */}
+            {confirmConfig && (
+                <Modal
+                    isOpen={confirmConfig.isOpen}
+                    title={confirmConfig.title}
+                    message={confirmConfig.message}
+                    onConfirm={confirmConfig.onConfirm}
+                    onCancel={() => setConfirmConfig(null)}
+                    confirmText="Delete"
+                    type="danger"
+                />
             )}
         </div>
     );

@@ -6,6 +6,7 @@ import { formatCurrency } from '../utils/currency';
 import { useToast } from '../context/ToastContext';
 import { cleanText } from '../utils/cleanText';
 import { useTheme } from '../context/ThemeContext';
+import { Modal } from './ui/Modal';
 
 interface CustomerListProps {
   onSelectCustomer: (customer: Customer) => void;
@@ -17,14 +18,15 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
   const { showToast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({});
   const [showInactive, setShowInactive] = useState(false);
-  
-  // Action Sheet State
+  const [showAddForm, setShowAddForm] = useState(false);
   const [actionCustomer, setActionCustomer] = useState<Customer | null>(null);
   const [showAdminActions, setShowAdminActions] = useState(false);
+  
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({});
+  const [showPassModal, setShowPassModal] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void} | null>(null);
 
   useEffect(() => {
     setCustomers(db.getCustomers());
@@ -92,15 +94,22 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
   };
 
   const handleDeleteCustomer = async (customer: Customer) => {
-      if (!window.confirm(`Are you sure you want to delete ${cleanText(customer.shop_name)}?`)) return;
-      
-      try {
-          await db.deleteCustomer(customer.customer_id);
-          setCustomers([...db.getCustomers()]);
-          setActionCustomer(null);
-      } catch (e: any) {
-          alert(e.message);
-      }
+      setConfirmConfig({
+          isOpen: true,
+          title: "Delete Shop?",
+          message: `Are you sure you want to delete ${cleanText(customer.shop_name)}?`,
+          onConfirm: async () => {
+              try {
+                  await db.deleteCustomer(customer.customer_id);
+                  setCustomers([...db.getCustomers()]);
+                  setActionCustomer(null);
+                  setConfirmConfig(null);
+              } catch (e: any) {
+                  showToast(e.message, "error");
+                  setConfirmConfig(null);
+              }
+          }
+      });
   };
 
   const filteredCustomers = customers.filter(c => {
@@ -345,6 +354,18 @@ export const CustomerList: React.FC<CustomerListProps> = ({ onSelectCustomer, on
             <p className="text-slate-500 max-w-xs mx-auto mt-1">Start by adding a new customer or try a different search.</p>
         </div>
       )}
+
+        {confirmConfig && (
+            <Modal
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                onConfirm={confirmConfig.onConfirm}
+                onCancel={() => setConfirmConfig(null)}
+                confirmText="Delete"
+                type="danger"
+            />
+        )}
     </div>
   );
 };

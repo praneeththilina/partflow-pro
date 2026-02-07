@@ -590,6 +590,8 @@ export const InventoryList: React.FC = () => {
                             <span className="font-mono bg-slate-50 px-1 rounded border border-slate-100">{cleanText(item.item_number)}</span>
                             <span>•</span>
                             <span className={`font-bold uppercase ${themeClasses.text}`}>{cleanText(item.vehicle_model)}</span>
+                            <span>•</span>
+                            <span>{cleanText(item.source_brand)}</span>
                         </div>
                     </div>
                     
