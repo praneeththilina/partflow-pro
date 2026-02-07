@@ -20,6 +20,12 @@ We redesigned the mobile inventory list to be **ultra-compact**:
 - **Capacity**: Can now display 5+ items in the visible area above the keyboard.
 - **Experience**: "Type-and-see" filtering is much smoother.
 
+## Update: Skeleton Loading (Perceived Performance)
+**Problem**: When opening the inventory list, users would briefly see a blank white screen or a layout shift as data loaded from the database.
+**Solution**:
+- **Skeleton UI**: Added animated gray placeholders that mimic the exact shape of the inventory cards.
+- **Implementation**: Displayed for 400ms on mount to provide immediate visual feedback that "content is coming", making the app feel faster and more native.
+
 ## Update: Compact Header for Small Screens
 **Problem**: The search bar and action buttons took up nearly 25% of the screen on mobile, pushing content down.
 **Solution**:

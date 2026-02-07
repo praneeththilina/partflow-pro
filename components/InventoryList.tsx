@@ -7,6 +7,7 @@ import { generateSKU } from '../utils/skuGenerator';
 import { useToast } from '../context/ToastContext';
 import { cleanText } from '../utils/cleanText';
 import { useTheme } from '../context/ThemeContext';
+import { InventorySkeleton } from './ui/skeletons/ListSkeletons';
 
 import { Modal } from './ui/Modal';
 
@@ -14,6 +15,7 @@ export const InventoryList: React.FC = () => {
   const { themeClasses } = useTheme();
   const { showToast } = useToast();
   const [items, setItems] = useState<Item[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false); // Mobile filter toggle
   const [modelFilter, setModelFilter] = useState('');
@@ -49,7 +51,14 @@ export const InventoryList: React.FC = () => {
   const settings = db.getSettings();
 
   useEffect(() => {
-    setItems(db.getItems());
+    // Simulate loading for better UX perception
+    const loadData = async () => {
+        setIsLoading(true);
+        await new Promise(resolve => setTimeout(resolve, 400)); 
+        setItems(db.getItems());
+        setIsLoading(false);
+    };
+    loadData();
   }, []);
 
   const categories = ['All', settings.stock_tracking_enabled ? 'Low Stock' : 'Out of Stock', ...Array.from(new Set(items.map(i => i.category || 'Uncategorized')))].filter(Boolean) as string[];
@@ -486,6 +495,11 @@ export const InventoryList: React.FC = () => {
       )}
       
       {/* Mobile Card View (default on small) / Desktop Table (default on large) */}
+      {isLoading ? (
+          <div className="hidden md:block">
+              <InventorySkeleton />
+          </div>
+      ) : (
       <div className="hidden md:block bg-white shadow-sm rounded-3xl overflow-hidden border border-slate-200">
         <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100">
@@ -571,8 +585,14 @@ export const InventoryList: React.FC = () => {
             </table>
         </div>
       </div>
+      )}
 
       {/* Mobile Stacked List (Compact for Keyboard Visibility) */}
+      {isLoading ? (
+          <div className="md:hidden">
+              <InventorySkeleton />
+          </div>
+      ) : (
       <div className="md:hidden bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
         {filteredItems.map(item => {
             const status = getStockStatus(item.current_stock_qty, item.low_stock_threshold);
@@ -624,6 +644,7 @@ export const InventoryList: React.FC = () => {
             </div>
         )}
       </div>
+      )}
 
 
 
