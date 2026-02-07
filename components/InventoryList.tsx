@@ -509,8 +509,9 @@ export const InventoryList: React.FC = () => {
       {/* Mobile Stacked List */}
       <div className="md:hidden space-y-3">
         {filteredItems.map(item => (
-            <div key={item.item_id} onClick={() => startEdit(item)} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center active:bg-slate-50">
-                <div className="flex-1 min-w-0 pr-4">
+            <div key={item.item_id} onClick={() => startEdit(item)} className={`bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center active:bg-slate-50 transition-colors relative overflow-hidden group`}>
+                {item.is_out_of_stock && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-rose-500"></div>}
+                <div className="flex-1 min-w-0 pr-4 pl-2">
                     <div className="flex items-center gap-2">
                         {item.sync_status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>}
                         <h4 className={`text-sm font-bold truncate ${item.is_out_of_stock ? 'text-rose-700' : 'text-slate-900'}`}>{item.item_display_name}</h4>

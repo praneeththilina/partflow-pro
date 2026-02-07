@@ -12,6 +12,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) => {
     const [stats, setStats] = useState(db.getDashboardStats());
     const [recentOrders, setRecentOrders] = useState(db.getOrders().slice(0, 5));
+    const [greeting, setGreeting] = useState('');
     const settings = db.getSettings();
 
     const { showToast } = useToast();
@@ -20,7 +21,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
         const updateWidget = async () => {
             const currentStats = db.getDashboardStats();
             setStats(currentStats);
-            setRecentOrders(db.getOrders().slice(0, 5));
+            setRecentOrders(db.getOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5));
+
+            // Greeting Logic
+            const hour = new Date().getHours();
+            if (hour < 12) setGreeting('Good Morning');
+            else if (hour < 18) setGreeting('Good Afternoon');
+            else setGreeting('Good Evening');
 
             // Sync Data to Widget Storage
             await Preferences.set({
@@ -45,7 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                        Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">Rep</span>
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">{settings.rep_name || 'Vidushan'}</span>
                     </h2>
                     <p className="text-slate-500 font-medium text-sm">Let's crush today's targets.</p>
                 </div>
@@ -87,17 +94,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onAction, onViewOrder }) =
                         <p className="text-[10px] text-slate-400 font-medium mt-1">Items below threshold</p>
                     </div>
                 ) : (
-                    <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
-                         <p className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">Platform Status</p>
-                         <p className="text-3xl font-black text-emerald-600">Online</p>
-                         <p className="text-[10px] text-slate-400 font-medium mt-1">Stock tracking disabled</p>
+                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 rounded-3xl shadow-lg shadow-emerald-100 text-white relative overflow-hidden">
+                         <p className="text-xs uppercase font-bold text-emerald-100 tracking-wider mb-2">System Status</p>
+                         <p className="text-3xl font-black text-white">Active</p>
+                         <p className="text-[10px] text-emerald-100 font-medium mt-1 opacity-80">Stock tracking off</p>
                     </div>
                 )}
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm cursor-pointer hover:shadow-md transition-all group" onClick={() => onAction('history')}>
                     <p className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">Total Orders</p>
                     <p className="text-3xl font-black text-slate-800 group-hover:scale-110 origin-left transition-transform">{stats.totalOrders}</p>
-                    <p className="text-[10px] text-emerald-600 font-bold mt-1 bg-emerald-50 inline-block px-1.5 rounded">All Time</p>
+                    <p className="text-[10px] text-indigo-600 font-bold mt-1 bg-indigo-50 inline-block px-1.5 rounded">All Time</p>
                 </div>
             </div>
 
