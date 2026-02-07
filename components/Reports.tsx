@@ -431,12 +431,12 @@ export const Reports: React.FC = () => {
 
     return (
         <div className="flex flex-col h-[calc(100vh-100px)] md:h-[calc(100vh-80px)] px-2 max-w-6xl mx-auto">
-            <div className="flex justify-between items-center no-print shrink-0 py-4">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 no-print shrink-0 py-4">
                 <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tighter">Business Intelligence</h2>
-                <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
-                    <input type="date" className="text-xs font-bold text-slate-600 bg-transparent outline-none w-24 md:w-auto" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} />
+                <div className="flex items-center justify-between md:justify-start gap-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm w-full md:w-auto">
+                    <input type="date" className="flex-1 md:w-auto text-xs font-bold text-slate-600 bg-transparent outline-none" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} />
                     <span className="text-slate-300">→</span>
-                    <input type="date" className="text-xs font-bold text-slate-600 bg-transparent outline-none w-24 md:w-auto" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} />
+                    <input type="date" className="flex-1 md:w-auto text-xs font-bold text-slate-600 bg-transparent outline-none" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} />
                 </div>
             </div>
 

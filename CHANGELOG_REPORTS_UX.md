@@ -24,6 +24,11 @@ We moved from a document-style layout to an app-style dashboard layout.
 ### 3. Visual Intelligence
 - Added **Sales Trend Chart** (Area Chart) using `recharts` to visualize revenue over time.
 
+## Header Optimization
+- **Date Period Layout**:
+  - **Mobile**: Date picker now moves to a new row below the title, utilizing the full width for easier date selection.
+  - **Desktop**: Maintains the space-efficient side-by-side layout.
+
 ## Technical Details
 - **Files Modified**: `components/Reports.tsx`
 - **Libraries Added**: `recharts`
