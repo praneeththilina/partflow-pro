@@ -4,6 +4,7 @@ import { db } from '../services/db';
 import { pdfService } from '../services/pdf';
 import { formatCurrency } from '../utils/currency';
 import { cleanText } from '../utils/cleanText';
+import { useTheme } from '../context/ThemeContext';
 
 interface OrderHistoryProps {
     onViewInvoice: (order: Order) => void;
@@ -11,6 +12,7 @@ interface OrderHistoryProps {
 }
 
 export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEditOrder }) => {
+    const { themeClasses } = useTheme();
     const [orders, setOrders] = useState<Order[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [filter, setFilter] = useState('');
@@ -32,6 +34,15 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
         getCustomerName(o.customer_id).toLowerCase().includes(filter.toLowerCase()) ||
         o.order_id.toLowerCase().includes(filter.toLowerCase())
     );
+
+    const groupedOrders = filteredOrders.reduce((groups, order) => {
+        const date = order.order_date;
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(order);
+        return groups;
+    }, {} as Record<string, Order[]>);
+
+    const sortedDates = Object.keys(groupedOrders).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
     const handleShare = (order: Order) => {
         const customer = getCustomer(order.customer_id);
@@ -72,129 +83,129 @@ export const OrderHistory: React.FC<OrderHistoryProps> = ({ onViewInvoice, onEdi
 
     return (
         <div className="space-y-4 pb-20 md:pb-0">
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-10">
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 sticky top-0 z-20 mx-2 mt-2">
                 <input 
                     type="text"
                     placeholder="Search by shop name or order ID..."
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                    className={`w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 ${themeClasses.ring} outline-none transition-shadow`}
                     value={filter}
                     onChange={e => setFilter(e.target.value)}
                 />
             </div>
 
-            <div className="space-y-3">
-                {filteredOrders.map(order => (
-                    <div key={order.order_id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="font-bold text-slate-900">{getCustomerName(order.customer_id)}</h3>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-[10px] text-slate-400 font-mono">{order.order_id.substring(0, 6).toUpperCase()}</p>
-                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border ${getDeliveryColor(order.delivery_status || 'pending')}`}>
-                                        {order.delivery_status || 'pending'}
-                                    </span>
-                                </div>
-                            </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-slate-900 text-sm">{formatCurrency(order.net_total)}</p>
-                                    <p className={`text-[10px] font-bold uppercase ${order.payment_status === 'paid' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                        {order.payment_status}
-                                    </p>
-                                </div>
-                        </div>
+            <div className="pb-20">
+                {sortedDates.map(date => (
+                    <div key={date} className="mb-6">
+                        <h3 className="sticky top-[4.5rem] bg-slate-50/95 backdrop-blur-sm py-3 px-4 text-xs font-black uppercase text-slate-400 z-10 border-b border-slate-100 flex justify-between items-center">
+                            <span>{new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                            <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full">{groupedOrders[date].length}</span>
+                        </h3>
+                        <div className="space-y-3 px-2 mt-2">
+                            {groupedOrders[date].map(order => (
+                                <div key={order.order_id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 active:scale-[0.99] transition-transform">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 text-sm">{getCustomerName(order.customer_id)}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] text-slate-400 font-mono bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                                                    #{order.order_id.substring(0, 6).toUpperCase()}
+                                                </span>
+                                                {order.delivery_status && (
+                                                    <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md border ${getDeliveryColor(order.delivery_status)}`}>
+                                                        {order.delivery_status.replace(/_/g, ' ')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`font-black text-sm ${themeClasses.textDark}`}>{formatCurrency(order.net_total)}</p>
+                                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${order.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                {order.payment_status}
+                                            </span>
+                                        </div>
+                                    </div>
 
-                        <div className="flex justify-between items-end border-t border-slate-50 pt-3">
-                            <div>
-                                <p className="text-xs text-slate-500">{order.lines.length} items</p>
-                                <p className="text-lg font-black text-indigo-700">{formatCurrency(order.net_total)}</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <button 
-                                    onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowDeliveryModal(true);
-                                    }}
-                                    className="bg-slate-50 text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                                    title="Update Delivery Status"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                                </button>
-                                <button 
-                                    onClick={() => onViewInvoice(order)}
-                                    className="bg-indigo-50 text-indigo-600 p-2 rounded-lg hover:bg-indigo-100 transition-colors"
-                                    title="View/Print Invoice"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                </button>
-                                {order.sync_status !== 'synced' && (order.delivery_status === 'pending' || !order.delivery_status) && onEditOrder && (
-                                    <button 
-                                        onClick={() => onEditOrder(order)}
-                                        className="bg-amber-50 text-amber-600 p-2 rounded-lg hover:bg-amber-100 transition-colors"
-                                        title="Edit Order"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                    </button>
-                                )}
-                                <button 
-                                    onClick={() => handleShare(order)}
-                                    className="bg-slate-100 text-slate-600 p-2 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                                    title="Share PDF"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                                </button>
-                                {order.sync_status !== 'synced' && (order.delivery_status === 'pending' || !order.delivery_status) && (
-                                    <button 
-                                        onClick={() => handleDelete(order)}
-                                        className="bg-rose-50 text-rose-600 p-2 rounded-lg hover:bg-rose-100 transition-colors"
-                                        title="Delete Order (Restore Stock)"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                )}
-                            </div>
+                                    <div className="flex justify-between items-center pt-3 border-t border-slate-50">
+                                        <p className="text-xs text-slate-400 font-medium">{order.lines.length} Items</p>
+                                        
+                                        <div className="flex gap-2">
+                                            {/* Action Buttons */}
+                                            <button 
+                                                onClick={() => { setSelectedOrder(order); setShowDeliveryModal(true); }}
+                                                className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
+                                                title="Delivery"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                                            </button>
+                                            
+                                            {order.sync_status !== 'synced' && (order.delivery_status === 'pending' || !order.delivery_status) && onEditOrder && (
+                                                <button 
+                                                    onClick={() => onEditOrder(order)}
+                                                    className="p-2 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                </button>
+                                            )}
+
+                                            <button 
+                                                onClick={() => onViewInvoice(order)}
+                                                className={`p-2 rounded-xl ${themeClasses.bgSoft} ${themeClasses.text} hover:${themeClasses.bgSoftHover} transition-colors`}
+                                                title="Invoice"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 ))}
 
                 {filteredOrders.length === 0 && (
                     <div className="text-center py-20 text-slate-400">
-                        <p>No orders found.</p>
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                        </div>
+                        <p className="font-bold text-slate-500">No orders found.</p>
+                        <p className="text-xs">Try searching for a different shop.</p>
                     </div>
                 )}
             </div>
 
             {/* Delivery Status Modal */}
             {showDeliveryModal && selectedOrder && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h3 className="text-lg font-black text-slate-800 mb-1">Update Delivery</h3>
-                        <p className="text-sm text-slate-500 mb-6">Order #{selectedOrder.order_id.substring(0, 6).toUpperCase()}</p>
+                <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4">
+                    <div className="bg-white w-full max-w-sm rounded-t-3xl md:rounded-3xl p-6 pb-20 md:pb-6 shadow-2xl animate-in slide-in-from-bottom-10 md:zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800 mb-1">Update Delivery</h3>
+                                <p className="text-xs font-mono text-slate-500">#{selectedOrder.order_id.substring(0, 6).toUpperCase()}</p>
+                            </div>
+                            <button onClick={() => { setShowDeliveryModal(false); setSelectedOrder(null); }} className="bg-slate-100 p-2 rounded-full text-slate-500">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
                         
-                        <div className="grid grid-cols-1 gap-2 mb-8">
+                        <div className="grid grid-cols-1 gap-2 mb-4">
                             {(['pending', 'shipped', 'out_for_delivery', 'delivered', 'failed', 'cancelled'] as DeliveryStatus[]).map(status => (
                                 <button
                                     key={status}
                                     onClick={() => handleUpdateDelivery(status)}
-                                    className={`w-full py-3 px-4 rounded-xl text-sm font-bold text-left border-2 transition-all flex items-center justify-between ${
+                                    className={`w-full py-3.5 px-4 rounded-xl text-sm font-bold text-left border-2 transition-all flex items-center justify-between ${
                                         selectedOrder.delivery_status === status 
-                                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                                        ? `${themeClasses.border} ${themeClasses.bgSoft} ${themeClasses.text}` 
                                         : 'border-slate-100 hover:border-slate-200 text-slate-600'
                                     }`}
                                 >
-                                    <span className="uppercase tracking-wide">{status.replace(/_/g, ' ')}</span>
+                                    <span className="uppercase tracking-wide text-xs">{status.replace(/_/g, ' ')}</span>
                                     {selectedOrder.delivery_status === status && (
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                     )}
                                 </button>
                             ))}
                         </div>
-
-                        <button 
-                            onClick={() => { setShowDeliveryModal(false); setSelectedOrder(null); }}
-                            className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-xl"
-                        >
-                            Close
-                        </button>
                     </div>
                 </div>
             )}
