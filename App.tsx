@@ -226,7 +226,7 @@ function AppContent() {
       case 'history':
         return <OrderHistory onViewInvoice={handleViewInvoice} onEditOrder={handleEditOrder} />;
       case 'reports':
-        return <Reports />;
+        return <Reports onOpenProfile={handleOpenProfile} />;
       case 'sync':
         return <SyncDashboard onSyncComplete={() => setIsSyncing(!isSyncing)} />;
       case 'settings':

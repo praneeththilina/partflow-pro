@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { Order, Item, Customer } from '../types';
+import { Customer, Item, Order } from '../types';
 import { pdfService } from '../services/pdf';
 import { formatCurrency } from '../utils/currency';
 import { InvoicePreview } from './InvoicePreview';
@@ -9,7 +9,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 type ReportView = 'overview' | 'revenue' | 'category' | 'customer' | 'stock' | 'invoice' | 'performance';
 
-export const Reports: React.FC = () => {
+interface ReportsProps {
+    onOpenProfile?: (customer: Customer) => void;
+}
+
+export const Reports: React.FC<ReportsProps> = ({ onOpenProfile }) => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [items, setItems] = useState<Item[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -291,9 +295,20 @@ export const Reports: React.FC = () => {
                         Print Ledger
                     </button>
                 </div>
-                <div className="mb-8 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                    <h3 className="font-black text-slate-800 text-xl uppercase">{cleanText(customer?.shop_name || '')}</h3>
-                    <p className="text-xs text-slate-500 font-bold">{cleanText(customer?.city_ref || '')} • {customer?.phone}</p>
+                <div className="mb-8 p-6 bg-slate-50 rounded-3xl border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 className="font-black text-slate-800 text-xl uppercase">{cleanText(customer?.shop_name || '')}</h3>
+                        <p className="text-xs text-slate-500 font-bold">{cleanText(customer?.city_ref || '')} • {customer?.phone}</p>
+                    </div>
+                    {customer && onOpenProfile && (
+                        <button 
+                            onClick={() => onOpenProfile(customer)}
+                            className="bg-white text-indigo-600 px-4 py-2.5 rounded-xl text-xs font-bold border border-indigo-100 hover:bg-indigo-50 shadow-sm flex items-center gap-2 transition-colors shrink-0 ml-4"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            Visit Profile
+                        </button>
+                    )}
                 </div>
                 <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-sm">
